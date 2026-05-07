@@ -54,6 +54,62 @@
 - **Labels:** Docs, Launch
 - **Estimate:** S
 
+### Card: Rewrite Project Docs from Harvest to Haul
+- **User story:** As a team, we need all project materials to reflect the Haul shopping comparison product.
+- **Acceptance criteria:** Proposal, product spec, launch plan, metrics plan, sprint plan, and research playbook all use Haul positioning.
+- **Priority:** P0
+- **Owner:** Patrick
+- **Labels:** Docs
+- **Estimate:** M
+
+### Card: Package Alpha Zip v0.1.0
+- **User story:** As a grader or tester, I need a downloadable zip that can be installed locally in Chrome.
+- **Acceptance criteria:** `haul-v0.1.0.zip` exists and contains the full `haul-extension` folder.
+- **Priority:** P0
+- **Owner:** Patrick
+- **Labels:** Launch, QA
+- **Estimate:** S
+
+### Card: Write README, Release Notes, and Privacy Policy
+- **User story:** As a tester, I need clear install instructions, release notes, and privacy information.
+- **Acceptance criteria:** `README.md`, `RELEASE-NOTES.md`, and `PRIVACY.md` exist in `haul-extension` and are linked from GitHub.
+- **Priority:** P0
+- **Owner:** Patrick
+- **Labels:** Docs, Launch
+- **Estimate:** M
+
+### Card: Security Hardening Pass
+- **User story:** As a user, I need Haul to safely render product data from external shopping sites.
+- **Acceptance criteria:** Unsafe product-data rendering and inline event handlers are removed; background messages are validated.
+- **Priority:** P0
+- **Owner:** Patrick
+- **Labels:** QA, Chrome Extension
+- **Estimate:** M
+
+### Card: Alpha Release Email Template
+- **User story:** As a team, we need a reusable email to send the alpha to 10 reference customers.
+- **Acceptance criteria:** `ALPHA-RELEASE-EMAIL.md` includes install steps, test instructions, and feedback link placeholders.
+- **Priority:** P0
+- **Owner:** Patrick
+- **Labels:** Research, Launch
+- **Estimate:** S
+
+### Card: Project III Submission Materials
+- **User story:** As a team, we need a clear checklist and Canvas text for the Alpha Release submission.
+- **Acceptance criteria:** `PROJECT-III-SUBMISSION.md` exists with repo, release, Trello, install, and feedback details.
+- **Priority:** P0
+- **Owner:** Patrick
+- **Labels:** Docs, Launch
+- **Estimate:** S
+
+### Card: Trello Sprint 1.D Plan Draft
+- **User story:** As a team, we need Sprint 1.D user stories and backlog ready to copy or seed into Trello.
+- **Acceptance criteria:** `TRELLO-SPRINT-1D.md` and the Trello seed script contain Done, Planned, QA, Backlog, and Blocked cards.
+- **Priority:** P0
+- **Owner:** Patrick
+- **Labels:** Docs, Launch
+- **Estimate:** S
+
 ---
 
 ## Sprint 1.D Planned
@@ -157,4 +213,3 @@
 - **Owner:** Unassigned
 - **Labels:** Launch
 - **Estimate:** M
-
