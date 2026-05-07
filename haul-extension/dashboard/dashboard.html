@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Haul — Compare Products</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f9fafb;
+      color: #1a1a1a;
+      min-height: 100vh;
+    }
+
+    /* Header */
+    .header {
+      background: #fff;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .header-left h1 { font-size: 18px; font-weight: 700; color: #1a1a1a; }
+    .header-left p { font-size: 13px; color: #6b7280; margin-top: 2px; }
+    .header-right { display: flex; gap: 8px; align-items: center; }
+
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s;
+    }
+    .btn-primary { background: #4f46e5; color: #fff; }
+    .btn-primary:hover { background: #4338ca; }
+    .btn-ghost { background: #f3f4f6; color: #374151; }
+    .btn-ghost:hover { background: #e5e7eb; }
+
+    /* Filters */
+    .filters {
+      padding: 12px 24px;
+      background: #fff;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+    }
+    .filter-btn {
+      padding: 6px 14px;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 8px;
+      background: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #6b7280;
+      white-space: nowrap;
+      transition: all 0.1s;
+    }
+    .filter-btn.active {
+      background: #1a1a1a;
+      border-color: #1a1a1a;
+      color: #fff;
+    }
+    .filter-btn:not(.active):hover { background: #f9fafb; }
+
+    /* Empty state */
+    .empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 24px;
+      text-align: center;
+    }
+    .empty-icon {
+      width: 72px; height: 72px;
+      background: #ede9fe;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #4f46e5;
+      margin-bottom: 20px;
+    }
+    .empty h2 { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+    .empty p { font-size: 14px; color: #6b7280; }
+
+    /* Comparison table */
+    .table-wrapper {
+      padding: 24px;
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    th, td {
+      padding: 12px 16px;
+      text-align: left;
+    }
+    thead tr {
+      border-bottom: 1px solid #e5e7eb;
+      background: #f9fafb;
+    }
+    tbody tr {
+      border-bottom: 1px solid #f3f4f6;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #fafafa; }
+
+    .row-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+      width: 100px;
+    }
+
+    /* Product column header */
+    .product-col-header {
+      min-width: 180px;
+      max-width: 200px;
+      vertical-align: top;
+      position: relative;
+    }
+    .product-col-header .remove-col-btn {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 24px;
+      height: 24px;
+      background: #f3f4f6;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #6b7280;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    th:hover .remove-col-btn { opacity: 1; }
+    .remove-col-btn:hover { background: #fee2e2; color: #dc2626; }
+
+    .product-img-cell {
+      width: 100%;
+      aspect-ratio: 1;
+      max-height: 140px;
+      background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 8px;
+      position: relative;
+    }
+    .product-img-cell img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .price-drop-badge, .sale-badge, .stock-badge {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 6px;
+    }
+    .price-drop-badge { background: #10b981; color: #fff; }
+    .sale-badge { background: #f59e0b; color: #fff; }
+
+    /* Cell data */
+    td.data-cell {
+      font-size: 13px;
+      color: #374151;
+      vertical-align: middle;
+    }
+    .price-display {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .price-main { font-size: 18px; font-weight: 700; color: #1a1a1a; }
+    .price-orig { font-size: 12px; color: #9ca3af; text-decoration: line-through; }
+
+    .go-btn {
+      width: 100%;
+      padding: 8px;
+      background: #4f46e5;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .go-btn:hover { background: #4338ca; }
+
+    /* Share toast */
+    #share-toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e1b4b;
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      display: none;
+      animation: toast-in 0.2s ease;
+      z-index: 100;
+    }
+    @keyframes toast-in { from { opacity:0; transform: translateX(-50%) translateY(8px); } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left">
+      <h1>Compare Products</h1>
+      <p id="header-sub">Loading…</p>
+    </div>
+    <div class="header-right">
+      <button class="btn btn-ghost" id="share-btn">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+        </svg>
+        Share
+      </button>
+      <button class="btn btn-primary" id="close-btn">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+        Close
+      </button>
+    </div>
+  </div>
+
+  <div class="filters" id="filters-bar"></div>
+  <div id="main-content"></div>
+  <div id="share-toast">Link copied to clipboard!</div>
+
+  <script src="dashboard.js"></script>
+</body>
+</html>
