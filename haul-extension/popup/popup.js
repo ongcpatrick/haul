@@ -1,4 +1,4 @@
-// Haul popup JS.
+// Haul popup — v0.4 premium UI
 
 function safeUrl(url) {
   return url && (url.startsWith('https://') || url.startsWith('http://')) ? url : null;
@@ -19,52 +19,75 @@ chrome.runtime.sendMessage({ type: 'GET_PRODUCTS' }, (response) => {
   if (chrome.runtime.lastError) return;
   const products = response.products || [];
 
+  // ── Stat: item count
   document.getElementById('count').textContent = products.length;
 
+  // ── Stat: total savings
+  const totalSaved = products.reduce((sum, p) => {
+    if (p.originalPrice && p.price && p.originalPrice > p.price) {
+      return sum + (p.originalPrice - p.price);
+    }
+    return sum;
+  }, 0);
+  document.getElementById('savings-total').textContent =
+    totalSaved > 0 ? `$${totalSaved.toFixed(0)}` : '$0';
+
+  // ── Compare button state
+  const compareBtn   = document.getElementById('compare-btn');
+  const compareLabel = document.getElementById('compare-btn-label');
+  const compareHint  = document.getElementById('compare-hint');
+  const trayLabel    = document.getElementById('tray-btn-label');
+
   if (products.length >= 2) {
-    document.getElementById('compare-btn').disabled = false;
+    compareBtn.disabled = false;
+    compareLabel.textContent = `Compare ${products.length} Products`;
+  } else if (products.length === 1) {
+    compareHint.style.display = 'block';
   }
 
-  // Render the 3 most recently saved items as clickable rows
+  if (products.length > 0) {
+    trayLabel.textContent = `View ${products.length} Saved Item${products.length !== 1 ? 's' : ''}`;
+  }
+
+  // ── Thumbnail strip (up to 3 most recent)
   const recent = products.slice(0, 3);
   if (recent.length > 0) {
-    const list = document.getElementById('recent-list');
-    list.classList.add('visible');
+    const strip = document.getElementById('thumb-strip');
+    strip.classList.add('visible');
 
-    recent.forEach((p) => {
-      const url = safeUrl(p.sourceUrl);
-      if (!url) return;
+    recent.forEach((p, i) => {
+      const wrap = document.getElementById(`thumb-${i}`);
+      if (!wrap) return;
+      wrap.classList.add('visible');
 
-      const btn = document.createElement('button');
-      btn.className = 'recent-item';
+      const imgBox     = wrap.querySelector('.thumb-img-box');
+      const nameEl     = wrap.querySelector('.thumb-name');
+      const priceEl    = wrap.querySelector('.thumb-price');
+      const placeholder = wrap.querySelector('.thumb-placeholder');
 
-      const imgHtml = safeUrl(p.imageUrl)
-        ? `<img class="recent-thumb" src="${esc(p.imageUrl)}" alt="" />`
-        : `<div class="recent-thumb-placeholder"></div>`;
+      // Name + price labels
+      nameEl.textContent  = (p.name || '').split(' ').slice(0, 4).join(' ');
+      priceEl.textContent = p.price != null ? formatPrice(p.price) : '';
 
-      btn.innerHTML = `
-        ${imgHtml}
-        <div class="recent-info">
-          <div class="recent-name">${esc(p.name || 'Untitled product')}</div>
-          ${p.price != null ? `<div class="recent-price">${formatPrice(p.price)}</div>` : ''}
-        </div>
-        <span class="recent-arrow">›</span>
-      `;
-
-      // Fix img error after innerHTML (inline onerror blocked by MV3 CSP)
-      const img = btn.querySelector('img');
-      if (img) {
-        img.addEventListener('error', () => {
-          img.replaceWith(Object.assign(document.createElement('div'), { className: 'recent-thumb-placeholder' }));
-        });
+      // Image
+      const imgSrc = safeUrl(p.imageUrl);
+      if (imgSrc) {
+        const img = document.createElement('img');
+        img.alt = '';
+        img.src = imgSrc;
+        img.addEventListener('error', () => img.remove());
+        placeholder.replaceWith(img);
       }
 
-      btn.addEventListener('click', () => {
-        chrome.tabs.create({ url });
-        window.close();
-      });
-
-      list.appendChild(btn);
+      // Click → open product page
+      const productUrl = safeUrl(p.sourceUrl);
+      if (productUrl) {
+        imgBox.style.cursor = 'pointer';
+        imgBox.addEventListener('click', () => {
+          chrome.tabs.create({ url: productUrl });
+          window.close();
+        });
+      }
     });
   }
 });

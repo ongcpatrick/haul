@@ -5,119 +5,146 @@
   <title>Haul</title>
   <style>
     :root {
-      --bg:        #fafaf7;
-      --surface:   #f2ede4;
-      --border:    #ddd8cf;
-      --primary:   #7a9e76;
-      --primary-h: #6a8c66;
-      --text:      #3d3529;
-      --muted:     #8a7e72;
-      --price:     #b07d4a;
-      --badge-bg:  #e8f0e6;
+      --bg:          #fafaf7;
+      --surface:     #f2ede4;
+      --border:      #ddd8cf;
+      --primary:     #7a9e76;
+      --primary-h:   #6a8c66;
+      --text:        #3d3529;
+      --muted:       #8a7e72;
+      --price:       #b07d4a;
+      --success:     #7a9e76;
+      --badge-bg:    #e8f0e6;
+      --transition:  0.15s ease;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       background: var(--bg);
       color: var(--text);
-      width: 260px;
+      width: 280px;
       padding: 16px;
+      line-height: 1.5;
+    }
+
+    /* ── Logo ───────────────────────────────────────── */
+    .logo-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
     }
     .logo {
       font-size: 18px;
       font-weight: 700;
       color: var(--primary);
-      margin-bottom: 4px;
       letter-spacing: -0.3px;
     }
-    .tagline {
-      font-size: 12px;
+    .logo-tagline {
+      font-size: 11px;
       color: var(--muted);
+      font-weight: 400;
+    }
+
+    /* ── Stat cards ──────────────────────────────────── */
+    .stat-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
       margin-bottom: 14px;
     }
-    .stat {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+    .stat-card {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
       padding: 10px 12px;
-      background: var(--badge-bg);
-      border-radius: 10px;
-      margin-bottom: 12px;
     }
-    .stat-label { font-size: 13px; color: var(--muted); }
-    .stat-value { font-size: 20px; font-weight: 700; color: var(--primary); }
-
-    /* Recent saves list */
-    #recent-list {
-      margin-bottom: 12px;
-      display: none;
-      flex-direction: column;
-      gap: 4px;
-    }
-    #recent-list.visible { display: flex; }
-    .recent-label {
-      font-size: 11px;
+    .stat-label {
+      font-size: 10px;
       font-weight: 600;
       color: var(--muted);
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 2px;
+      letter-spacing: 0.08em;
+      margin-bottom: 4px;
     }
-    .recent-item {
-      display: flex;
+    .stat-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--primary);
+      letter-spacing: -0.02em;
+      line-height: 1;
+    }
+    .stat-value.savings { color: var(--price); }
+
+    /* ── Thumbnail strip ─────────────────────────────── */
+    #thumb-strip {
+      display: none;
       align-items: center;
       gap: 8px;
-      padding: 7px 8px;
-      border-radius: 8px;
-      cursor: pointer;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      transition: background 0.12s, border-color 0.12s;
-      text-align: left;
+      margin-bottom: 14px;
+    }
+    #thumb-strip.visible { display: flex; }
+    .thumb-strip-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 6px;
+    }
+    .thumb-wrap {
+      position: relative;
+      flex: 1;
+      display: none;
+      flex-direction: column;
+    }
+    .thumb-wrap.visible { display: flex; }
+    .thumb-img-box {
       width: 100%;
+      aspect-ratio: 1;
+      border-radius: 10px;
+      overflow: hidden;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      cursor: pointer;
+      transition: border-color var(--transition), box-shadow var(--transition);
     }
-    .recent-item:hover {
-      background: var(--badge-bg);
-      border-color: var(--primary);
+    .thumb-img-box:hover { border-color: var(--primary); box-shadow: 0 2px 8px rgba(122,158,118,0.2); }
+    .thumb-img-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      padding: 4px;
     }
-    .recent-thumb {
-      width: 28px;
-      height: 28px;
-      border-radius: 5px;
-      object-fit: cover;
-      flex-shrink: 0;
-      background: var(--border);
+    .thumb-img-box .thumb-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 18px;
     }
-    .recent-thumb-placeholder {
-      width: 28px;
-      height: 28px;
-      border-radius: 5px;
-      background: linear-gradient(135deg, var(--border), #ccc9c0);
-      flex-shrink: 0;
-    }
-    .recent-info { flex: 1; min-width: 0; }
-    .recent-name {
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--text);
+    .thumb-name {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 4px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      text-align: center;
     }
-    .recent-price {
+    .thumb-price {
       font-size: 11px;
+      font-weight: 700;
       color: var(--price);
-      margin-top: 1px;
-    }
-    .recent-arrow {
-      color: var(--muted);
-      flex-shrink: 0;
-      font-size: 14px;
+      text-align: center;
     }
 
+    /* ── Buttons ─────────────────────────────────────── */
     .btn {
       width: 100%;
-      padding: 10px;
+      padding: 10px 12px;
       border: none;
       border-radius: 10px;
       font-size: 13px;
@@ -127,34 +154,67 @@
       align-items: center;
       justify-content: center;
       gap: 6px;
-      transition: background 0.15s;
-      margin-bottom: 8px;
+      transition: background var(--transition);
+      margin-bottom: 7px;
     }
-    .btn-primary { background: var(--primary); color: #fff; }
+    .btn:last-child { margin-bottom: 0; }
+    .btn-primary   { background: var(--primary); color: #fff; }
     .btn-primary:hover { background: var(--primary-h); }
-    .btn-secondary { background: var(--surface); color: var(--text); }
+    .btn-secondary { background: var(--surface); color: var(--text); border: 1.5px solid var(--border); }
     .btn-secondary:hover { background: var(--border); }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn:disabled  { opacity: 0.45; cursor: not-allowed; }
+    .btn:disabled:hover { background: var(--surface); }
+    .compare-hint {
+      text-align: center;
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: -4px;
+      margin-bottom: 7px;
+    }
   </style>
 </head>
 <body>
-  <div class="logo">Haul</div>
-  <div class="tagline">Shopping Comparison Tool</div>
-
-  <div class="stat">
-    <span class="stat-label">Items saved</span>
-    <span class="stat-value" id="count">0</span>
+  <div class="logo-row">
+    <span class="logo">Haul</span>
+    <span class="logo-tagline">Shopping comparison</span>
   </div>
 
-  <div id="recent-list">
-    <div class="recent-label">Recent saves</div>
+  <!-- Two stat cards side by side -->
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="stat-label">Saved</div>
+      <div class="stat-value" id="count">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Savings</div>
+      <div class="stat-value savings" id="savings-total">$0</div>
+    </div>
+  </div>
+
+  <!-- Product thumbnail strip (up to 3) -->
+  <div id="thumb-strip">
+    <div class="thumb-wrap" id="thumb-0">
+      <div class="thumb-img-box"><div class="thumb-placeholder">🛍️</div></div>
+      <div class="thumb-name"></div>
+      <div class="thumb-price"></div>
+    </div>
+    <div class="thumb-wrap" id="thumb-1">
+      <div class="thumb-img-box"><div class="thumb-placeholder">🛍️</div></div>
+      <div class="thumb-name"></div>
+      <div class="thumb-price"></div>
+    </div>
+    <div class="thumb-wrap" id="thumb-2">
+      <div class="thumb-img-box"><div class="thumb-placeholder">🛍️</div></div>
+      <div class="thumb-name"></div>
+      <div class="thumb-price"></div>
+    </div>
   </div>
 
   <button class="btn btn-primary" id="open-tray-btn">
     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
       <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/>
     </svg>
-    Open Side Tray
+    <span id="tray-btn-label">Open Side Tray</span>
   </button>
 
   <button class="btn btn-secondary" id="compare-btn" disabled>
@@ -162,8 +222,9 @@
       <rect x="3" y="3" width="18" height="18" rx="2"/>
       <line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/>
     </svg>
-    Compare All
+    <span id="compare-btn-label">Compare All</span>
   </button>
+  <div class="compare-hint" id="compare-hint" style="display:none;">Add 1 more item to compare</div>
 
   <script src="popup.js"></script>
 </body>
