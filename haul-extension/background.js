@@ -2,6 +2,7 @@
 // Storage is inlined here to avoid importScripts failures in MV3 service workers.
 
 const STORAGE_KEY = 'haul_products';
+const FOLDERS_KEY = 'haul_folders';
 
 // ─── Haul Worker config ───────────────────────────────────────────────────────
 // After deploying haul-worker/, replace YOUR_SUBDOMAIN with your actual subdomain.
@@ -59,6 +60,73 @@ function clearAll() {
 function patchProduct(id, fields) {
   return getProducts().then((products) => {
     const updated = products.map((p) => p.id === id ? { ...p, ...fields } : p);
+    return new Promise((resolve, reject) => {
+      chrome.storage.local.set({ [STORAGE_KEY]: updated }, () => {
+        if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+        else resolve(updated);
+      });
+    });
+  });
+}
+
+// ─── Folder storage ───────────────────────────────────────────────────────────
+
+function getFolders() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get([FOLDERS_KEY], (result) => resolve(result[FOLDERS_KEY] || []));
+  });
+}
+
+function saveFolder(folder) {
+  return getFolders().then((folders) => {
+    const updated = [...folders, folder];
+    return new Promise((resolve, reject) => {
+      chrome.storage.local.set({ [FOLDERS_KEY]: updated }, () => {
+        if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+        else resolve(updated);
+      });
+    });
+  });
+}
+
+function removeFolder(id) {
+  return Promise.all([getFolders(), getProducts()]).then(([folders, products]) => {
+    const updatedFolders = folders.filter((f) => f.id !== id);
+    const updatedProducts = products.map((p) => ({
+      ...p,
+      folderId: (p.folderId || []).filter((fid) => fid !== id),
+    }));
+    return new Promise((resolve, reject) => {
+      chrome.storage.local.set({ [FOLDERS_KEY]: updatedFolders, [STORAGE_KEY]: updatedProducts }, () => {
+        if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+        else resolve({ folders: updatedFolders, products: updatedProducts });
+      });
+    });
+  });
+}
+
+function assignProductToFolder(productId, folderId) {
+  return getProducts().then((products) => {
+    const updated = products.map((p) => {
+      if (p.id !== productId) return p;
+      const existing = p.folderId || [];
+      return { ...p, folderId: existing.includes(folderId) ? existing : [...existing, folderId] };
+    });
+    return new Promise((resolve, reject) => {
+      chrome.storage.local.set({ [STORAGE_KEY]: updated }, () => {
+        if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+        else resolve(updated);
+      });
+    });
+  });
+}
+
+function removeProductFromFolder(productId, folderId) {
+  return getProducts().then((products) => {
+    const updated = products.map((p) => {
+      if (p.id !== productId) return p;
+      return { ...p, folderId: (p.folderId || []).filter((fid) => fid !== folderId) };
+    });
     return new Promise((resolve, reject) => {
       chrome.storage.local.set({ [STORAGE_KEY]: updated }, () => {
         if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
@@ -143,7 +211,7 @@ function tryOpenSidePanel(tabId) {
 
 function updateBadge(count) {
   chrome.action.setBadgeText({ text: count > 0 ? String(count) : '' });
-  chrome.action.setBadgeBackgroundColor({ color: '#4f46e5' });
+  chrome.action.setBadgeBackgroundColor({ color: '#7a9e76' });
 }
 
 chrome.storage.onChanged.addListener((changes) => {
@@ -245,6 +313,41 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     tryOpenSidePanel(sender.tab && sender.tab.id);
     sendResponse({ success: true });
     return false;
+  }
+
+  if (message.type === 'GET_FOLDERS') {
+    getFolders().then((folders) => sendResponse({ folders })).catch(() => sendResponse({ folders: [] }));
+    return true;
+  }
+
+  if (message.type === 'CREATE_FOLDER') {
+    const { folder } = message;
+    if (!folder || typeof folder.id !== 'string' || typeof folder.name !== 'string') {
+      sendResponse({ success: false, error: 'Invalid folder' });
+      return false;
+    }
+    saveFolder(folder).then((folders) => sendResponse({ success: true, folders })).catch(() => sendResponse({ success: false }));
+    return true;
+  }
+
+  if (message.type === 'REMOVE_FOLDER') {
+    if (typeof message.id !== 'string') { sendResponse({ success: false }); return false; }
+    removeFolder(message.id).then(() => sendResponse({ success: true })).catch(() => sendResponse({ success: false }));
+    return true;
+  }
+
+  if (message.type === 'ASSIGN_TO_FOLDER') {
+    const { productId, folderId } = message;
+    if (!productId || !folderId) { sendResponse({ success: false }); return false; }
+    assignProductToFolder(productId, folderId).then(() => sendResponse({ success: true })).catch(() => sendResponse({ success: false }));
+    return true;
+  }
+
+  if (message.type === 'REMOVE_FROM_FOLDER') {
+    const { productId, folderId } = message;
+    if (!productId || !folderId) { sendResponse({ success: false }); return false; }
+    removeProductFromFolder(productId, folderId).then(() => sendResponse({ success: true })).catch(() => sendResponse({ success: false }));
+    return true;
   }
 
   return false;

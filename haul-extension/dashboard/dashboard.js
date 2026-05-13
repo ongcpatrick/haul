@@ -1,8 +1,12 @@
 // Haul comparison dashboard JS.
 
 let allProducts = [];
+let allFolders = [];
 let activeFilter = 'all';
+let activeFolderFilter = 'all';
 let winnerId = null;
+
+const WORKER_BASE = 'https://haul-ai.haulapp.workers.dev';
 
 // Escape text for safe insertion into innerHTML templates.
 function esc(str) {
@@ -64,20 +68,47 @@ function getCategories(products) {
   return ['all', ...Array.from(cats)];
 }
 
+function folderProducts() {
+  if (activeFolderFilter === 'all') return allProducts;
+  return allProducts.filter((p) => (p.folderId || []).includes(activeFolderFilter));
+}
+
 function filteredProducts() {
-  if (activeFilter === 'all') return allProducts;
-  return allProducts.filter((p) => getCategory(p) === activeFilter);
+  const base = folderProducts();
+  if (activeFilter === 'all') return base;
+  return base.filter((p) => getCategory(p) === activeFilter);
 }
 
 function renderFilters() {
   const bar = document.getElementById('filters-bar');
-  const cats = getCategories(allProducts);
-  bar.innerHTML = cats.map((cat) => {
-    const label = cat === 'all'
-      ? `All (${allProducts.length})`
-      : `${esc(cat)} (${allProducts.filter((p) => getCategory(p) === cat).length})`;
+  const base = folderProducts();
+  const cats = getCategories(base);
+
+  // Folder selector
+  const folderSelect = allFolders.length > 0
+    ? `<select id="folder-select" style="padding:5px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);font-size:12px;font-weight:600;color:var(--text);cursor:pointer;margin-right:4px;">
+        <option value="all">All Folders</option>
+        ${allFolders.map((f) => `<option value="${esc(f.id)}"${activeFolderFilter === f.id ? ' selected' : ''}>${esc(f.name)}</option>`).join('')}
+       </select>`
+    : '';
+
+  bar.innerHTML = folderSelect + cats.map((cat) => {
+    const count = cat === 'all' ? base.length : base.filter((p) => getCategory(p) === cat).length;
+    const label = cat === 'all' ? `All (${count})` : `${esc(cat)} (${count})`;
     return `<button class="filter-btn${activeFilter === cat ? ' active' : ''}" data-cat="${esc(cat)}">${label}</button>`;
   }).join('');
+
+  const sel = document.getElementById('folder-select');
+  if (sel) {
+    sel.value = activeFolderFilter;
+    sel.addEventListener('change', () => {
+      activeFolderFilter = sel.value;
+      activeFilter = 'all';
+      renderFilters();
+      renderTable();
+    });
+  }
+
   bar.querySelectorAll('.filter-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       activeFilter = btn.dataset.cat;
@@ -214,15 +245,51 @@ function renderTable() {
   });
 }
 
-function shareComparison() {
-  const json = JSON.stringify(allProducts);
-  const encoded = btoa(encodeURIComponent(json));
-  const shareUrl = `${window.location.href.split('?')[0]}?data=${encoded}`;
-  navigator.clipboard.writeText(shareUrl).then(() => {
-    const toast = document.getElementById('share-toast');
+async function shareComparison() {
+  const shareBtn = document.getElementById('share-btn');
+  const toast = document.getElementById('share-toast');
+  const products = filteredProducts();
+  if (products.length === 0) return;
+
+  shareBtn.disabled = true;
+  shareBtn.textContent = 'Sharing…';
+
+  try {
+    const res = await fetch(`${WORKER_BASE}/share`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ products, title: `Haul — ${products.length} item${products.length !== 1 ? 's' : ''}` }),
+    });
+    const data = await res.json();
+    if (!data.url) throw new Error('No URL returned');
+
+    await navigator.clipboard.writeText(data.url);
+    toast.textContent = '🔗 Link copied! Anyone can view this.';
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 3000);
+
+    // WhatsApp share option
+    const waUrl = `https://wa.me/?text=${encodeURIComponent(`Check out my comparison on Haul: ${data.url}`)}`;
+    const waToast = document.createElement('div');
+    waToast.style.cssText = 'position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:#25D366;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:100;cursor:pointer;';
+    waToast.textContent = '💬 Share on WhatsApp';
+    waToast.addEventListener('click', () => { chrome.tabs.create({ url: waUrl }); document.body.removeChild(waToast); });
+    document.body.appendChild(waToast);
+    setTimeout(() => { if (document.body.contains(waToast)) document.body.removeChild(waToast); }, 5000);
+
+  } catch {
+    // Fallback to base64 URL
+    const json = JSON.stringify(products);
+    const encoded = btoa(encodeURIComponent(json));
+    const fallbackUrl = `${window.location.href.split('?')[0]}?data=${encoded}`;
+    navigator.clipboard.writeText(fallbackUrl).catch(() => {});
+    toast.textContent = 'Link copied!';
     toast.style.display = 'block';
     setTimeout(() => { toast.style.display = 'none'; }, 2000);
-  }).catch(() => {});
+  } finally {
+    shareBtn.disabled = false;
+    shareBtn.innerHTML = `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Share`;
+  }
 }
 
 function isValidProductArray(data) {
@@ -248,8 +315,11 @@ if (sharedData) {
   chrome.runtime.sendMessage({ type: 'GET_PRODUCTS' }, (response) => {
     if (chrome.runtime.lastError) return;
     allProducts = response.products || [];
-    renderFilters();
-    renderTable();
+    chrome.runtime.sendMessage({ type: 'GET_FOLDERS' }, (res2) => {
+      allFolders = res2?.folders || [];
+      renderFilters();
+      renderTable();
+    });
   });
 }
 
@@ -303,9 +373,9 @@ document.getElementById('share-btn').addEventListener('click', shareComparison);
 document.getElementById('close-btn').addEventListener('click', () => window.close());
 
 chrome.storage.onChanged.addListener((changes) => {
-  if (changes['haul_products'] && !sharedData) {
-    allProducts = changes['haul_products'].newValue || [];
-    renderFilters();
-    renderTable();
+  if (!sharedData) {
+    if (changes['haul_products']) allProducts = changes['haul_products'].newValue || [];
+    if (changes['haul_folders']) allFolders = changes['haul_folders'].newValue || [];
+    if (changes['haul_products'] || changes['haul_folders']) { renderFilters(); renderTable(); }
   }
 });

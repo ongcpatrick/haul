@@ -2,6 +2,10 @@ name = "haul-ai"
 main = "worker.js"
 compatibility_date = "2024-01-01"
 
+[[kv_namespaces]]
+binding = "HAUL_SHARES"
+id = "e0337c9717534aed9176a91dce2b9b7b"
+
 # Deploy with:
 #   npx wrangler login
 #   npx wrangler deploy
