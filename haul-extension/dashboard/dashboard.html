@@ -27,6 +27,7 @@
       --shadow-sm:   0 1px 4px rgba(46,40,32,0.07);
       --shadow-md:   0 4px 16px rgba(46,40,32,0.10);
       --shadow-lg:   0 8px 32px rgba(46,40,32,0.13);
+      --muted:       #8a7e72;
       --t:           0.15s ease;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -107,7 +108,7 @@
       cursor: pointer;
       color: var(--text-2);
       white-space: nowrap;
-      transition: all var(--t);
+      transition: all 0.2s cubic-bezier(0.16,1,0.3,1);
       font-family: inherit;
     }
     .filter-btn.active {
@@ -154,6 +155,27 @@
     .empty h2 { font-size: 17px; font-weight: 600; margin-bottom: 8px; letter-spacing: -0.01em; }
     .empty p  { font-size: 13px; color: var(--text-2); }
 
+    /* ── Apple-style animations ─────────────────────────── */
+    @keyframes card-in {
+      from { opacity: 0; transform: translateY(12px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0)    scale(1); }
+    }
+    @keyframes card-out {
+      to { opacity: 0; transform: scale(0.94) translateY(6px); }
+    }
+    @keyframes fab-in {
+      from { opacity: 0; transform: scale(0); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    @keyframes slide-up {
+      from { transform: translateY(100%); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+    @keyframes empty-in {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
     /* ── Card grid ─────────────────────────────────────── */
     .card-grid {
       display: flex;
@@ -173,16 +195,25 @@
       max-width: 272px;
       min-width: 200px;
       overflow: hidden;
-      transition: box-shadow var(--t), transform var(--t);
+      transition: box-shadow 0.2s ease, transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+      animation: card-in 0.35s cubic-bezier(0.16,1,0.3,1) both;
     }
+    .product-card:nth-child(2) { animation-delay: 0.05s; }
+    .product-card:nth-child(3) { animation-delay: 0.10s; }
+    .product-card:nth-child(4) { animation-delay: 0.15s; }
     .product-card:hover {
       box-shadow: var(--shadow-md);
-      transform: translateY(-2px);
+      transform: translateY(-3px);
+    }
+    .product-card.removing {
+      animation: card-out 0.22s ease-in both;
+      pointer-events: none;
     }
     .card-winner {
       border-color: var(--price);
       box-shadow: 0 0 0 2px rgba(168,112,64,0.15), var(--shadow-sm);
     }
+    .card-winner-badge,
     .card-winner-bar {
       background: var(--price);
       color: #fff;
@@ -288,6 +319,7 @@
       letter-spacing: -0.01em;
     }
     .card-view-btn:hover { filter: brightness(0.92); }
+    .card-view-btn:active { transform: scale(0.95); transition: transform 0.1s ease !important; }
     .card-view-btn:disabled { opacity: 0.35; cursor: default; filter: none; }
     .card-remove-btn {
       width: 36px;
@@ -393,9 +425,11 @@
       justify-content: center;
       box-shadow: 0 4px 18px rgba(107,148,104,0.38);
       z-index: 30;
-      transition: transform var(--t), box-shadow var(--t);
+      transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s ease;
+      animation: fab-in 0.5s 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
     }
-    #claude-fab:hover { transform: scale(1.06); box-shadow: 0 6px 24px rgba(107,148,104,0.50); }
+    #claude-fab:hover { transform: scale(1.08); box-shadow: 0 6px 24px rgba(107,148,104,0.50); }
+    #claude-fab:active { transform: scale(0.93) !important; transition: transform 0.1s ease !important; }
     #claude-fab:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
     #claude-fab svg { color: #fff; }
     #claude-fab-tip {
@@ -431,6 +465,7 @@
       gap: 8px;
       z-index: 20;
       box-shadow: 0 -1px 8px rgba(46,40,32,0.06);
+      animation: slide-up 0.4s cubic-bezier(0.16,1,0.3,1) both;
     }
     #share-bar-btn {
       flex: 1;
@@ -446,11 +481,12 @@
       align-items: center;
       justify-content: center;
       gap: 7px;
-      transition: background var(--t);
+      transition: background 0.2s ease, transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
       font-family: inherit;
       letter-spacing: -0.01em;
     }
     #share-bar-btn:hover { background: var(--primary-h); }
+    #share-bar-btn:active { transform: scale(0.96); transition: transform 0.1s ease !important; }
     .share-quick-btn {
       width: 36px;
       height: 36px;
@@ -467,57 +503,239 @@
     }
     .share-quick-btn:hover { border-color: var(--primary); background: var(--primary-faint); color: var(--primary); transform: translateY(-1px); }
 
-    /* ── Claude panel ───────────────────────────────── */
-    #claude-panel {
+    /* ── Chat panel ─────────────────────────────────── */
+    #chat-panel {
       position: fixed;
-      bottom: 0; left: 0; right: 0;
+      top: 0; right: 0; bottom: 0;
+      width: var(--chat-panel-width, 340px);
       background: var(--surface);
-      border-top: 2px solid var(--primary);
-      border-radius: 18px 18px 0 0;
-      padding: 20px 28px 28px;
-      box-shadow: 0 -8px 32px rgba(107,148,104,0.14);
-      transform: translateY(100%);
-      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
       z-index: 50;
-      max-height: 50vh;
-      overflow-y: auto;
+      transform: translateX(100%);
+      transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s;
+      box-shadow: -4px 0 28px rgba(46,40,32,0.13);
     }
-    #claude-panel.open { transform: translateY(0); }
-    .claude-panel-header {
+    #chat-panel.open { transform: translateX(0); }
+    #chat-panel.closing { transition: transform 0.3s cubic-bezier(0.16,1,0.3,1) !important; }
+    body.chat-open { padding-right: var(--chat-panel-width, 340px); transition: padding-right 0.4s cubic-bezier(0.34,1.56,0.64,1); }
+    body.chat-open #share-bar      { right: var(--chat-panel-width, 340px); transition: right 0.4s cubic-bezier(0.34,1.56,0.64,1); }
+    body.chat-open #claude-fab     { right: calc(var(--chat-panel-width, 340px) + 24px); transition: right 0.4s cubic-bezier(0.34,1.56,0.64,1); }
+    body.chat-open #claude-fab-tip { right: calc(var(--chat-panel-width, 340px) + 24px); transition: right 0.4s cubic-bezier(0.34,1.56,0.64,1); }
+
+    /* ── Drag handle ─────────────────────────────────── */
+    #chat-drag-handle {
+      position: absolute; left: 0; top: 0; bottom: 0; width: 10px;
+      cursor: ew-resize; z-index: 2; display: flex; align-items: center; justify-content: center;
+    }
+    #chat-drag-handle::after {
+      content: ''; display: block; width: 4px; height: 36px;
+      background: var(--border); border-radius: 2px;
+      transition: background 0.18s, transform 0.18s;
+    }
+    #chat-drag-handle:hover::after { background: var(--primary); transform: scaleX(1.6); }
+
+    /* ── Example chips ───────────────────────────────── */
+    #chat-chips {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      padding: 0 14px 12px;
+    }
+    .chat-chip {
+      padding: 6px 12px; background: var(--bg); border: 1.5px solid var(--border);
+      border-radius: 20px; font-size: 12px; color: var(--text-2); cursor: pointer;
+      font-family: inherit; transition: border-color 0.15s, background 0.15s, color 0.15s;
+    }
+    .chat-chip:hover { border-color: var(--primary); background: var(--primary-faint); color: var(--primary); }
+
+    /* ── Product cards in chat ───────────────────────── */
+    .chat-product-row {
+      display: flex; gap: 10px; overflow-x: auto; padding: 2px 0 8px;
+      scrollbar-width: none; align-self: stretch;
+    }
+    .chat-product-row::-webkit-scrollbar { display: none; }
+    .chat-product-card {
+      flex-shrink: 0; width: 152px; background: var(--card-bg); border: 1.5px solid var(--border);
+      border-radius: 14px; overflow: hidden; display: flex; flex-direction: column;
+      animation: chat-card-in 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
+      transition: box-shadow 0.2s, border-color 0.2s, transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+      cursor: default;
+    }
+    .chat-product-card:hover { border-color: var(--primary); box-shadow: 0 4px 16px rgba(107,148,104,0.18); transform: translateY(-2px); }
+    .chat-product-card.added { opacity: 0.55; }
+    @keyframes chat-card-in {
+      from { opacity: 0; transform: scale(0.82) translateY(10px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .chat-product-img {
+      width: 100%; height: 100px; object-fit: contain;
+      background: var(--surface); padding: 8px;
+      display: block;
+    }
+    .chat-product-img-placeholder {
+      width: 100%; height: 100px; background: var(--surface);
+      display: flex; align-items: center; justify-content: center; font-size: 28px;
+    }
+    .chat-product-body { padding: 8px 10px 6px; flex: 1; display: flex; flex-direction: column; gap: 2px; }
+    .chat-product-name {
+      font-size: 11px; font-weight: 600; color: var(--text); line-height: 1.35;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .chat-product-price { font-size: 13px; font-weight: 800; color: var(--price); margin-top: 2px; }
+    .chat-product-site { font-size: 10px; color: var(--muted); }
+    .chat-product-actions { display: flex; gap: 5px; padding: 0 8px 9px; margin-top: 2px; }
+    .chat-product-btn {
+      flex: 1; padding: 5px 4px; font-size: 11px; font-weight: 700;
+      border: none; border-radius: 7px; cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s; font-family: inherit;
+    }
+    .chat-product-btn:active { transform: scale(0.95); }
+    .chat-product-btn.view { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
+    .chat-product-btn.add  { background: var(--primary); color: #fff; }
+    .chat-product-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Drag handle on chat cards */
+    .chat-card-drag-hint {
+      position: absolute; top: 5px; right: 6px;
+      font-size: 13px; color: var(--border-2); cursor: grab; line-height: 1;
+      user-select: none;
+    }
+    .chat-product-card { position: relative; }
+    .chat-product-card.dragging { opacity: 0.5; transform: scale(0.97); }
+
+    /* Drop zone overlay */
+    #chat-drop-zone {
+      position: fixed; inset: 0;
+      background: rgba(107,148,104,0.12);
+      border: 3px dashed var(--primary);
+      border-radius: 18px;
+      z-index: 90;
+      display: none;
+      flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 10px;
+      font-size: 14px; font-weight: 700; color: var(--primary);
+      pointer-events: none;
+      transition: background 0.15s;
+    }
+    #chat-drop-zone.visible { display: flex; pointer-events: all; }
+    #chat-drop-zone.over { background: rgba(107,148,104,0.22); }
+
+    .chat-header {
+      padding: 13px 14px;
+      border-bottom: 1px solid var(--border);
       display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 14px;
+      flex-shrink: 0;
+      background: var(--surface-2);
     }
-    .claude-panel-title {
+    .chat-header-title {
       font-size: 13px; font-weight: 700; color: var(--primary);
       display: flex; align-items: center; gap: 7px;
       text-transform: uppercase; letter-spacing: 0.06em;
     }
-    .claude-close-btn {
+    .chat-close-btn {
       background: none; border: none; cursor: pointer; color: var(--text-2);
       padding: 4px; border-radius: 6px; display: flex; align-items: center;
       transition: background var(--t);
     }
-    .claude-close-btn:hover { background: var(--surface-2); color: var(--text); }
-    .claude-loading {
-      display: flex; align-items: center; gap: 10px;
-      color: var(--text-2); font-size: 13px;
+    .chat-close-btn:hover { background: var(--border); color: var(--text); }
+
+    #chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
+    #chat-messages::-webkit-scrollbar { width: 4px; }
+    #chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    .chat-bubble {
+      max-width: 92%;
+      padding: 10px 13px;
+      border-radius: 14px;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+    .chat-bubble.assistant {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+    }
+    .chat-bubble.user {
+      background: var(--primary);
+      color: #fff;
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+    }
+    .chat-bubble.typing {
+      display: flex; gap: 5px; align-items: center;
+      padding: 12px 14px;
+    }
+    .chat-bubble.typing span {
+      width: 6px; height: 6px;
+      background: var(--muted);
+      border-radius: 50%;
+      animation: typing-dot 1.2s infinite;
+    }
+    .chat-bubble.typing span:nth-child(2) { animation-delay: 0.2s; }
+    .chat-bubble.typing span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typing-dot {
+      0%,60%,100% { opacity: 0.3; transform: translateY(0); }
+      30% { opacity: 1; transform: translateY(-3px); }
+    }
+
+    .chat-hint {
+      font-size: 11px; color: var(--text-2);
+      text-align: center; padding: 4px 0 2px;
+      opacity: 0.7;
+    }
+
+    #chat-input-row {
+      padding: 10px 12px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+      background: var(--surface);
+    }
+    #chat-input {
+      flex: 1;
+      padding: 9px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-size: 13px;
+      font-family: inherit;
+      background: var(--bg);
+      color: var(--text);
+      resize: none;
+      outline: none;
+      min-height: 38px;
+      max-height: 90px;
+    }
+    #chat-input:focus { border-color: var(--primary); }
+    #chat-send-btn {
+      width: 38px; height: 38px;
+      background: var(--primary); color: #fff;
+      border: none; border-radius: 10px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.15s ease, transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    #chat-send-btn:hover { background: var(--primary-h); }
+    #chat-send-btn:active { transform: scale(0.92); }
+    #chat-send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
     .claude-spinner {
       width: 16px; height: 16px;
       border: 2px solid var(--border); border-top-color: var(--primary);
       border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .claude-summary { font-size: 14px; line-height: 1.65; color: var(--text); margin-bottom: 14px; }
-    .claude-insights { display: flex; flex-direction: column; gap: 7px; }
-    .claude-insight {
-      display: flex; align-items: flex-start; gap: 8px;
-      font-size: 13px; color: var(--text); line-height: 1.5;
-    }
-    .claude-insight::before {
-      content: '→'; color: var(--primary); font-weight: 700; flex-shrink: 0; margin-top: 1px;
-    }
-    .claude-error { font-size: 13px; color: var(--danger); }
 
     /* ── Share modal ────────────────────────────────── */
     #share-overlay {
@@ -611,6 +829,140 @@
       color: var(--text-2); font-size: 13px; padding: 8px 0;
     }
 
+    /* ── Explore / nav tabs ─────────────────────────── */
+    .view-tabs {
+      display: flex; gap: 4px;
+      padding: 8px 24px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+    .view-tab {
+      padding: 6px 16px; border-radius: 20px; border: none;
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      background: none; color: var(--text-2);
+      transition: all 0.15s ease; font-family: inherit;
+    }
+    .view-tab:hover { background: var(--surface-2); color: var(--text); }
+    .view-tab.active { background: var(--primary); color: #fff; }
+
+    /* ── Explore panel ──────────────────────────────── */
+    #explore-panel {
+      display: none;
+      padding: 24px;
+    }
+    #explore-panel.visible { display: block; }
+    .explore-title {
+      font-size: 16px; font-weight: 700; color: var(--text);
+      letter-spacing: -0.02em; margin-bottom: 4px;
+    }
+    .explore-sub {
+      font-size: 12px; color: var(--text-2); margin-bottom: 20px;
+    }
+    .explore-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+    }
+    .explore-card {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden;
+      box-shadow: var(--shadow-sm);
+      transition: box-shadow 0.2s, transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
+      animation: card-in 0.4s cubic-bezier(0.16,1,0.3,1) both;
+    }
+    .explore-card:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); }
+    .explore-card-imgs {
+      display: flex; background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      height: 90px; overflow: hidden;
+    }
+    .explore-card-img {
+      flex: 1; object-fit: contain; padding: 8px;
+    }
+    .explore-card-img-ph {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      font-size: 22px; color: var(--text-2);
+    }
+    .explore-card-body { padding: 12px 14px 14px; }
+    .explore-card-title {
+      font-size: 13px; font-weight: 700; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      margin-bottom: 2px;
+    }
+    .explore-card-meta { font-size: 11px; color: var(--text-2); margin-bottom: 10px; }
+    .explore-card-actions { display: flex; gap: 8px; }
+    .explore-card-btn {
+      flex: 1; padding: 8px; border-radius: 8px;
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      border: none; font-family: inherit;
+      transition: all 0.12s ease;
+    }
+    .explore-card-btn.view {
+      background: var(--primary); color: #fff;
+    }
+    .explore-card-btn.view:hover { background: var(--primary-h); }
+    .explore-card-btn.fork {
+      background: var(--surface-2); color: var(--text-2);
+      border: 1px solid var(--border);
+    }
+    .explore-card-btn.fork:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-faint); }
+    .explore-card-btn:disabled { opacity: 0.5; cursor: default; }
+    .explore-empty {
+      text-align: center; padding: 48px 24px;
+      color: var(--text-2); font-size: 13px;
+    }
+    .explore-empty svg { display: block; margin: 0 auto 12px; opacity: 0.4; }
+
+    /* ── Share: community section ────────────────────── */
+    .share-community {
+      margin-top: 20px; padding: 14px 16px;
+      background: var(--primary-faint); border: 1px solid #c5d9c2;
+      border-radius: 12px;
+    }
+    .share-community-title {
+      font-size: 12px; font-weight: 700; color: var(--text);
+      margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+    }
+    .share-author-row {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+    }
+    .share-author-input {
+      flex: 1; height: 36px; border-radius: 8px;
+      border: 1px solid var(--border); background: #fff;
+      padding: 0 12px; font-size: 12px; color: var(--text);
+      font-family: inherit; outline: none;
+    }
+    .share-author-input:focus { border-color: var(--primary); }
+    .share-community-toggle {
+      display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer;
+    }
+    .share-community-label { font-size: 12px; color: var(--text-2); }
+    .share-toggle-switch {
+      width: 36px; height: 20px; border-radius: 10px;
+      background: var(--border-2); position: relative;
+      transition: background 0.2s; flex-shrink: 0;
+      cursor: pointer; border: none; padding: 0;
+    }
+    .share-toggle-switch::after {
+      content: ''; position: absolute;
+      top: 2px; left: 2px;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: #fff; transition: transform 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .share-toggle-switch.on { background: var(--primary); }
+    .share-toggle-switch.on::after { transform: translateX(16px); }
+    .share-community-post-btn {
+      width: 100%; margin-top: 12px; height: 38px;
+      background: var(--primary); color: #fff;
+      border: none; border-radius: 10px; cursor: pointer;
+      font-size: 13px; font-weight: 700; font-family: inherit;
+      transition: background 0.15s; display: none;
+    }
+    .share-community-post-btn:hover { background: var(--primary-h); }
+    .share-community-post-btn.visible { display: block; }
+
     /* ── Toast ──────────────────────────────────────── */
     #copy-toast {
       position: fixed; bottom: 72px; left: 50%;
@@ -640,9 +992,33 @@
     </button>
   </div>
 
+  <!-- View mode tabs: My Haul | Explore -->
+  <div class="view-tabs" id="view-tabs">
+    <button class="view-tab active" id="tab-my-haul">My Haul</button>
+    <button class="view-tab" id="tab-explore">
+      <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;margin-right:4px;vertical-align:-1px;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      Explore
+    </button>
+  </div>
+
   <div class="filters" id="filters-bar"></div>
 
+  <!-- My Haul content -->
   <div id="main-content"></div>
+
+  <!-- Explore panel -->
+  <div id="explore-panel">
+    <p class="explore-title">Community Hauls</p>
+    <p class="explore-sub">Hauls shared publicly by other shoppers. Fork any haul to add those products to yours.</p>
+    <div class="explore-grid" id="explore-grid">
+      <div class="explore-empty">
+        <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        Loading community hauls…
+      </div>
+    </div>
+  </div>
   <div id="copy-toast">Link copied</div>
 
   <!-- Ask Claude FAB -->
@@ -705,26 +1081,31 @@
     </div>
   </div>
 
-  <!-- Claude panel -->
-  <div id="claude-panel">
-    <div class="claude-panel-header">
-      <span class="claude-panel-title">
+  <!-- Chat panel -->
+  <div id="chat-panel">
+    <div id="chat-drag-handle"></div>
+    <div class="chat-header">
+      <span class="chat-header-title">
         <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
         </svg>
-        Claude's Take
+        AI Assistant
       </span>
-      <button class="claude-close-btn" id="claude-panel-close">
+      <button class="chat-close-btn" id="chat-close-btn">
         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
       </button>
     </div>
-    <div id="claude-panel-body">
-      <div class="claude-loading">
-        <div class="claude-spinner"></div>
-        Analyzing your haul…
-      </div>
+    <div id="chat-messages"></div>
+    <div id="chat-chips"></div>
+    <div id="chat-input-row">
+      <textarea id="chat-input" rows="1" placeholder="Ask anything about these products…"></textarea>
+      <button id="chat-send-btn">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
     </div>
   </div>
 

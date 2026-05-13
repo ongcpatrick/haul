@@ -18,6 +18,7 @@ interface Product {
 interface ShareData {
   products: Product[];
   title: string | null;
+  author: string | null;
   createdAt: number;
 }
 
@@ -69,28 +70,17 @@ export default async function ViewPage({ params }: { params: Promise<{ id: strin
   const data = await fetchShare(id);
   if (!data) notFound();
 
-  const { products, title } = data;
+  const { products, title, author } = data;
 
   return (
-    <html lang="en">
-      <body style={{ margin: 0, fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", background: '#fafaf7', color: '#3d3529' }}>
-
-        {/* Header */}
-        <header style={{ background: '#f2ede4', borderBottom: '1px solid #ddd8cf', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 22, fontWeight: 800, color: '#7a9e76', letterSpacing: '-0.5px' }}>Haul</span>
-            <span style={{ fontSize: 12, color: '#8a7e72' }}>Shopping Comparison</span>
-          </div>
-          <a href="https://chrome.google.com/webstore" target="_blank" rel="noopener"
-            style={{ padding: '8px 18px', background: '#7a9e76', color: '#fff', fontSize: 13, fontWeight: 700, borderRadius: 20, textDecoration: 'none' }}>
-            Get Haul Free →
-          </a>
-        </header>
+    <div style={{ background: '#fafaf7', color: '#3d3529' }}>
 
         <main style={{ maxWidth: 960, margin: '0 auto', padding: '40px 24px 80px' }}>
 
           {/* Hero */}
-          <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#8a7e72', marginBottom: 10 }}>Shared with you</p>
+          <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#8a7e72', marginBottom: 10 }}>
+            {author ? `Shared by ${author}` : 'Shared with you'}
+          </p>
           <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 6 }}>{title ?? 'Haul Comparison'}</h1>
           <p style={{ fontSize: 14, color: '#8a7e72', marginBottom: 32 }}>{products.length} product{products.length !== 1 ? 's' : ''} compared</p>
 
@@ -138,12 +128,30 @@ export default async function ViewPage({ params }: { params: Promise<{ id: strin
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#e8f0e6', color: '#7a9e76', fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 20, alignSelf: 'flex-start' as const }}>↓ Save ${savings}</span>
                     )}
 
-                    {p.sourceUrl && (
-                      <a href={p.sourceUrl} target="_blank" rel="noopener"
-                        style={{ display: 'block', textAlign: 'center', marginTop: 14, padding: '9px 14px', background: '#7a9e76', color: '#fff', fontSize: 13, fontWeight: 700, borderRadius: 10, textDecoration: 'none' }}>
-                        View Product →
-                      </a>
-                    )}
+                    <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+                      {p.sourceUrl && (
+                        <a href={p.sourceUrl} target="_blank" rel="noopener"
+                          style={{ flex: 1, display: 'block', textAlign: 'center', padding: '9px 10px', background: '#7a9e76', color: '#fff', fontSize: 12, fontWeight: 700, borderRadius: 10, textDecoration: 'none' }}>
+                          View →
+                        </a>
+                      )}
+                      {/* Add to My Haul — handled by the Haul extension content script */}
+                      <button
+                        data-haul-import={Buffer.from(JSON.stringify({
+                          id: `share_${id}_${p.id}`,
+                          name: p.name,
+                          price: p.price,
+                          originalPrice: p.originalPrice,
+                          imageUrl: p.imageUrl,
+                          sourceUrl: p.sourceUrl,
+                          siteName: p.siteName,
+                          category: p.category,
+                          savedAt: Date.now(),
+                        })).toString('base64')}
+                        style={{ flex: 1, padding: '9px 10px', background: '#e8f0e6', color: '#5c8259', fontSize: 12, fontWeight: 700, borderRadius: 10, border: '1px solid #c5d9c2', cursor: 'pointer', fontFamily: 'inherit' }}>
+                        + My Haul
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -155,7 +163,6 @@ export default async function ViewPage({ params }: { params: Promise<{ id: strin
         <footer style={{ borderTop: '1px solid #ddd8cf', padding: '20px 24px', textAlign: 'center', fontSize: 12, color: '#8a7e72' }}>
           Made with <strong style={{ color: '#7a9e76' }}>Haul</strong> · Shopping comparison, simplified
         </footer>
-      </body>
-    </html>
+    </div>
   );
 }

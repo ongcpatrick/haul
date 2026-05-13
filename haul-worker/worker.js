@@ -42,6 +42,9 @@ export default {
       return handleApiGet(apiMatch[1], env);
     }
 
+    // ── Public feed (GET) ──────────────────────────────────────────────────
+    if (url.pathname === '/feed') return handleFeed(env);
+
     if (request.method !== 'POST') {
       return jsonResponse({ error: 'Method not allowed' }, 405);
     }
@@ -51,7 +54,9 @@ export default {
 
     if (url.pathname === '/categorize') return handleCategorize(body, env);
     if (url.pathname === '/advise') return handleAdvise(body, env);
+    if (url.pathname === '/chat') return handleChat(body, env);
     if (url.pathname === '/share') return handleShare(body, env, url);
+    if (url.pathname === '/fork') return handleFork(body, env);
     return jsonResponse({ error: 'Not found' }, 404);
   },
 };
@@ -169,6 +174,138 @@ ${list}`
   return jsonResponse(parsed);
 }
 
+// ─── /chat ────────────────────────────────────────────────────────────────────
+
+const SEARCH_TOOL = {
+  name: 'search_products',
+  description: 'Search the web for alternative or similar products. Use when user asks about alternatives, better deals, or wants to see more options beyond the current list.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      query: { type: 'string', description: 'Shopping search query, e.g. "affordable graphic tees under $20 site:amazon.com OR site:uniqlo.com"' },
+    },
+    required: ['query'],
+  },
+};
+
+async function braveSearch(query, env) {
+  if (!env.BRAVE_SEARCH_API_KEY) return [];
+  try {
+    const url = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=5&search_lang=en`;
+    const res = await fetch(url, {
+      headers: { 'Accept': 'application/json', 'X-Subscription-Token': env.BRAVE_SEARCH_API_KEY },
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.web?.results || []).slice(0, 5).map((r) => ({
+      name: r.title,
+      url: r.url,
+      description: (r.description || '').slice(0, 200),
+      image: r.thumbnail?.src || null,
+      siteName: (() => { try { return new URL(r.url).hostname.replace('www.', ''); } catch { return ''; } })(),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+const SEARCH_INTENT_RE = /\b(find|search|look|show|get|suggest|recommend|alternative|option|similar|other|cheaper|better|compare|more)\b/i;
+
+async function handleChat({ products, messages }, env) {
+  if (!Array.isArray(products) || products.length === 0)
+    return jsonResponse({ error: 'products array required' }, 400);
+  if (!Array.isArray(messages) || messages.length === 0)
+    return jsonResponse({ error: 'messages array required' }, 400);
+
+  const list = products.map((p) => {
+    const price = p.price != null ? `$${Number(p.price).toFixed(2)}` : 'unknown';
+    const sale = p.originalPrice && p.price && p.originalPrice > p.price
+      ? ` (was $${Number(p.originalPrice).toFixed(2)}, ${Math.round((1 - p.price / p.originalPrice) * 100)}% off)` : '';
+    return `- ${String(p.name).slice(0, 80)} | ${price}${sale} | ${p.siteName || ''}`;
+  }).join('\n');
+
+  const systemPrompt =
+    `You are a direct, concise shopping assistant. The user is comparing these products:\n${list}\n\n` +
+    `IMPORTANT: You have real web search capability via the search_products tool. ` +
+    `ALWAYS call search_products when the user asks for alternatives, other options, similar items, ` +
+    `cheaper versions, or anything not in the list above. Never say you cannot search — you can. ` +
+    `Max 80 words per reply. Plain text only, no markdown.`;
+
+  const trimmedMessages = messages.slice(-20).map((m) => ({ role: m.role, content: String(m.content).slice(0, 500) }));
+
+  // Detect search intent in the latest user message — force tool use if present
+  const lastUserMsg = [...trimmedMessages].reverse().find((m) => m.role === 'user')?.content || '';
+  const forceSearch = SEARCH_INTENT_RE.test(lastUserMsg) && !!env.BRAVE_SEARCH_API_KEY;
+  const toolChoice = forceSearch
+    ? { type: 'tool', name: 'search_products' }
+    : { type: 'auto' };
+
+  // First call — Claude may request a search
+  const firstRes = await fetch(ANTHROPIC_URL, {
+    method: 'POST',
+    headers: { 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+    body: JSON.stringify({ model: MODEL, max_tokens: 800, system: systemPrompt, tools: [SEARCH_TOOL], tool_choice: toolChoice, messages: trimmedMessages }),
+  });
+  if (!firstRes.ok) {
+    const err = await firstRes.json().catch(() => ({}));
+    return jsonResponse({ error: err.error?.message || `Anthropic error ${firstRes.status}` }, 502);
+  }
+  const firstData = await firstRes.json();
+
+  const toolUse = firstData.content?.find((b) => b.type === 'tool_use' && b.name === 'search_products');
+  if (!toolUse) {
+    const text = (firstData.content?.find((b) => b.type === 'text')?.text || '').trim();
+    return jsonResponse({ message: text });
+  }
+
+  // Execute Brave Search
+  const searchResults = await braveSearch(toolUse.input.query, env);
+
+  const extractPrompt = searchResults.length
+    ? searchResults.map((r, i) => `[${i + 1}] ${r.name}\nURL: ${r.url}\nSite: ${r.siteName}\nSnippet: ${r.description}`).join('\n\n')
+    : 'No results found.';
+
+  // Second call — Claude writes response + structured product block
+  const secondRes = await fetch(ANTHROPIC_URL, {
+    method: 'POST',
+    headers: { 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+    body: JSON.stringify({
+      model: MODEL, max_tokens: 800, system: systemPrompt,
+      messages: [
+        ...trimmedMessages,
+        { role: 'assistant', content: firstData.content },
+        {
+          role: 'user', content: [{
+            type: 'tool_result', tool_use_id: toolUse.id,
+            content: `Results for "${toolUse.input.query}":\n\n${extractPrompt}\n\nReply to the user (max 80 words). Then append a JSON block: <products>[{"name":"...","price":"$XX","priceRaw":XX,"url":"...","siteName":"..."}]</products>. Extract prices from snippets; omit priceRaw if not found. Include up to 4 products.`,
+          }],
+        },
+      ],
+    }),
+  });
+  if (!secondRes.ok) {
+    const err = await secondRes.json().catch(() => ({}));
+    return jsonResponse({ error: err.error?.message || `Anthropic error ${secondRes.status}` }, 502);
+  }
+  const secondData = await secondRes.json();
+  const fullText = (secondData.content?.find((b) => b.type === 'text')?.text || '').trim();
+
+  const prodMatch = fullText.match(/<products>([\s\S]*?)<\/products>/);
+  let suggestedProducts = [];
+  if (prodMatch) {
+    try {
+      const parsed = JSON.parse(prodMatch[1]);
+      suggestedProducts = parsed.map((p) => {
+        const match = searchResults.find((r) => r.url === p.url);
+        return { ...p, image: match?.image || null };
+      });
+    } catch { /* ignore */ }
+  }
+
+  const message = fullText.replace(/<products>[\s\S]*?<\/products>/, '').trim();
+  return jsonResponse({ message, ...(suggestedProducts.length ? { suggestedProducts } : {}) });
+}
+
 // ─── /api/:id ─────────────────────────────────────────────────────────────────
 
 async function handleApiGet(shareId, env) {
@@ -189,7 +326,7 @@ function randomId() {
   return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
 }
 
-async function handleShare({ products, title }, env, reqUrl) {
+async function handleShare({ products, title, author, isPublic }, env, reqUrl) {
   if (!Array.isArray(products) || products.length === 0) {
     return jsonResponse({ error: 'products array required' }, 400);
   }
@@ -198,11 +335,67 @@ async function handleShare({ products, title }, env, reqUrl) {
   }
 
   const shareId = randomId();
-  const payload = JSON.stringify({ products, title: title || null, createdAt: Date.now() });
-  await env.HAUL_SHARES.put(shareId, payload, { expirationTtl: 60 * 60 * 24 * 30 }); // 30 days
+  const safeAuthor = author ? String(author).slice(0, 40) : null;
+  const payload = JSON.stringify({
+    products,
+    title: title || null,
+    author: safeAuthor,
+    isPublic: Boolean(isPublic),
+    createdAt: Date.now(),
+  });
+  await env.HAUL_SHARES.put(shareId, payload, { expirationTtl: 60 * 60 * 24 * 30 });
+
+  if (isPublic) {
+    await addToFeed(env, {
+      id: shareId,
+      title: title || 'Haul Comparison',
+      author: safeAuthor,
+      productCount: products.length,
+      imageUrls: products.slice(0, 3).map((p) => p.imageUrl).filter(Boolean),
+      createdAt: Date.now(),
+    });
+  }
 
   const base = 'https://haul-share.vercel.app';
   return jsonResponse({ shareId, url: `${base}/view/${shareId}` });
+}
+
+// ─── /feed ────────────────────────────────────────────────────────────────────
+
+async function handleFeed(env) {
+  if (!env.HAUL_SHARES) return jsonResponse([]);
+  const raw = await env.HAUL_SHARES.get('_feed').catch(() => null);
+  if (!raw) return jsonResponse([]);
+  try {
+    return jsonResponse(JSON.parse(raw));
+  } catch {
+    return jsonResponse([]);
+  }
+}
+
+async function addToFeed(env, entry) {
+  let feed = [];
+  try {
+    const raw = await env.HAUL_SHARES.get('_feed');
+    if (raw) feed = JSON.parse(raw);
+  } catch { /* ignore */ }
+  feed = [entry, ...feed.filter((e) => e.id !== entry.id)].slice(0, 50);
+  await env.HAUL_SHARES.put('_feed', JSON.stringify(feed), { expirationTtl: 60 * 60 * 24 * 90 });
+}
+
+// ─── /fork ────────────────────────────────────────────────────────────────────
+
+async function handleFork({ id }, env) {
+  if (!id) return jsonResponse({ error: 'id required' }, 400);
+  if (!env.HAUL_SHARES) return jsonResponse({ error: 'KV not configured' }, 500);
+  const raw = await env.HAUL_SHARES.get(id).catch(() => null);
+  if (!raw) return jsonResponse({ error: 'Not found' }, 404);
+  try {
+    const { products } = JSON.parse(raw);
+    return jsonResponse({ products: products || [] });
+  } catch {
+    return jsonResponse({ error: 'Corrupt data' }, 500);
+  }
 }
 
 // ─── /view/:id ────────────────────────────────────────────────────────────────

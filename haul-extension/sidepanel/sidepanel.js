@@ -162,8 +162,10 @@ function renderProducts() {
       ? `<button class="action-btn assign-action" data-id="${esc(p.id)}" title="Add to folder"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></button>`
       : '';
 
+    const safeSource = safeUrl(p.sourceUrl);
+
     return `
-      <div class="product-card" data-id="${esc(p.id)}">
+      <div class="product-card" data-id="${esc(p.id)}"${safeSource ? ` data-url="${esc(safeSource)}"` : ''}>
         <div class="product-img-wrap">${imgHtml}</div>
         <div class="product-info">
           <div class="product-name">${esc(p.name)}</div>
@@ -189,13 +191,44 @@ function renderProducts() {
   contentArea.innerHTML = `<div class="product-list">${list}</div>`;
   attachImageFallbacks(contentArea);
 
+  // Stagger card entrances
+  contentArea.querySelectorAll('.product-card').forEach((card, i) => {
+    card.style.animationDelay = `${i * 0.05}s`;
+  });
+
+  // Pulse compare button when first item added
+  const compareBtn = document.getElementById('compare-btn');
+  if (shown.length === 1 && compareBtn) {
+    compareBtn.classList.remove('pulse');
+    requestAnimationFrame(() => compareBtn.classList.add('pulse'));
+    compareBtn.addEventListener('animationend', () => compareBtn.classList.remove('pulse'), { once: true });
+  }
+
+  // Card click → open product page
+  contentArea.querySelectorAll('.product-card[data-url]').forEach((card) => {
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('.action-btn')) return;
+      chrome.tabs.create({ url: card.dataset.url, active: true });
+    });
+  });
+
   // Remove
   contentArea.querySelectorAll('.remove-action').forEach((btn) => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      chrome.runtime.sendMessage({ type: 'REMOVE_PRODUCT', id: btn.dataset.id }, (res) => {
-        if (!chrome.runtime.lastError && res?.success) loadAll();
-      });
+      const card = btn.closest('.product-card');
+      const doRemove = () => {
+        chrome.runtime.sendMessage({ type: 'REMOVE_PRODUCT', id: btn.dataset.id }, (res) => {
+          if (!chrome.runtime.lastError && res?.success) loadAll();
+        });
+      };
+      if (card) {
+        card.classList.add('removing');
+        card.addEventListener('animationend', doRemove, { once: true });
+      } else {
+        doRemove();
+      }
     });
   });
 

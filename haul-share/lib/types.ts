@@ -1,0 +1,91 @@
+export interface User {
+  id: string;
+  clerk_id: string;
+  username: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  bio: string | null;
+  created_at: string;
+}
+
+export interface Product {
+  id: string;
+  name: string;
+  price: number | null;
+  originalPrice: number | null;
+  imageUrl: string | null;
+  sourceUrl: string | null;
+  siteName: string;
+  category: string | null;
+  folderId?: string[];
+}
+
+export interface Haul {
+  id: string;
+  user_id: string;
+  share_id: string | null;
+  title: string | null;
+  products: Product[];
+  is_public: boolean;
+  circle_id: string | null;
+  created_at: string;
+}
+
+export interface HaulWithAuthor extends Haul {
+  author: Pick<User, 'id' | 'username' | 'display_name' | 'avatar_url'>;
+  reaction_counts?: Record<string, number>;
+  comment_count?: number;
+}
+
+export interface Circle {
+  id: string;
+  name: string;
+  description: string | null;
+  created_by: string;
+  invite_code: string;
+  created_at: string;
+}
+
+export interface CircleMember {
+  circle_id: string;
+  user_id: string;
+  role: 'owner' | 'member';
+  joined_at: string;
+  user?: Pick<User, 'id' | 'username' | 'display_name' | 'avatar_url'>;
+}
+
+export interface CircleWithMembers extends Circle {
+  members: CircleMember[];
+  member_count: number;
+}
+
+export interface Reaction {
+  id: string;
+  haul_id: string;
+  user_id: string;
+  emoji: string;
+  created_at: string;
+}
+
+export interface Comment {
+  id: string;
+  haul_id: string;
+  user_id: string;
+  body: string;
+  created_at: string;
+  author?: Pick<User, 'id' | 'username' | 'display_name' | 'avatar_url'>;
+}
+
+export interface Friendship {
+  id: string;
+  requester_id: string;
+  addressee_id: string;
+  status: 'pending' | 'accepted';
+  created_at: string;
+}
+
+export type ApiResponse<T> = {
+  success: boolean;
+  data: T | null;
+  error: string | null;
+};

@@ -1,4 +1,12 @@
-// Haul comparison dashboard — v0.4 premium UI
+// Haul comparison dashboard — v0.5 social
+
+// Open a URL in a new tab AND bring that Chrome window to the front,
+// so the user doesn't have to manually find the tab after clicking.
+function openAndFocus(url) {
+  chrome.tabs.create({ url, active: true }, (tab) => {
+    if (tab?.windowId) chrome.windows.update(tab.windowId, { focused: true });
+  });
+}
 
 let allProducts = [];
 let allFolders = [];
@@ -86,7 +94,7 @@ function renderFilters() {
 
   const saved = totalSavings(base);
   const savingsBadge = saved > 0
-    ? `<span class="savings-badge">Saving ${formatPrice(saved)}</span>`
+    ? `<span class="savings-pill">Saving ${formatPrice(saved)}</span>`
     : '';
 
   bar.innerHTML = folderSelect + pillsHtml + savingsBadge;
@@ -137,7 +145,7 @@ function renderCards(products) {
     const safeImg = safeUrl(p.imageUrl);
 
     const winnerRow = isWinner
-      ? `<div class="card-winner-badge">🏆 Best Pick</div>`
+      ? `<div class="card-winner-badge"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg> Best Pick</div>`
       : '';
 
     const badge = hasDrop
@@ -162,7 +170,7 @@ function renderCards(products) {
       : `<button class="card-view-btn" disabled style="opacity:0.4;cursor:default;">No Link</button>`;
 
     return `
-      <div class="product-card${isWinner ? ' card-winner' : ''}">
+      <div class="product-card${isWinner ? ' card-winner' : ''}" data-id="${esc(p.id)}">
         ${winnerRow}
         <div class="card-img-wrap">
           ${imgTag}
@@ -208,7 +216,7 @@ function renderTable(products) {
       ${products.map((p) => {
         const isWinner = winnerId && winnerId === p.id;
         return `<th class="product-col-header${isWinner ? ' col-winner' : ''}">
-          ${isWinner ? '<div class="winner-badge">🏆 Best Pick</div>' : ''}
+          ${isWinner ? '<div class="winner-badge"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg> Best Pick</div>' : ''}
           <button class="remove-col-btn" data-id="${esc(p.id)}" title="Remove">
             <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -287,7 +295,7 @@ function renderContent() {
   content.querySelectorAll('.card-view-btn[data-url]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const url = safeUrl(btn.dataset.url);
-      if (url) chrome.tabs.create({ url, active: false });
+      if (url) openAndFocus(url);
     });
   });
   // Card: remove button
@@ -298,7 +306,7 @@ function renderContent() {
   content.querySelectorAll('.go-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       const url = safeUrl(btn.dataset.url);
-      if (url) chrome.tabs.create({ url, active: false });
+      if (url) openAndFocus(url);
     });
   });
   // Table: remove col button
@@ -308,12 +316,22 @@ function renderContent() {
 }
 
 function removeProduct(id) {
-  chrome.runtime.sendMessage({ type: 'REMOVE_PRODUCT', id }, () => {
-    allProducts = allProducts.filter((p) => p.id !== id);
-    cachedShareUrl = null;
-    renderFilters();
-    renderContent();
-  });
+  const card = document.querySelector(`.product-card[data-id="${id}"], tr[data-id="${id}"]`);
+  const doRemove = () => {
+    chrome.runtime.sendMessage({ type: 'REMOVE_PRODUCT', id }, () => {
+      allProducts = allProducts.filter((p) => p.id !== id);
+      cachedShareUrl = null;
+      renderFilters();
+      renderContent();
+    });
+  };
+
+  if (card) {
+    card.classList.add('removing');
+    card.addEventListener('animationend', doRemove, { once: true });
+  } else {
+    doRemove();
+  }
 }
 
 // ── Share logic ─────────────────────────────────────────────────────────────
@@ -395,6 +413,22 @@ function renderShareModalBody(shareUrl, products) {
       <button class="share-platform-btn" data-url="https://x.com/intent/tweet?text=${tweetText}">
         ${xIcon}Post on X
       </button>
+    </div>
+
+    <!-- Community sharing section -->
+    <div class="share-community">
+      <div class="share-community-title">
+        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Share with Community
+      </div>
+      <div class="share-author-row">
+        <input class="share-author-input" id="share-author-input" placeholder="Your name (e.g. Kylie)" maxlength="40">
+      </div>
+      <label class="share-community-toggle">
+        <span class="share-community-label">Post to Explore feed so others can discover this haul</span>
+        <button class="share-toggle-switch" id="share-community-toggle" type="button" aria-pressed="false"></button>
+      </label>
+      <button class="share-community-post-btn" id="share-community-post-btn">Post to Community</button>
     </div>`;
 
   if (hasNative) {
@@ -415,9 +449,46 @@ function renderShareModalBody(shareUrl, products) {
 
   shareModalBody.querySelectorAll('.share-platform-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
-      // Open in background tab so dashboard stays focused
       if (btn.dataset.url) chrome.tabs.create({ url: btn.dataset.url, active: false });
     });
+  });
+
+  // Community toggle
+  const communityToggle = document.getElementById('share-community-toggle');
+  const communityPostBtn = document.getElementById('share-community-post-btn');
+  communityToggle.addEventListener('click', () => {
+    const on = communityToggle.classList.toggle('on');
+    communityToggle.setAttribute('aria-pressed', String(on));
+    communityPostBtn.classList.toggle('visible', on);
+  });
+
+  communityPostBtn.addEventListener('click', async () => {
+    const author = document.getElementById('share-author-input').value.trim();
+    communityPostBtn.disabled = true;
+    communityPostBtn.textContent = 'Posting…';
+    try {
+      const title = products.length > 0
+        ? `${author ? author + "'s" : 'My'} Haul — ${products.length} item${products.length !== 1 ? 's' : ''}`
+        : 'Haul Comparison';
+      const res = await fetch(`${WORKER_BASE}/share`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ products, title, author: author || null, isPublic: true }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        cachedShareUrl = data.url;
+        cachedShareProducts = products.map((p) => p.id).join(',');
+        communityPostBtn.textContent = 'Posted!';
+        exploreLoaded = false; // force reload next time Explore opens
+        showCopyToast('Haul posted to Community');
+      } else {
+        throw new Error('no url');
+      }
+    } catch {
+      communityPostBtn.disabled = false;
+      communityPostBtn.textContent = 'Post to Community';
+    }
   });
 }
 
@@ -473,6 +544,7 @@ if (sharedData) {
       allFolders = res2?.folders || [];
       renderFilters();
       renderContent();
+      if (allProducts.length >= 2) fetchWinner();
     });
   });
 }
@@ -499,43 +571,421 @@ document.getElementById('quick-wa').addEventListener('click',    () => quickShar
 document.getElementById('quick-email').addEventListener('click', () => quickShare('email'));
 document.getElementById('quick-x').addEventListener('click',     () => quickShare('x'));
 
-// ── Ask Claude FAB ──────────────────────────────────────────────────────────
+// ── Explore tab ──────────────────────────────────────────────────────────────
 
-const claudePanel     = document.getElementById('claude-panel');
-const claudePanelBody = document.getElementById('claude-panel-body');
-const claudeFab       = document.getElementById('claude-fab');
+let exploreLoaded = false;
 
-function openClaudePanel()  { claudePanel.classList.add('open');    }
-function closeClaudePanel() { claudePanel.classList.remove('open'); }
+function setExploreMode(active) {
+  const filtersBar = document.getElementById('filters-bar');
+  const mainContent = document.getElementById('main-content');
+  const explorePanel = document.getElementById('explore-panel');
+  const shareBar = document.getElementById('share-bar');
+  const claudeFab = document.getElementById('claude-fab');
+  const claudeFabTip = document.getElementById('claude-fab-tip');
+  const tabMyHaul = document.getElementById('tab-my-haul');
+  const tabExplore = document.getElementById('tab-explore');
 
-document.getElementById('claude-panel-close').addEventListener('click', closeClaudePanel);
+  if (active) {
+    tabExplore.classList.add('active');
+    tabMyHaul.classList.remove('active');
+    filtersBar.style.display = 'none';
+    mainContent.style.display = 'none';
+    explorePanel.classList.add('visible');
+    shareBar.style.display = 'none';
+    claudeFab.style.display = 'none';
+    if (claudeFabTip) claudeFabTip.style.display = 'none';
+    if (!exploreLoaded) loadExplore();
+  } else {
+    tabMyHaul.classList.add('active');
+    tabExplore.classList.remove('active');
+    filtersBar.style.display = '';
+    mainContent.style.display = '';
+    explorePanel.classList.remove('visible');
+    shareBar.style.display = '';
+    claudeFab.style.display = '';
+    if (claudeFabTip) claudeFabTip.style.display = '';
+  }
+}
+
+document.getElementById('tab-my-haul').addEventListener('click', () => setExploreMode(false));
+document.getElementById('tab-explore').addEventListener('click', () => setExploreMode(true));
+
+async function loadExplore() {
+  exploreLoaded = true;
+  const grid = document.getElementById('explore-grid');
+  try {
+    const res = await fetch(`${WORKER_BASE}/feed`);
+    const hauls = await res.json();
+    if (!Array.isArray(hauls) || hauls.length === 0) {
+      grid.innerHTML = `<div class="explore-empty">
+        <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        No public hauls yet. Share a comparison and toggle "Post to Community" to be the first!
+      </div>`;
+      return;
+    }
+    renderExploreGrid(hauls);
+  } catch {
+    grid.innerHTML = `<div class="explore-empty">Could not load community hauls.</div>`;
+  }
+}
+
+function renderExploreGrid(hauls) {
+  const grid = document.getElementById('explore-grid');
+  grid.innerHTML = '';
+  hauls.forEach((haul, idx) => {
+    const card = document.createElement('div');
+    card.className = 'explore-card';
+    card.style.animationDelay = `${idx * 0.06}s`;
+
+    const imagesHtml = haul.imageUrls?.length
+      ? haul.imageUrls.slice(0, 3).map((u) =>
+          `<img class="explore-card-img" src="${PROXY_BASE}${encodeURIComponent(u)}" alt="" onerror="this.style.display='none'">`
+        ).join('')
+      : `<div class="explore-card-img-ph">🛍️</div>`;
+
+    const ago = timeAgo(haul.createdAt);
+    const authorLine = haul.author ? `${esc(haul.author)} · ` : '';
+    card.innerHTML = `
+      <div class="explore-card-imgs">${imagesHtml}</div>
+      <div class="explore-card-body">
+        <div class="explore-card-title">${esc(haul.title || 'Haul Comparison')}</div>
+        <div class="explore-card-meta">${authorLine}${haul.productCount} item${haul.productCount !== 1 ? 's' : ''} · ${ago}</div>
+        <div class="explore-card-actions">
+          <button class="explore-card-btn view">View</button>
+          <button class="explore-card-btn fork">+ Fork</button>
+        </div>
+      </div>`;
+
+    card.querySelector('.view').addEventListener('click', () => {
+      openAndFocus(`https://haul-share.vercel.app/view/${haul.id}`);
+    });
+    card.querySelector('.fork').addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      btn.disabled = true;
+      btn.textContent = 'Forking…';
+      await forkHaul(haul.id, btn);
+    });
+    grid.appendChild(card);
+  });
+}
+
+function timeAgo(ts) {
+  if (!ts) return '';
+  const diff = Date.now() - ts;
+  const m = Math.floor(diff / 60000);
+  if (m < 2) return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
+async function forkHaul(shareId, btn) {
+  try {
+    const res = await fetch(`${WORKER_BASE}/fork`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ id: shareId }),
+    });
+    const data = await res.json();
+    if (!data.products?.length) throw new Error('empty');
+
+    chrome.runtime.sendMessage({ type: 'IMPORT_PRODUCTS', products: data.products }, (r) => {
+      if (chrome.runtime.lastError || !r?.success) {
+        if (btn) { btn.disabled = false; btn.textContent = '+ Fork'; }
+        return;
+      }
+      allProducts = [...allProducts, ...data.products.filter((fp) => !allProducts.find((ap) => ap.id === fp.id))];
+      if (btn) { btn.textContent = `Added ${r.count}`; }
+      showCopyToast(`${r.count} item${r.count !== 1 ? 's' : ''} added to your haul`);
+      setTimeout(() => setExploreMode(false), 800);
+    });
+  } catch {
+    if (btn) { btn.disabled = false; btn.textContent = '+ Fork'; }
+  }
+}
+
+// ── Best Pick (silent background call) ──────────────────────────────────────
+
+function fetchWinner() {
+  chrome.runtime.sendMessage({ type: 'ASK_CLAUDE', products: allProducts }, (response) => {
+    if (chrome.runtime.lastError || !response?.success) return;
+    if (response.winner_id) { winnerId = response.winner_id; renderContent(); }
+  });
+}
+
+// ── Chat panel ───────────────────────────────────────────────────────────────
+
+const chatPanel      = document.getElementById('chat-panel');
+const chatMessagesEl = document.getElementById('chat-messages');
+const chatChipsEl    = document.getElementById('chat-chips');
+const chatInput      = document.getElementById('chat-input');
+const chatSendBtn    = document.getElementById('chat-send-btn');
+const chatDragHandle = document.getElementById('chat-drag-handle');
+const claudeFab      = document.getElementById('claude-fab');
+
+let chatMessages = [];  // { role: 'user'|'assistant', content: string }
+
+// ── Panel width (resizable) ─────────────────────────────────────────────────
+
+const PANEL_MIN = 280, PANEL_MAX = 580;
+let panelWidth = parseInt(localStorage.getItem('haul_chat_width') || '340', 10);
+document.documentElement.style.setProperty('--chat-panel-width', panelWidth + 'px');
+
+chatDragHandle.addEventListener('mousedown', (e) => {
+  e.preventDefault();
+  const startX = e.clientX;
+  const startW = panelWidth;
+  let dragged = false;
+
+  function onMove(ev) {
+    const delta = startX - ev.clientX;
+    if (Math.abs(delta) > 4) dragged = true;
+    const newW = Math.max(PANEL_MIN, Math.min(PANEL_MAX, startW + delta));
+    chatPanel.style.transition = 'none';
+    document.body.style.transition = 'none';
+    document.documentElement.style.setProperty('--chat-panel-width', newW + 'px');
+    panelWidth = newW;
+  }
+
+  function onUp() {
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', onUp);
+    chatPanel.style.transition = '';
+    document.body.style.transition = '';
+    localStorage.setItem('haul_chat_width', String(panelWidth));
+    if (!dragged) {
+      chatPanel.classList.contains('open') ? closeChat() : openChat();
+    }
+  }
+
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+});
+
+// ── Open / close ────────────────────────────────────────────────────────────
+
+function openChat() {
+  chatPanel.classList.remove('closing');
+  chatPanel.classList.add('open');
+  document.body.classList.add('chat-open');
+  if (chatMessages.length === 0 && allProducts.length > 0) {
+    renderChips();
+    chatSendBtn.disabled = true;
+    chatMessages.push({ role: 'user', content: 'Analyze these products and tell me what to buy and why. Include 2-3 non-obvious insights.' });
+    appendTypingIndicator();
+    sendToWorker();
+  }
+}
+
+function closeChat() {
+  chatPanel.classList.add('closing');
+  chatPanel.classList.remove('open');
+  document.body.classList.remove('chat-open');
+  chatPanel.addEventListener('transitionend', () => chatPanel.classList.remove('closing'), { once: true });
+}
+
+// ── Example chips ───────────────────────────────────────────────────────────
+
+const CHIPS = ['Which is best value?', 'Find me alternatives', 'Best for a gift?', 'Any hidden costs?'];
+
+function renderChips() {
+  chatChipsEl.innerHTML = '';
+  chatChipsEl.style.display = 'flex';
+  CHIPS.forEach((text) => {
+    const btn = document.createElement('button');
+    btn.className = 'chat-chip';
+    btn.textContent = text;
+    btn.addEventListener('click', () => {
+      chatChipsEl.style.display = 'none';
+      handleUserSend(text);
+    });
+    chatChipsEl.appendChild(btn);
+  });
+}
+
+function hideChips() {
+  chatChipsEl.style.display = 'none';
+}
+
+// ── Message rendering ───────────────────────────────────────────────────────
+
+function appendBubble(role, text) {
+  const el = document.createElement('div');
+  el.className = `chat-bubble ${role}`;
+  el.textContent = text;
+  chatMessagesEl.appendChild(el);
+  chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+  return el;
+}
+
+function appendTypingIndicator() {
+  document.getElementById('chat-typing')?.remove();
+  const el = document.createElement('div');
+  el.className = 'chat-bubble assistant typing';
+  el.id = 'chat-typing';
+  el.innerHTML = '<span></span><span></span><span></span>';
+  chatMessagesEl.appendChild(el);
+  chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+}
+
+// Drop zone for drag-from-chat — shown over #main-content during a drag
+let dropZoneEl = null;
+
+function ensureDropZone() {
+  if (dropZoneEl) return;
+  dropZoneEl = document.createElement('div');
+  dropZoneEl.id = 'chat-drop-zone';
+  dropZoneEl.innerHTML = `
+    <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+      <path d="M12 5v14M5 12h14"/>
+    </svg>
+    Drop here to add to comparison`;
+  document.body.appendChild(dropZoneEl);
+
+  dropZoneEl.addEventListener('dragover', (e) => { e.preventDefault(); dropZoneEl.classList.add('over'); });
+  dropZoneEl.addEventListener('dragleave', () => dropZoneEl.classList.remove('over'));
+  dropZoneEl.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZoneEl.classList.remove('over');
+    hideDrop();
+    try {
+      const product = JSON.parse(e.dataTransfer.getData('application/json'));
+      addSuggestedProduct(product);
+    } catch { /* ignore */ }
+  });
+}
+
+function showDrop() { ensureDropZone(); dropZoneEl.classList.add('visible'); }
+function hideDrop() { dropZoneEl?.classList.remove('visible'); }
+
+function addSuggestedProduct(newProduct) {
+  if (allProducts.some((p) => p.id === newProduct.id)) return;
+  allProducts = [newProduct, ...allProducts];
+  chrome.runtime.sendMessage({ type: 'SAVE_PRODUCT', product: newProduct });
+  cachedShareUrl = null;
+  renderFilters();
+  renderContent();
+  if (allProducts.length >= 2) fetchWinner();
+}
+
+function appendProductCards(products) {
+  const row = document.createElement('div');
+  row.className = 'chat-product-row';
+
+  products.forEach((p, i) => {
+    const card = document.createElement('div');
+    card.className = 'chat-product-card';
+    card.style.animationDelay = `${i * 65}ms`;
+    card.draggable = true;
+
+    const imgHtml = p.image
+      ? `<img class="chat-product-img" src="${esc(p.image)}" loading="lazy" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+        + `<div class="chat-product-img-placeholder" style="display:none">🛍️</div>`
+      : `<div class="chat-product-img-placeholder">🛍️</div>`;
+
+    card.innerHTML = `
+      <div class="chat-card-drag-hint" title="Drag to comparison">⠿</div>
+      ${imgHtml}
+      <div class="chat-product-body">
+        <div class="chat-product-name">${esc(p.name)}</div>
+        ${p.price ? `<div class="chat-product-price">${esc(p.price)}</div>` : ''}
+        <div class="chat-product-site">${esc(p.siteName || '')}</div>
+      </div>
+      <div class="chat-product-actions">
+        <button class="chat-product-btn view">View</button>
+        <button class="chat-product-btn add">+ Add</button>
+      </div>`;
+
+    const newProduct = {
+      id: `suggested_${Date.now()}_${i}`,
+      name: p.name,
+      price: p.priceRaw || null,
+      sourceUrl: p.url,
+      siteName: p.siteName || '',
+      imageUrl: p.image || null,
+      savedAt: Date.now(),
+    };
+
+    // Drag events
+    card.addEventListener('dragstart', (e) => {
+      e.dataTransfer.effectAllowed = 'copy';
+      e.dataTransfer.setData('application/json', JSON.stringify(newProduct));
+      card.classList.add('dragging');
+      showDrop();
+    });
+    card.addEventListener('dragend', () => {
+      card.classList.remove('dragging');
+      hideDrop();
+    });
+
+    const safeProductUrl = safeUrl(p.url);
+    card.querySelector('.view').addEventListener('click', () => {
+      if (safeProductUrl) openAndFocus(safeProductUrl);
+    });
+    card.querySelector('.add').addEventListener('click', (ev) => {
+      const btn = ev.currentTarget;
+      btn.disabled = true;
+      btn.textContent = '✓';
+      card.classList.add('added');
+      addSuggestedProduct(newProduct);
+    });
+
+    row.appendChild(card);
+  });
+
+  chatMessagesEl.appendChild(row);
+  chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+}
+
+// ── Worker communication ────────────────────────────────────────────────────
+
+function sendToWorker() {
+  chatSendBtn.disabled = true;
+  chrome.runtime.sendMessage(
+    { type: 'ASK_CLAUDE_CHAT', products: allProducts, messages: chatMessages.slice(-20) },
+    (res) => {
+      document.getElementById('chat-typing')?.remove();
+      chatSendBtn.disabled = false;
+      if (chrome.runtime.lastError || !res?.success) {
+        appendBubble('assistant', res?.error || 'Something went wrong. Try again.');
+        return;
+      }
+      chatMessages.push({ role: 'assistant', content: res.message });
+      appendBubble('assistant', res.message);
+      if (res.suggestedProducts?.length) appendProductCards(res.suggestedProducts);
+    }
+  );
+}
+
+function handleUserSend(overrideText) {
+  const text = typeof overrideText === 'string' ? overrideText : chatInput.value.trim();
+  if (!text || chatSendBtn.disabled) return;
+  if (typeof overrideText !== 'string') {
+    chatInput.value = '';
+    chatInput.style.height = '';
+  }
+  hideChips();
+  chatMessages.push({ role: 'user', content: text });
+  appendBubble('user', text);
+  appendTypingIndicator();
+  sendToWorker();
+}
+
+document.getElementById('chat-close-btn').addEventListener('click', closeChat);
+chatSendBtn.addEventListener('click', handleUserSend);
+chatInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleUserSend(); }
+});
+chatInput.addEventListener('input', () => {
+  chatInput.style.height = Math.max(38, Math.min(chatInput.scrollHeight, 90)) + 'px';
+});
 
 claudeFab.addEventListener('click', () => {
   if (allProducts.length === 0) return;
-  claudeFab.disabled = true;
-  claudePanelBody.innerHTML = `
-    <div class="claude-loading">
-      <div class="claude-spinner"></div>
-      Analyzing your haul…
-    </div>`;
-  openClaudePanel();
-
-  chrome.runtime.sendMessage({ type: 'ASK_CLAUDE', products: allProducts }, (response) => {
-    claudeFab.disabled = false;
-    if (chrome.runtime.lastError || !response?.success) {
-      const msg = response?.error || chrome.runtime.lastError?.message || 'Something went wrong.';
-      claudePanelBody.innerHTML = `<p class="claude-error">${esc(msg)}</p>`;
-      return;
-    }
-    if (response.winner_id) { winnerId = response.winner_id; renderContent(); }
-
-    const insightsHtml = (response.insights || [])
-      .map((i) => `<div class="claude-insight">${esc(i)}</div>`)
-      .join('');
-    claudePanelBody.innerHTML = `
-      <p class="claude-summary">${esc(response.summary || '')}</p>
-      ${insightsHtml ? `<div class="claude-insights">${insightsHtml}</div>` : ''}`;
-  });
+  openChat();
 });
 
 // ── Storage sync ────────────────────────────────────────────────────────────

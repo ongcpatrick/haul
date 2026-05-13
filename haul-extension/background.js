@@ -309,6 +309,48 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  if (message.type === 'IMPORT_PRODUCTS') {
+    const incoming = message.products;
+    if (!Array.isArray(incoming) || incoming.length === 0) {
+      sendResponse({ success: false, error: 'No products to import.' });
+      return false;
+    }
+    getProducts().then((existing) => {
+      const existingIds = new Set(existing.map((p) => p.id));
+      const existingUrls = new Set(existing.map((p) => p.sourceUrl).filter(Boolean));
+      const newOnes = incoming
+        .filter((p) => !existingIds.has(p.id) && !existingUrls.has(p.sourceUrl))
+        .map((p) => ({
+          ...p,
+          id: p.id || `import_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          savedAt: Date.now(),
+        }));
+      const updated = [...newOnes, ...existing];
+      chrome.storage.local.set({ [STORAGE_KEY]: updated }, () => {
+        chrome.action.setBadgeText({ text: updated.length > 0 ? String(updated.length) : '' });
+        sendResponse({ success: true, count: newOnes.length });
+      });
+    });
+    return true;
+  }
+
+  if (message.type === 'ASK_CLAUDE_CHAT') {
+    const { products, messages } = message;
+    if (!Array.isArray(products) || !Array.isArray(messages)) {
+      sendResponse({ success: false, error: 'Invalid payload.' });
+      return false;
+    }
+    fetch(`${HAUL_WORKER_URL}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ products, messages }),
+    })
+      .then((r) => { if (!r.ok) throw new Error(`Worker error ${r.status}`); return r.json(); })
+      .then((data) => sendResponse({ success: true, message: data.message || '', suggestedProducts: data.suggestedProducts }))
+      .catch((err) => sendResponse({ success: false, error: String(err) }));
+    return true;
+  }
+
   if (message.type === 'OPEN_SIDE_PANEL') {
     tryOpenSidePanel(sender.tab && sender.tab.id);
     sendResponse({ success: true });
