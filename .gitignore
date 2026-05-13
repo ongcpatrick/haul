@@ -1,5 +1,10 @@
 # macOS
 .DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
 
 # Dependencies
 node_modules/
@@ -7,15 +12,23 @@ node_modules/
 # Build outputs and caches
 dist/
 build/
+.next/
 .vite/
 .turbo/
 .cache/
 coverage/
+.vercel/
+.railway/
+out/
 
-# Environment files
+# Environment files — NEVER commit secrets
 .env
 .env.*
 !.env.example
+*.pem
+*.key
+*.p12
+*.pfx
 
 # Logs
 *.log
@@ -29,9 +42,34 @@ pnpm-debug.log*
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
+*.swp
+*.swo
+*~
 
 # Temporary files
 tmp/
 temp/
 *.tmp
+
+# Archives and zip builds — use releases instead
+*.zip
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+
+# Office temp files (Word, Excel, etc.)
+~$*
+*.~*
+
+# Cloudflare Wrangler
+.wrangler/
+wrangler.toml.local
+
+# Extension build copies
+haul-extension copy/
+haul-extension copy*/
+
+# Clerk / auth secrets (extra safety)
+.clerk/
 
