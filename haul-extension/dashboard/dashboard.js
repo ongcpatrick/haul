@@ -21,7 +21,7 @@ let cachedShareProducts = null;
 const WORKER_BASE = 'https://haul-ai.haulapp.workers.dev';
 const PROXY_BASE  = `${WORKER_BASE}/proxy-image?url=`;
 // UPDATE if your Railway URL differs — check Railway dashboard → haul-share service.
-const HAUL_SHARE_BASE = 'https://haul-share-production.up.railway.app';
+const HAUL_SHARE_BASE = 'https://haul-production.up.railway.app';
 
 function esc(str) {
   const d = document.createElement('div');

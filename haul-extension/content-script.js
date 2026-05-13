@@ -260,7 +260,7 @@
 // When user visits haul-share, silently fetch an extension token using their
 // existing Clerk session and store it in the extension for API calls.
 (function autoConnectToken() {
-  const HAUL_SHARE_HOSTS = ['haul-share-production.up.railway.app'];
+  const HAUL_SHARE_HOSTS = ['haul-production.up.railway.app'];
   if (!HAUL_SHARE_HOSTS.some((h) => window.location.hostname === h)) return;
   fetch('/api/extension/token', { credentials: 'include' })
     .then((r) => (r.ok ? r.json() : null))
@@ -280,7 +280,7 @@
 // The view page renders buttons with data-haul-import="<base64 JSON>".
 // This content script (runs on all URLs) handles those clicks.
 
-const HAUL_SHARE_IMPORT_HOSTS = ['haul-share-production.up.railway.app'];
+const HAUL_SHARE_IMPORT_HOSTS = ['haul-production.up.railway.app'];
 if (HAUL_SHARE_IMPORT_HOSTS.some((h) => window.location.hostname === h)) {
   document.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-haul-import]');

@@ -11,7 +11,7 @@ const HAUL_WORKER_URL = 'https://haul-ai.haulapp.workers.dev';
 
 // ─── Haul Share config ────────────────────────────────────────────────────────
 // UPDATE to your actual Railway URL (check Railway dashboard → your haul-share service).
-const HAUL_SHARE_BASE = 'https://haul-share-production.up.railway.app';
+const HAUL_SHARE_BASE = 'https://haul-production.up.railway.app';
 
 const VALID_CATEGORIES = [
   'Electronics', 'Clothing', 'Footwear', 'Home', 'Beauty',

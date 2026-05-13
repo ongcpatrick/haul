@@ -31,7 +31,7 @@ export default {
     }
 
     // ── Friend share view → redirect to haul-share (GET) ─────────────────
-    const haulShareBase = env.HAUL_SHARE_URL || 'https://haul-share-production.up.railway.app';
+    const haulShareBase = env.HAUL_SHARE_URL || 'https://haul-production.up.railway.app';
     const viewMatch = url.pathname.match(/^\/view\/([A-Za-z0-9_-]{6,16})$/);
     if (viewMatch) {
       return Response.redirect(`${haulShareBase}/view/${viewMatch[1]}`, 302);
@@ -357,7 +357,7 @@ async function handleShare({ products, title, author, isPublic }, env) {
     });
   }
 
-  const haulShareBase = env.HAUL_SHARE_URL || 'https://haul-share-production.up.railway.app';
+  const haulShareBase = env.HAUL_SHARE_URL || 'https://haul-production.up.railway.app';
   return jsonResponse({ shareId, url: `${haulShareBase}/view/${shareId}` });
 }
 
