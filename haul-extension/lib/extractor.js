@@ -202,7 +202,10 @@ function extractGeneric() {
     ])),
     imageUrl: toAbsoluteUrl(
       getFirstAttr(['[itemprop="image"]', 'img.product-image', 'img[class*="product"]', 'img[class*="hero"]', '.product-gallery img', 'img[data-zoom]'], 'src') ||
-      getFirstAttr(['[itemprop="image"]'], 'data-src')
+      getFirstAttr(['[itemprop="image"]', 'img.product-image', 'img[class*="product"]', 'img[class*="hero"]', '.product-gallery img'], 'data-src') ||
+      getFirstAttr(['[itemprop="image"]', 'img[class*="product"]', 'img[class*="hero"]'], 'data-lazy-src') ||
+      getFirstAttr(['[itemprop="image"]', 'img[class*="product"]'], 'data-original') ||
+      getFirstAttr(['[itemprop="image"]', 'img[class*="product"]'], 'data-image')
     ),
   };
 }
@@ -231,28 +234,58 @@ const PRODUCT_URL_PATTERNS = [
   /ebay\.com\/itm\//,
   /adidas\.com\/.+\//,
   /converse\.com\/p\//,
+  // Additional common sites
+  /pacsun\.com\/.+\.html/,
+  /walmart\.com\/ip\//,
+  /costco\.com\/.*\.product\./,
+  /homedepot\.com\/p\//,
+  /macys\.com\/.+\/product\//,
+  /uniqlo\.com\/.+\/products\//,
+  /gap\.com\/.+\/product\//,
+  /oldnavy\.com\/.+\/product\//,
+  /urbanoutfitters\.com\/.+\/\d+/,
+  /forever21\.com\/products\//,
+];
+
+const NON_RETAIL_HOSTS = [
+  'google.com', 'google.co', 'youtube.com', 'twitter.com', 'x.com',
+  'reddit.com', 'facebook.com', 'instagram.com', 'linkedin.com',
+  'github.com', 'stackoverflow.com', 'wikipedia.org', 'nytimes.com',
+  'cnn.com', 'bbc.com', 'medium.com', 'substack.com', 'notion.so',
+  'docs.google.com', 'mail.google.com', 'calendar.google.com',
+  'netflix.com', 'hulu.com', 'spotify.com', 'twitch.tv',
 ];
 
 function isProductPage() {
+  const host = getHostname();
+
+  // Hard block: never show on non-retail sites
+  if (NON_RETAIL_HOSTS.some((h) => host.includes(h))) return false;
+
+  // Known retail URL patterns → always show
   if (PRODUCT_URL_PATTERNS.some((p) => p.test(window.location.href))) return true;
-  if (getSchemaProduct()) return true;
 
-  const ogType = document.querySelector('meta[property="og:type"]')?.content;
+  // Open Graph product signals → show (requires price meta tag to avoid false positives)
   const hasOgProductPrice = !!document.querySelector('meta[property="product:price:amount"]');
-  if (ogType === 'product' || hasOgProductPrice) return true;
+  const ogType = document.querySelector('meta[property="og:type"]')?.content;
+  if (ogType === 'product' && hasOgProductPrice) return true;
 
+  // Require BOTH a cart/buy button AND a price signal AND an h1 for generic detection
   const hasCartBtn = !!(
     document.querySelector('button[class*="add-to-cart"]') ||
     document.querySelector('button[class*="addtocart"]') ||
     document.querySelector('[data-test*="add-to-cart"]') ||
-    document.querySelector('[id*="add-to-cart"]')
+    document.querySelector('[id*="add-to-cart"]') ||
+    document.querySelector('button[class*="buy-now"]') ||
+    document.querySelector('[data-test*="buy-now"]')
   );
   const hasPrice = !!(
     document.querySelector('[itemprop="price"]') ||
+    document.querySelector('meta[property="product:price:amount"]') ||
     document.querySelector('[class*="product-price"]') ||
     document.querySelector('[class*="buying-price"]')
   );
-  return (hasCartBtn || hasPrice) && !!document.querySelector('h1');
+  return hasCartBtn && hasPrice && !!document.querySelector('h1');
 }
 
 // ─── Main extraction entry point ───────────────────────────────────────────────

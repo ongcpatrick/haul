@@ -5,11 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Haul</title>
   <style>
+    :root {
+      --bg:        #fafaf7;
+      --surface:   #f2ede4;
+      --border:    #ddd8cf;
+      --primary:   #7a9e76;
+      --primary-h: #6a8c66;
+      --blue:      #93bedf;
+      --text:      #3d3529;
+      --muted:     #8a7e72;
+      --price:     #b07d4a;
+      --success:   #7a9e76;
+      --danger:    #c97b7b;
+      --badge-bg:  #e8f0e6;
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #fafafa;
-      color: #1a1a1a;
+      background: var(--bg);
+      color: var(--text);
       height: 100vh;
       display: flex;
       flex-direction: column;
@@ -19,8 +33,8 @@
     /* Header */
     .header {
       padding: 14px 16px;
-      background: #fff;
-      border-bottom: 1px solid #e5e7eb;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -30,14 +44,14 @@
     .header-logo {
       font-size: 16px;
       font-weight: 700;
-      color: #4f46e5;
+      color: var(--primary);
       letter-spacing: -0.3px;
     }
     .badge {
       font-size: 11px;
       font-weight: 700;
-      background: #ede9fe;
-      color: #4f46e5;
+      background: var(--badge-bg);
+      color: var(--primary);
       padding: 2px 7px;
       border-radius: 10px;
     }
@@ -47,17 +61,18 @@
       border: none;
       background: none;
       cursor: pointer;
-      color: #6b7280;
+      color: var(--muted);
       border-radius: 8px;
       transition: background 0.1s;
       display: flex;
       align-items: center;
     }
-    .icon-btn:hover { background: #f3f4f6; color: #1a1a1a; }
+    .icon-btn:hover { background: var(--border); color: var(--text); }
 
     /* Product list */
     .product-list {
       flex: 1;
+      min-height: 0;
       overflow-y: auto;
       padding: 12px;
       display: flex;
@@ -66,12 +81,12 @@
     }
     .product-list::-webkit-scrollbar { width: 4px; }
     .product-list::-webkit-scrollbar-track { background: transparent; }
-    .product-list::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+    .product-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
     /* Product card */
     .product-card {
-      background: #fff;
-      border: 1px solid #e5e7eb;
+      background: var(--surface);
+      border: 1px solid var(--border);
       border-radius: 12px;
       padding: 10px;
       display: flex;
@@ -80,31 +95,33 @@
       position: relative;
       transition: box-shadow 0.15s;
     }
-    .product-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .product-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .product-card--link { cursor: pointer; }
+    .product-card--link:hover { box-shadow: 0 2px 12px rgba(122,158,118,0.2); border-color: var(--primary); }
     .product-img {
       width: 56px;
       height: 56px;
       border-radius: 8px;
       object-fit: cover;
-      background: #f3f4f6;
+      background: var(--border);
       flex-shrink: 0;
     }
     .product-img-placeholder {
       width: 56px;
       height: 56px;
       border-radius: 8px;
-      background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+      background: linear-gradient(135deg, var(--border), #ccc9c0);
       flex-shrink: 0;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #9ca3af;
+      color: var(--muted);
     }
     .product-info { flex: 1; min-width: 0; }
     .product-name {
       font-size: 13px;
       font-weight: 500;
-      color: #1a1a1a;
+      color: var(--text);
       line-height: 1.4;
       display: -webkit-box;
       -webkit-line-clamp: 2;
@@ -114,34 +131,43 @@
     }
     .product-site {
       font-size: 11px;
-      color: #9ca3af;
+      color: var(--muted);
       margin-bottom: 4px;
     }
     .price-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
     .price {
       font-size: 14px;
       font-weight: 700;
-      color: #1a1a1a;
+      color: var(--price);
     }
     .original-price {
       font-size: 12px;
-      color: #9ca3af;
+      color: var(--muted);
       text-decoration: line-through;
     }
     .badge-drop {
       font-size: 10px;
       font-weight: 700;
-      background: #d1fae5;
-      color: #065f46;
+      background: var(--badge-bg);
+      color: var(--success);
       padding: 1px 6px;
       border-radius: 6px;
     }
     .badge-sale {
       font-size: 10px;
       font-weight: 700;
-      background: #fef3c7;
-      color: #92400e;
+      background: #fdf0e0;
+      color: var(--price);
       padding: 1px 6px;
+      border-radius: 6px;
+    }
+    .category-row { margin-top: 4px; }
+    .badge-category {
+      font-size: 10px;
+      font-weight: 600;
+      background: var(--badge-bg);
+      color: var(--primary);
+      padding: 1px 7px;
       border-radius: 6px;
     }
     .remove-btn {
@@ -151,24 +177,24 @@
       width: 20px;
       height: 20px;
       border: none;
-      background: #f3f4f6;
+      background: var(--border);
       border-radius: 50%;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #6b7280;
+      color: var(--muted);
       opacity: 0;
       transition: opacity 0.15s, background 0.15s;
     }
     .product-card:hover .remove-btn { opacity: 1; }
-    .remove-btn:hover { background: #fee2e2; color: #dc2626; }
+    .remove-btn:hover { background: #f0d5d5; color: var(--danger); }
 
     /* Footer */
     .footer {
       padding: 12px;
-      background: #fff;
-      border-top: 1px solid #e5e7eb;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
       display: flex;
       flex-direction: column;
       gap: 8px;
@@ -177,7 +203,7 @@
     .btn-compare {
       width: 100%;
       padding: 10px;
-      background: #4f46e5;
+      background: var(--primary);
       color: #fff;
       font-size: 14px;
       font-weight: 600;
@@ -190,13 +216,13 @@
       gap: 6px;
       transition: background 0.15s;
     }
-    .btn-compare:hover { background: #4338ca; }
-    .btn-compare:disabled { background: #9ca3af; cursor: not-allowed; }
+    .btn-compare:hover { background: var(--primary-h); }
+    .btn-compare:disabled { background: var(--muted); cursor: not-allowed; }
     .btn-clear {
       width: 100%;
       padding: 8px;
       background: none;
-      color: #6b7280;
+      color: var(--muted);
       font-size: 13px;
       font-weight: 500;
       border: none;
@@ -204,7 +230,7 @@
       border-radius: 8px;
       transition: background 0.1s;
     }
-    .btn-clear:hover { background: #f3f4f6; color: #ef4444; }
+    .btn-clear:hover { background: var(--border); color: var(--danger); }
 
     /* Empty state */
     .empty-state {
@@ -219,23 +245,23 @@
     .empty-icon {
       width: 64px;
       height: 64px;
-      background: #ede9fe;
+      background: var(--badge-bg);
       border-radius: 20px;
       display: flex;
       align-items: center;
       justify-content: center;
       margin-bottom: 16px;
-      color: #4f46e5;
+      color: var(--primary);
     }
     .empty-title {
       font-size: 15px;
       font-weight: 600;
-      color: #1a1a1a;
+      color: var(--text);
       margin-bottom: 8px;
     }
     .empty-desc {
       font-size: 13px;
-      color: #6b7280;
+      color: var(--muted);
       line-height: 1.6;
     }
   </style>

@@ -2,6 +2,7 @@
 
 let allProducts = [];
 let activeFilter = 'all';
+let winnerId = null;
 
 // Escape text for safe insertion into innerHTML templates.
 function esc(str) {
@@ -21,12 +22,40 @@ function formatPrice(price) {
 }
 
 function getCategory(product) {
-  const host = (product.siteName || '').toLowerCase();
+  // Use AI-assigned category when available (set by Claude in background worker).
+  if (product.category) return product.category;
+
   const name = (product.name || '').toLowerCase();
-  if (host.includes('nike') || host.includes('adidas') || host.includes('converse') || name.includes('shoe') || name.includes('sneaker') || name.includes('boot')) return 'Shoes';
-  if (host.includes('bestbuy') || host.includes('newegg') || host.includes('bhphotovideo') || name.includes('laptop') || name.includes('monitor') || name.includes('gpu') || name.includes('phone') || name.includes('tablet')) return 'Electronics';
-  if (host.includes('asos') || host.includes('zara') || host.includes('hm') || host.includes('nordstrom') || name.includes('shirt') || name.includes('jacket') || name.includes('dress')) return 'Clothing';
-  if (host.includes('wayfair') || host.includes('ikea') || name.includes('sofa') || name.includes('desk') || name.includes('chair') || name.includes('bed')) return 'Home';
+
+  if (name.includes('shoe') || name.includes('sneaker') || name.includes('boot') ||
+      name.includes('sandal') || name.includes('heel') || name.includes('loafer') ||
+      name.includes('trainer') || name.includes('slipper') || name.includes('cleat')) {
+    return 'Footwear';
+  }
+  if (name.includes('pants') || name.includes('jacket') || name.includes('shirt') ||
+      name.includes('dress') || name.includes('hoodie') || name.includes('shorts') ||
+      name.includes('coat') || name.includes('suit') || name.includes('skirt') ||
+      name.includes('legging') || name.includes('jeans') || name.includes('sweater') ||
+      name.includes('sweatshirt') || name.includes('polo') || name.includes('blouse') ||
+      name.includes('tee') || name.includes('tracksuit') || name.includes('track')) {
+    return 'Clothing';
+  }
+  if (name.includes('laptop') || name.includes('monitor') || name.includes('headphone') ||
+      name.includes('keyboard') || name.includes('camera') || name.includes('tablet') ||
+      name.includes('phone') || name.includes('speaker') || name.includes('gpu')) {
+    return 'Electronics';
+  }
+  if (name.includes('sofa') || name.includes('desk') || name.includes('chair') ||
+      name.includes('bed') || name.includes('shelf') || name.includes('lamp') ||
+      name.includes('rug') || name.includes('pillow')) {
+    return 'Home';
+  }
+
+  // Site-based fallback only for single-category retailers.
+  const host = (product.siteName || '').toLowerCase();
+  if (host.includes('bestbuy') || host.includes('newegg')) return 'Electronics';
+  if (host.includes('wayfair') || host.includes('ikea')) return 'Home';
+
   return 'Other';
 }
 
@@ -59,9 +88,19 @@ function renderFilters() {
 }
 
 // Attach onerror fallbacks after innerHTML — inline onerror is blocked by MV3 CSP.
+const PROXY_BASE = 'https://haul-ai.haulapp.workers.dev/proxy-image?url=';
+
 function attachImageFallbacks(container) {
   container.querySelectorAll('.product-img-cell img').forEach((img) => {
-    img.addEventListener('error', () => { img.style.display = 'none'; });
+    img.addEventListener('error', () => {
+      const original = img.src;
+      if (!img.dataset.proxied && original && !original.startsWith(PROXY_BASE)) {
+        img.dataset.proxied = '1';
+        img.src = PROXY_BASE + encodeURIComponent(original);
+      } else {
+        img.style.display = 'none';
+      }
+    });
   });
 }
 
@@ -109,14 +148,18 @@ function renderTable() {
     <thead>
       <tr>
         <th class="row-label"></th>
-        ${products.map((p) => `
-          <th class="product-col-header">
+        ${products.map((p) => {
+          const isWinner = winnerId && winnerId === p.id;
+          return `
+          <th class="product-col-header${isWinner ? ' col-winner' : ''}">
+            ${isWinner ? '<div class="winner-badge">🏆 Best Pick</div>' : ''}
             <button class="remove-col-btn" data-id="${esc(p.id)}" title="Remove">
               <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                 <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
               </svg>
             </button>
-          </th>`).join('')}
+          </th>`;
+        }).join('')}
       </tr>
     </thead>`;
 
@@ -209,6 +252,52 @@ if (sharedData) {
     renderTable();
   });
 }
+
+// ─── Ask Claude panel ─────────────────────────────────────────────────────────
+
+const claudePanel = document.getElementById('claude-panel');
+const claudePanelBody = document.getElementById('claude-panel-body');
+const askClaudeBtn = document.getElementById('ask-claude-btn');
+
+function openClaudePanel() { claudePanel.classList.add('open'); }
+function closeClaudePanel() { claudePanel.classList.remove('open'); }
+
+document.getElementById('claude-panel-close').addEventListener('click', closeClaudePanel);
+
+askClaudeBtn.addEventListener('click', () => {
+  if (allProducts.length === 0) return;
+
+  askClaudeBtn.disabled = true;
+  claudePanelBody.innerHTML = `
+    <div class="claude-loading">
+      <div class="claude-spinner"></div>
+      Analyzing your haul…
+    </div>`;
+  openClaudePanel();
+
+  chrome.runtime.sendMessage({ type: 'ASK_CLAUDE', products: allProducts }, (response) => {
+    askClaudeBtn.disabled = false;
+    if (chrome.runtime.lastError || !response?.success) {
+      const msg = response?.error || chrome.runtime.lastError?.message || 'Something went wrong.';
+      claudePanelBody.innerHTML = `<p class="claude-error">${esc(msg)}</p>`;
+      return;
+    }
+
+    // Set winner and re-render table with badge.
+    if (response.winner_id) {
+      winnerId = response.winner_id;
+      renderTable();
+    }
+
+    const insightsHtml = (response.insights || [])
+      .map((i) => `<div class="claude-insight">${esc(i)}</div>`)
+      .join('');
+
+    claudePanelBody.innerHTML = `
+      <p class="claude-summary">${esc(response.summary || '')}</p>
+      ${insightsHtml ? `<div class="claude-insights">${insightsHtml}</div>` : ''}`;
+  });
+});
 
 document.getElementById('share-btn').addEventListener('click', shareComparison);
 document.getElementById('close-btn').addEventListener('click', () => window.close());

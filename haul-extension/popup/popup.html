@@ -4,36 +4,117 @@
   <meta charset="UTF-8" />
   <title>Haul</title>
   <style>
+    :root {
+      --bg:        #fafaf7;
+      --surface:   #f2ede4;
+      --border:    #ddd8cf;
+      --primary:   #7a9e76;
+      --primary-h: #6a8c66;
+      --text:      #3d3529;
+      --muted:     #8a7e72;
+      --price:     #b07d4a;
+      --badge-bg:  #e8f0e6;
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #fff;
-      width: 240px;
+      background: var(--bg);
+      color: var(--text);
+      width: 260px;
       padding: 16px;
     }
     .logo {
       font-size: 18px;
       font-weight: 700;
-      color: #4f46e5;
+      color: var(--primary);
       margin-bottom: 4px;
       letter-spacing: -0.3px;
     }
     .tagline {
       font-size: 12px;
-      color: #9ca3af;
-      margin-bottom: 16px;
+      color: var(--muted);
+      margin-bottom: 14px;
     }
     .stat {
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding: 10px 12px;
-      background: #f5f3ff;
+      background: var(--badge-bg);
       border-radius: 10px;
       margin-bottom: 12px;
     }
-    .stat-label { font-size: 13px; color: #6b7280; }
-    .stat-value { font-size: 20px; font-weight: 700; color: #4f46e5; }
+    .stat-label { font-size: 13px; color: var(--muted); }
+    .stat-value { font-size: 20px; font-weight: 700; color: var(--primary); }
+
+    /* Recent saves list */
+    #recent-list {
+      margin-bottom: 12px;
+      display: none;
+      flex-direction: column;
+      gap: 4px;
+    }
+    #recent-list.visible { display: flex; }
+    .recent-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 2px;
+    }
+    .recent-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      transition: background 0.12s, border-color 0.12s;
+      text-align: left;
+      width: 100%;
+    }
+    .recent-item:hover {
+      background: var(--badge-bg);
+      border-color: var(--primary);
+    }
+    .recent-thumb {
+      width: 28px;
+      height: 28px;
+      border-radius: 5px;
+      object-fit: cover;
+      flex-shrink: 0;
+      background: var(--border);
+    }
+    .recent-thumb-placeholder {
+      width: 28px;
+      height: 28px;
+      border-radius: 5px;
+      background: linear-gradient(135deg, var(--border), #ccc9c0);
+      flex-shrink: 0;
+    }
+    .recent-info { flex: 1; min-width: 0; }
+    .recent-name {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .recent-price {
+      font-size: 11px;
+      color: var(--price);
+      margin-top: 1px;
+    }
+    .recent-arrow {
+      color: var(--muted);
+      flex-shrink: 0;
+      font-size: 14px;
+    }
+
     .btn {
       width: 100%;
       padding: 10px;
@@ -49,10 +130,10 @@
       transition: background 0.15s;
       margin-bottom: 8px;
     }
-    .btn-primary { background: #4f46e5; color: #fff; }
-    .btn-primary:hover { background: #4338ca; }
-    .btn-secondary { background: #f3f4f6; color: #374151; }
-    .btn-secondary:hover { background: #e5e7eb; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-h); }
+    .btn-secondary { background: var(--surface); color: var(--text); }
+    .btn-secondary:hover { background: var(--border); }
     .btn:disabled { opacity: 0.5; cursor: not-allowed; }
   </style>
 </head>
@@ -63,6 +144,10 @@
   <div class="stat">
     <span class="stat-label">Items saved</span>
     <span class="stat-value" id="count">0</span>
+  </div>
+
+  <div id="recent-list">
+    <div class="recent-label">Recent saves</div>
   </div>
 
   <button class="btn btn-primary" id="open-tray-btn">

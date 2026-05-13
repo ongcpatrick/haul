@@ -5,6 +5,8 @@
 (function () {
   'use strict';
 
+  const STORAGE_KEY = 'haul_products';
+
   let saveBtn = null;
   let toast = null;
   let checkTimeout = null;
@@ -82,6 +84,7 @@
 
   function showSaveButton() {
     if (saveBtn) return;
+    document.getElementById('haul-save-btn')?.remove();
     injectStyles();
     saveBtn = document.createElement('button');
     saveBtn.id = 'haul-save-btn';
@@ -94,7 +97,7 @@
     if (saveBtn) { saveBtn.remove(); saveBtn = null; }
   }
 
-  // ─── Toast (DOM-built to avoid inserting product name via innerHTML) ──────────
+  // ─── Toast ───────────────────────────────────────────────────────────────────
 
   function showToast(productName) {
     if (toast) toast.remove();
@@ -124,39 +127,93 @@
     }, 2500);
   }
 
+  // ─── Direct storage save (no service worker dependency) ──────────────────────
+  // Content scripts have direct access to chrome.storage.local.
+  // This is the primary save path — no message round-trip required.
+
+  function directSave(product) {
+    return new Promise((resolve, reject) => {
+      chrome.storage.local.get([STORAGE_KEY], (result) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+          return;
+        }
+        const existing = result[STORAGE_KEY] || [];
+        const updated = [product, ...existing];
+        chrome.storage.local.set({ [STORAGE_KEY]: updated }, () => {
+          if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+          else resolve(updated.length);
+        });
+      });
+    });
+  }
+
   // ─── Save handler ─────────────────────────────────────────────────────────────
+
+  function resetSaveBtn() {
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = `${SAVE_SVG} Save to Haul`; }
+  }
 
   async function handleSave() {
     saveBtn.disabled = true;
     saveBtn.textContent = 'Saving…';
 
-    // extractProduct() is defined in lib/extractor.js, injected before this file.
-    const product = extractProduct();
+    let product;
+    try {
+      product = extractProduct();
+    } catch {
+      saveBtn.textContent = 'Could not read page';
+      setTimeout(resetSaveBtn, 2000);
+      return;
+    }
 
-    chrome.runtime.sendMessage({ type: 'SAVE_PRODUCT', product }, (response) => {
-      if (chrome.runtime.lastError || !response?.success) {
-        saveBtn.disabled = false;
-        saveBtn.innerHTML = `${SAVE_SVG} Save to Haul`;
-        return;
-      }
-      showToast(product.name);
-      saveBtn.innerHTML = `${CHECK_SVG} Saved (${response.count})`;
-      setTimeout(() => {
-        if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = `${SAVE_SVG} Save to Haul`; }
-      }, 1800);
-    });
+    // If price is null, wait up to 3 s for JS-rendered price to appear then re-extract.
+    if (product.price == null) {
+      product = await new Promise((resolve) => {
+        const deadline = setTimeout(() => { observer.disconnect(); resolve(product); }, 3000);
+        const observer = new MutationObserver(() => {
+          const refreshed = extractProduct();
+          if (refreshed.price != null) {
+            clearTimeout(deadline);
+            observer.disconnect();
+            resolve(refreshed);
+          }
+        });
+        observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+      });
+    }
+
+    // Save directly — reliable regardless of service worker state.
+    let count;
+    try {
+      count = await directSave(product);
+    } catch (err) {
+      saveBtn.textContent = 'Save failed';
+      setTimeout(resetSaveBtn, 2500);
+      return;
+    }
+
+    // Best-effort: tell the background to open the side panel.
+    // Don't block on this — storage.onChanged already refreshes the side panel.
+    try {
+      chrome.runtime.sendMessage({ type: 'OPEN_SIDE_PANEL' });
+    } catch {
+      // Service worker unavailable — side panel won't auto-open, but save succeeded.
+    }
+
+    showToast(product.name);
+    saveBtn.innerHTML = `${CHECK_SVG} Saved (${count})`;
+    setTimeout(resetSaveBtn, 1800);
   }
 
   // ─── Page lifecycle ──────────────────────────────────────────────────────────
 
   function checkPage() {
-    // isProductPage() is defined in lib/extractor.js.
     if (isProductPage()) { showSaveButton(); } else { hideSaveButton(); }
   }
 
   checkPage();
 
-  // SPA navigation — 2000ms debounce lets React/Next.js finish rendering.
   let lastUrl = window.location.href;
   const observer = new MutationObserver(() => {
     if (window.location.href !== lastUrl) {

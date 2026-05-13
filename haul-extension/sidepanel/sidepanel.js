@@ -9,10 +9,11 @@ function esc(str) {
   return d.innerHTML;
 }
 
-// Only allow http/https URLs for images; reject data: and javascript: URLs.
-function safeImgUrl(url) {
+// Only allow http/https URLs.
+function safeUrl(url) {
   return url && (url.startsWith('https://') || url.startsWith('http://')) ? url : null;
 }
+function safeImgUrl(url) { return safeUrl(url); }
 
 function formatPrice(price) {
   if (price == null) return '—';
@@ -21,12 +22,21 @@ function formatPrice(price) {
 
 // Attach onerror fallbacks to product images after innerHTML is set.
 // Inline onerror attributes are blocked by MV3 CSP, so we use addEventListener.
+const PROXY_BASE = 'https://haul-ai.haulapp.workers.dev/proxy-image?url=';
+
 function attachImageFallbacks(container) {
   container.querySelectorAll('img.product-img').forEach((img) => {
     img.addEventListener('error', () => {
-      img.style.display = 'none';
-      const placeholder = img.nextElementSibling;
-      if (placeholder) placeholder.style.display = 'flex';
+      const original = img.dataset.originalSrc || img.src;
+      // Try via Worker proxy once before giving up
+      if (!img.dataset.proxied && original && !original.startsWith(PROXY_BASE)) {
+        img.dataset.proxied = '1';
+        img.src = PROXY_BASE + encodeURIComponent(original);
+      } else {
+        img.style.display = 'none';
+        const placeholder = img.nextElementSibling;
+        if (placeholder) placeholder.style.display = 'flex';
+      }
     });
   });
 }
@@ -79,19 +89,25 @@ function renderProducts() {
       ? `<span class="badge-drop">↓ $${esc(savings)}</span>`
       : '';
 
+    const categoryBadge = p.category
+      ? `<span class="badge-category">${esc(p.category)}</span>`
+      : '';
+
     const safeImg = safeImgUrl(p.imageUrl);
     const imgHtml = safeImg
       ? `<img class="product-img" src="${esc(safeImg)}" alt="" />
          <div class="product-img-placeholder" style="display:none;">${PLACEHOLDER_SVG}</div>`
       : `<div class="product-img-placeholder">${PLACEHOLDER_SVG}</div>`;
 
+    const productUrl = safeUrl(p.sourceUrl);
     return `
-      <div class="product-card" data-id="${esc(p.id)}">
+      <div class="product-card${productUrl ? ' product-card--link' : ''}" data-id="${esc(p.id)}" ${productUrl ? `data-url="${esc(productUrl)}"` : ''}>
         ${imgHtml}
         <div class="product-info">
           <div class="product-name">${esc(p.name)}</div>
           <div class="product-site">${esc(p.siteName)}</div>
           <div class="price-row">${priceHtml}${origHtml}${dropBadge}</div>
+          <div class="category-row">${categoryBadge}</div>
         </div>
         <button class="remove-btn" data-id="${esc(p.id)}" title="Remove">
           <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
@@ -111,6 +127,13 @@ function renderProducts() {
       chrome.runtime.sendMessage({ type: 'REMOVE_PRODUCT', id: btn.dataset.id }, (response) => {
         if (!chrome.runtime.lastError && response?.success) loadProducts();
       });
+    });
+  });
+
+  contentArea.querySelectorAll('.product-card--link').forEach((card) => {
+    card.addEventListener('click', () => {
+      const url = card.dataset.url;
+      if (url) chrome.tabs.create({ url });
     });
   });
 }
