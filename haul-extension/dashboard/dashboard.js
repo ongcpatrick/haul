@@ -245,14 +245,23 @@ function renderTable() {
   });
 }
 
-const shareOverlay = document.getElementById('share-overlay');
-const shareModalBody = document.getElementById('share-modal-body');
+let shareOverlay, shareModalBody;
 
-function openShareModal() { shareOverlay.classList.add('open'); }
-function closeShareModal() { shareOverlay.classList.remove('open'); }
+function openShareModal() { shareOverlay?.classList.add('open'); }
+function closeShareModal() { shareOverlay?.classList.remove('open'); }
 
-document.getElementById('share-modal-close').addEventListener('click', closeShareModal);
-shareOverlay.addEventListener('click', (e) => { if (e.target === shareOverlay) closeShareModal(); });
+document.addEventListener('DOMContentLoaded', () => {
+  shareOverlay = document.getElementById('share-overlay');
+  shareModalBody = document.getElementById('share-modal-body');
+
+  document.getElementById('share-modal-close').addEventListener('click', (e) => {
+    e.stopPropagation();
+    closeShareModal();
+  });
+  shareOverlay.addEventListener('click', (e) => {
+    if (e.target === shareOverlay) closeShareModal();
+  });
+});
 
 function showCopyToast(msg = '✓ Copied to clipboard') {
   const t = document.getElementById('copy-toast');
@@ -289,25 +298,41 @@ async function shareComparison() {
   const emailBody = encodeURIComponent(`I compared some products on Haul — take a look:\n\n${shareUrl}`);
   const twitterText = encodeURIComponent(`Shopping smarter with Haul 🛍️ ${shareUrl}`);
 
+  const hasNativeShare = typeof navigator.share === 'function';
+
   shareModalBody.innerHTML = `
+    ${hasNativeShare ? `
+    <button class="share-native-btn" id="share-native-btn">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+        <polyline points="16 6 12 2 8 6"/>
+        <line x1="12" y1="2" x2="12" y2="15"/>
+      </svg>
+      Share via Messages, AirDrop &amp; more…
+    </button>` : ''}
     <div class="share-url-row">
-      <span class="share-url-text" id="share-url-display">${esc(shareUrl)}</span>
+      <span class="share-url-text">${esc(shareUrl)}</span>
       <button class="share-copy-btn" id="share-copy-btn">Copy</button>
     </div>
     <div class="share-platforms">
-      <button class="share-platform-btn" data-platform="whatsapp">
+      <button class="share-platform-btn" data-url="https://wa.me/?text=${waText}">
         <span class="share-platform-icon">💬</span>WhatsApp
       </button>
-      <button class="share-platform-btn" data-platform="sms">
-        <span class="share-platform-icon">✉️</span>iMessage
-      </button>
-      <button class="share-platform-btn" data-platform="email">
+      <button class="share-platform-btn" data-url="mailto:?subject=${emailSubj}&body=${emailBody}">
         <span class="share-platform-icon">📧</span>Email
       </button>
-      <button class="share-platform-btn" data-platform="twitter">
+      <button class="share-platform-btn" data-url="https://x.com/intent/tweet?text=${twitterText}">
         <span class="share-platform-icon">𝕏</span>Post
       </button>
     </div>`;
+
+  if (hasNativeShare) {
+    document.getElementById('share-native-btn').addEventListener('click', () => {
+      navigator.share({ title: products[0]?.name ?? 'My Haul', text: 'Check out my product comparison on Haul 🛍️', url: shareUrl })
+        .then(() => closeShareModal())
+        .catch(() => {});
+    });
+  }
 
   document.getElementById('share-copy-btn').addEventListener('click', () => {
     navigator.clipboard.writeText(shareUrl).then(() => {
@@ -321,14 +346,8 @@ async function shareComparison() {
 
   shareModalBody.querySelectorAll('.share-platform-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
-      const platform = btn.dataset.platform;
-      const urls = {
-        whatsapp: `https://wa.me/?text=${waText}`,
-        sms: `sms:?body=${smsText}`,
-        email: `mailto:?subject=${emailSubj}&body=${emailBody}`,
-        twitter: `https://x.com/intent/tweet?text=${twitterText}`,
-      };
-      chrome.tabs.create({ url: urls[platform] });
+      const url = btn.dataset.url;
+      if (url) chrome.tabs.create({ url });
     });
   });
 }

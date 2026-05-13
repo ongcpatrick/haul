@@ -30,10 +30,16 @@ export default {
       return handleProxyImage(url);
     }
 
-    // ── Friend share view (GET) ────────────────────────────────────────────
+    // ── Friend share view → redirect to Vercel (GET) ──────────────────────
     const viewMatch = url.pathname.match(/^\/view\/([A-Za-z0-9_-]{6,16})$/);
     if (viewMatch) {
-      return handleView(viewMatch[1], env);
+      return Response.redirect(`https://haul-share.vercel.app/view/${viewMatch[1]}`, 302);
+    }
+
+    // ── Raw share data JSON for Vercel SSR (GET) ───────────────────────────
+    const apiMatch = url.pathname.match(/^\/api\/([A-Za-z0-9_-]{6,16})$/);
+    if (apiMatch) {
+      return handleApiGet(apiMatch[1], env);
     }
 
     if (request.method !== 'POST') {
@@ -163,6 +169,19 @@ ${list}`
   return jsonResponse(parsed);
 }
 
+// ─── /api/:id ─────────────────────────────────────────────────────────────────
+
+async function handleApiGet(shareId, env) {
+  if (!env.HAUL_SHARES) return jsonResponse({ error: 'KV not configured' }, 500);
+  const raw = await env.HAUL_SHARES.get(shareId);
+  if (!raw) return jsonResponse({ error: 'Not found' }, 404);
+  try {
+    return jsonResponse(JSON.parse(raw));
+  } catch {
+    return jsonResponse({ error: 'Corrupt data' }, 500);
+  }
+}
+
 // ─── /share ───────────────────────────────────────────────────────────────────
 
 function randomId() {
@@ -182,7 +201,7 @@ async function handleShare({ products, title }, env, reqUrl) {
   const payload = JSON.stringify({ products, title: title || null, createdAt: Date.now() });
   await env.HAUL_SHARES.put(shareId, payload, { expirationTtl: 60 * 60 * 24 * 30 }); // 30 days
 
-  const base = `${reqUrl.protocol}//${reqUrl.host}`;
+  const base = 'https://haul-share.vercel.app';
   return jsonResponse({ shareId, url: `${base}/view/${shareId}` });
 }
 
