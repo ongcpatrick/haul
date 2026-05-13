@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { useUser } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
+import { useUser, useAuth } from '@clerk/nextjs';
 import { completeOnboarding } from '@/app/actions/onboarding';
 
 interface Props {
@@ -12,7 +13,9 @@ interface Props {
 }
 
 export default function OnboardingForm({ imageUrl, firstName, defaultUsername, defaultDisplayName }: Props) {
+  const router = useRouter();
   const { user } = useUser();
+  const { getToken } = useAuth();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [username, setUsername] = useState(defaultUsername);
@@ -33,7 +36,8 @@ export default function OnboardingForm({ imageUrl, firstName, defaultUsername, d
         return;
       }
       await user?.reload();
-      window.location.href = '/feed';
+      await getToken({ skipCache: true });
+      router.push('/feed');
     });
   }
 
