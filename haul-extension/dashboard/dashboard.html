@@ -115,7 +115,8 @@
       overflow-x: auto;
     }
     table {
-      width: 100%;
+      width: auto;
+      min-width: min(100%, 480px);
       border-collapse: collapse;
       background: var(--surface);
       border-radius: 12px;
@@ -148,8 +149,9 @@
 
     /* Product column header */
     .product-col-header {
-      min-width: 180px;
-      max-width: 200px;
+      width: 220px;
+      min-width: 220px;
+      max-width: 220px;
       vertical-align: top;
       position: relative;
     }
@@ -174,9 +176,8 @@
     .remove-col-btn:hover { background: #f0d5d5; color: var(--danger); }
 
     .product-img-cell {
-      width: 100%;
-      aspect-ratio: 1;
-      max-height: 140px;
+      width: 188px;
+      height: 188px;
       background: linear-gradient(135deg, var(--border), #ccc9c0);
       border-radius: 10px;
       overflow: hidden;
@@ -186,7 +187,8 @@
     .product-img-cell img {
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      object-fit: contain;
+      padding: 8px;
     }
     .price-drop-badge, .sale-badge, .stock-badge {
       position: absolute;

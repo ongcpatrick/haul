@@ -182,7 +182,7 @@ function renderTable() {
         return `<td class="data-cell"><div class="price-display"><span class="price-main">${formatPrice(p.price)}</span>${orig}</div></td>`;
       }
       if (row.key === 'site') {
-        return `<td class="data-cell" style="color:#9ca3af;">${esc(p.siteName)}</td>`;
+        return `<td class="data-cell" style="color:var(--muted);">${esc(p.siteName)}</td>`;
       }
       if (row.key === 'link') {
         const safe = safeUrl(p.sourceUrl);
