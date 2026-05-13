@@ -173,6 +173,32 @@
       margin-top: -4px;
       margin-bottom: 7px;
     }
+    .auth-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 10px;
+      padding: 7px 10px;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 9px;
+      cursor: pointer;
+      transition: border-color var(--transition);
+    }
+    .auth-row:hover { border-color: var(--primary); }
+    .auth-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--border);
+      flex-shrink: 0;
+    }
+    .auth-dot.connected { background: var(--success); }
+    #auth-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--muted);
+    }
+    .auth-row.connected #auth-label { color: var(--text); }
   </style>
 </head>
 <body>
@@ -211,6 +237,11 @@
     <span id="compare-btn-label">Compare All</span>
   </button>
   <div class="compare-hint" id="compare-hint" style="display:none;">Add 1 more item to compare</div>
+
+  <div class="auth-row" id="auth-row">
+    <div class="auth-dot" id="auth-dot"></div>
+    <span id="auth-label">Connect to Haul</span>
+  </div>
 
   <script src="popup.js"></script>
 </body>

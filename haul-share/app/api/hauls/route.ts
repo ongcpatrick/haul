@@ -12,12 +12,28 @@ interface CreateHaulBody {
   circleId?: string | null;
 }
 
-export async function POST(req: Request) {
-  const { userId } = await auth();
-  if (!userId) return fail('Unauthorized', 401);
+async function getUserIdFromToken(req: Request): Promise<string | null> {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) return null;
+  const token = authHeader.slice(7).trim();
+  const [row] = await sql<{ user_id: string }[]>`
+    SELECT user_id FROM extension_tokens
+    WHERE token = ${token} AND expires_at > now()
+    LIMIT 1
+  `;
+  return (row?.user_id as string) ?? null;
+}
 
-  const dbUserId = await getCurrentDbUserId();
-  if (!dbUserId) return fail('User not synced', 400);
+export async function POST(req: Request) {
+  // Accept either a Bearer extension token or a Clerk browser session.
+  let dbUserId: string | null = await getUserIdFromToken(req);
+
+  if (!dbUserId) {
+    const { userId } = await auth();
+    if (!userId) return fail('Unauthorized', 401);
+    dbUserId = await getCurrentDbUserId();
+    if (!dbUserId) return fail('User not synced', 400);
+  }
 
   const body = await readJson<CreateHaulBody>(req);
   if (!body || !Array.isArray(body.products)) return fail('Invalid body');

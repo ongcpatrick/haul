@@ -3,11 +3,15 @@
 
 const STORAGE_KEY = 'haul_products';
 const FOLDERS_KEY = 'haul_folders';
+const EXT_TOKEN_KEY = 'haul_ext_token';
+const EXT_USERNAME_KEY = 'haul_ext_username';
 
 // ─── Haul Worker config ───────────────────────────────────────────────────────
-// After deploying haul-worker/, replace YOUR_SUBDOMAIN with your actual subdomain.
-// Run: npx wrangler deploy && npx wrangler secret put ANTHROPIC_API_KEY
 const HAUL_WORKER_URL = 'https://haul-ai.haulapp.workers.dev';
+
+// ─── Haul Share config ────────────────────────────────────────────────────────
+// UPDATE to your actual Railway URL (check Railway dashboard → your haul-share service).
+const HAUL_SHARE_BASE = 'https://haul-share-production.up.railway.app';
 
 const VALID_CATEGORIES = [
   'Electronics', 'Clothing', 'Footwear', 'Home', 'Beauty',
@@ -134,6 +138,38 @@ function removeProductFromFolder(productId, folderId) {
       });
     });
   });
+}
+
+// ─── Extension token (links extension to haul-share.com account) ─────────────
+
+function getExtToken() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get([EXT_TOKEN_KEY, EXT_USERNAME_KEY], (r) => {
+      resolve({ token: r[EXT_TOKEN_KEY] || null, username: r[EXT_USERNAME_KEY] || null });
+    });
+  });
+}
+
+function setExtToken(token, username) {
+  return new Promise((resolve) => {
+    chrome.storage.local.set({ [EXT_TOKEN_KEY]: token, [EXT_USERNAME_KEY]: username }, resolve);
+  });
+}
+
+async function postHaulToWebsite(products, title) {
+  const { token } = await getExtToken();
+  if (!token) return null;
+  try {
+    const res = await fetch(`${HAUL_SHARE_BASE}/api/hauls`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ products, title, isPublic: true }),
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
 }
 
 // ─── Worker health check ──────────────────────────────────────────────────────
@@ -389,6 +425,33 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const { productId, folderId } = message;
     if (!productId || !folderId) { sendResponse({ success: false }); return false; }
     removeProductFromFolder(productId, folderId).then(() => sendResponse({ success: true })).catch(() => sendResponse({ success: false }));
+    return true;
+  }
+
+  if (message.type === 'SET_EXT_TOKEN') {
+    const { token, username } = message;
+    if (!token || !username) { sendResponse({ success: false }); return false; }
+    setExtToken(token, username).then(() => sendResponse({ success: true, username }));
+    return true;
+  }
+
+  if (message.type === 'GET_EXT_TOKEN') {
+    getExtToken().then(({ token, username }) => sendResponse({ token, username }));
+    return true;
+  }
+
+  if (message.type === 'OPEN_HAUL_SITE') {
+    chrome.tabs.create({ url: `${HAUL_SHARE_BASE}/feed`, active: true });
+    sendResponse({ success: true });
+    return false;
+  }
+
+  if (message.type === 'POST_HAUL_TO_WEBSITE') {
+    const { products, title } = message;
+    if (!Array.isArray(products)) { sendResponse({ success: false }); return false; }
+    postHaulToWebsite(products, title)
+      .then((result) => sendResponse({ success: !!result }))
+      .catch(() => sendResponse({ success: false }));
     return true;
   }
 

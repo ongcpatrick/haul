@@ -256,11 +256,32 @@
   observer.observe(document.body, { childList: true, subtree: true });
 })();
 
-// ── haul-share.vercel.app: "Add to My Haul" handler ──────────────────────────
+// ── haul-share.com: auto-connect extension token ──────────────────────────────
+// When user visits haul-share, silently fetch an extension token using their
+// existing Clerk session and store it in the extension for API calls.
+(function autoConnectToken() {
+  const HAUL_SHARE_HOSTS = ['haul-share-production.up.railway.app'];
+  if (!HAUL_SHARE_HOSTS.some((h) => window.location.hostname === h)) return;
+  fetch('/api/extension/token', { credentials: 'include' })
+    .then((r) => (r.ok ? r.json() : null))
+    .then((data) => {
+      if (data?.data?.token && data?.data?.username) {
+        chrome.runtime.sendMessage({
+          type: 'SET_EXT_TOKEN',
+          token: data.data.token,
+          username: data.data.username,
+        });
+      }
+    })
+    .catch(() => {});
+})();
+
+// ── haul-share.com: "Add to My Haul" handler ─────────────────────────────────
 // The view page renders buttons with data-haul-import="<base64 JSON>".
 // This content script (runs on all URLs) handles those clicks.
 
-if (window.location.hostname === 'haul-share.vercel.app') {
+const HAUL_SHARE_IMPORT_HOSTS = ['haul-share-production.up.railway.app'];
+if (HAUL_SHARE_IMPORT_HOSTS.some((h) => window.location.hostname === h)) {
   document.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-haul-import]');
     if (!btn) return;

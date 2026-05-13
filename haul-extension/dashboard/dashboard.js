@@ -20,6 +20,8 @@ let cachedShareProducts = null;
 
 const WORKER_BASE = 'https://haul-ai.haulapp.workers.dev';
 const PROXY_BASE  = `${WORKER_BASE}/proxy-image?url=`;
+// UPDATE if your Railway URL differs — check Railway dashboard → haul-share service.
+const HAUL_SHARE_BASE = 'https://haul-share-production.up.railway.app';
 
 function esc(str) {
   const d = document.createElement('div');
@@ -372,13 +374,19 @@ async function shareComparison() {
   shareModalBody.innerHTML = `<div class="share-generating"><div class="claude-spinner"></div>Generating link…</div>`;
   openShareModal();
 
-  const shareUrl = await getShareUrl() ||
-    `${window.location.href.split('?')[0]}?data=${btoa(encodeURIComponent(JSON.stringify(products)))}`;
+  const [shareUrl, extToken] = await Promise.all([
+    getShareUrl().catch(() => null),
+    new Promise((resolve) => chrome.runtime.sendMessage({ type: 'GET_EXT_TOKEN' }, resolve)),
+  ]);
 
-  renderShareModalBody(shareUrl, products);
+  renderShareModalBody(
+    shareUrl || `${window.location.href.split('?')[0]}`,
+    products,
+    extToken?.username || null,
+  );
 }
 
-function renderShareModalBody(shareUrl, products) {
+function renderShareModalBody(shareUrl, products, extUsername) {
   const waText    = encodeURIComponent(`Check out my comparison on Haul 🛍️ ${shareUrl}`);
   const emailSubj = encodeURIComponent('My Haul Comparison');
   const emailBody = encodeURIComponent(`I compared some products on Haul — take a look:\n\n${shareUrl}`);
@@ -419,16 +427,16 @@ function renderShareModalBody(shareUrl, products) {
     <div class="share-community">
       <div class="share-community-title">
         <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        Share with Community
+        Post to Community
       </div>
-      <div class="share-author-row">
-        <input class="share-author-input" id="share-author-input" placeholder="Your name (e.g. Kylie)" maxlength="40">
-      </div>
-      <label class="share-community-toggle">
-        <span class="share-community-label">Post to Explore feed so others can discover this haul</span>
-        <button class="share-toggle-switch" id="share-community-toggle" type="button" aria-pressed="false"></button>
-      </label>
-      <button class="share-community-post-btn" id="share-community-post-btn">Post to Community</button>
+      ${extUsername
+        ? `<div class="share-connected-row"><span class="share-connected-dot"></span>Posting as <strong>@${esc(extUsername)}</strong> — will appear on your Haul feed &amp; Explore</div>`
+        : `<div class="share-author-row"><input class="share-author-input" id="share-author-input" placeholder="Your name (optional)" maxlength="40"></div>
+           <p class="share-connect-hint" id="share-connect-hint">No account? <button class="share-connect-link" id="share-connect-link">Sign in to Haul</button> to post to your feed too</p>`
+      }
+      <button class="share-community-post-btn visible" id="share-community-post-btn">
+        ${extUsername ? 'Post to My Feed + Explore' : 'Post to Explore'}
+      </button>
     </div>`;
 
   if (hasNative) {
@@ -454,40 +462,50 @@ function renderShareModalBody(shareUrl, products) {
   });
 
   // Community toggle
-  const communityToggle = document.getElementById('share-community-toggle');
-  const communityPostBtn = document.getElementById('share-community-post-btn');
-  communityToggle.addEventListener('click', () => {
-    const on = communityToggle.classList.toggle('on');
-    communityToggle.setAttribute('aria-pressed', String(on));
-    communityPostBtn.classList.toggle('visible', on);
+  // "Sign in to Haul" link (shown when not connected)
+  document.getElementById('share-connect-link')?.addEventListener('click', () => {
+    chrome.runtime.sendMessage({ type: 'OPEN_HAUL_SITE' });
+    closeShareModal();
   });
 
+  const communityPostBtn = document.getElementById('share-community-post-btn');
   communityPostBtn.addEventListener('click', async () => {
-    const author = document.getElementById('share-author-input').value.trim();
+    const authorInput = document.getElementById('share-author-input');
+    const author = extUsername || (authorInput ? authorInput.value.trim() : '');
     communityPostBtn.disabled = true;
     communityPostBtn.textContent = 'Posting…';
     try {
-      const title = products.length > 0
-        ? `${author ? author + "'s" : 'My'} Haul — ${products.length} item${products.length !== 1 ? 's' : ''}`
-        : 'Haul Comparison';
+      const title = `${author ? author + "'s" : 'My'} Haul — ${products.length} item${products.length !== 1 ? 's' : ''}`;
+
+      // Post to Cloudflare Worker KV (Explore tab)
       const res = await fetch(`${WORKER_BASE}/share`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ products, title, author: author || null, isPublic: true }),
       });
       const data = await res.json();
-      if (data.url) {
-        cachedShareUrl = data.url;
-        cachedShareProducts = products.map((p) => p.id).join(',');
-        communityPostBtn.textContent = 'Posted!';
-        exploreLoaded = false; // force reload next time Explore opens
-        showCopyToast('Haul posted to Community');
-      } else {
-        throw new Error('no url');
+      if (!data.url) throw new Error('no url');
+      cachedShareUrl = data.url;
+      cachedShareProducts = products.map((p) => p.id).join(',');
+      exploreLoaded = false;
+
+      // If connected, also post to haul-share.com feed
+      if (extUsername) {
+        chrome.runtime.sendMessage({ type: 'POST_HAUL_TO_WEBSITE', products, title });
       }
+
+      communityPostBtn.textContent = extUsername ? 'Posted to your feed + Explore!' : 'Posted to Explore!';
+      communityPostBtn.style.background = 'var(--primary)';
+      communityPostBtn.style.color = '#fff';
+
+      // Close modal and switch to Explore tab so they can see it immediately
+      setTimeout(() => {
+        closeShareModal();
+        setExploreMode(true);
+      }, 1200);
     } catch {
       communityPostBtn.disabled = false;
-      communityPostBtn.textContent = 'Post to Community';
+      communityPostBtn.textContent = extUsername ? 'Post to My Feed + Explore' : 'Post to Explore';
     }
   });
 }
@@ -659,7 +677,7 @@ function renderExploreGrid(hauls) {
       </div>`;
 
     card.querySelector('.view').addEventListener('click', () => {
-      openAndFocus(`https://haul-share.vercel.app/view/${haul.id}`);
+      openAndFocus(`${HAUL_SHARE_BASE}/view/${haul.id}`);
     });
     card.querySelector('.fork').addEventListener('click', async (e) => {
       const btn = e.currentTarget;

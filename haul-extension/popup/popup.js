@@ -99,6 +99,30 @@ chrome.runtime.sendMessage({ type: 'GET_PRODUCTS' }, (response) => {
   }
 });
 
+// ── Auth row: show connected state or prompt to connect ──────────────────────
+chrome.runtime.sendMessage({ type: 'GET_EXT_TOKEN' }, (res) => {
+  const authRow = document.getElementById('auth-row');
+  const authDot = document.getElementById('auth-dot');
+  const authLabel = document.getElementById('auth-label');
+  if (res?.username) {
+    authDot.classList.add('connected');
+    authRow.classList.add('connected');
+    authLabel.textContent = `@${res.username}`;
+    authRow.title = 'Connected to Haul — your posts go to your feed';
+    authRow.addEventListener('click', () => {
+      chrome.runtime.sendMessage({ type: 'OPEN_HAUL_SITE' });
+      window.close();
+    });
+  } else {
+    authLabel.textContent = 'Connect to Haul';
+    authRow.title = 'Visit haul-share.com to link your account';
+    authRow.addEventListener('click', () => {
+      chrome.runtime.sendMessage({ type: 'OPEN_HAUL_SITE' });
+      window.close();
+    });
+  }
+});
+
 document.getElementById('open-tray-btn').addEventListener('click', () => {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     if (tabs[0]) {

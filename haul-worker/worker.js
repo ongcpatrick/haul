@@ -30,10 +30,11 @@ export default {
       return handleProxyImage(url);
     }
 
-    // ── Friend share view → redirect to Vercel (GET) ──────────────────────
+    // ── Friend share view → redirect to haul-share (GET) ─────────────────
+    const haulShareBase = env.HAUL_SHARE_URL || 'https://haul-share-production.up.railway.app';
     const viewMatch = url.pathname.match(/^\/view\/([A-Za-z0-9_-]{6,16})$/);
     if (viewMatch) {
-      return Response.redirect(`https://haul-share.vercel.app/view/${viewMatch[1]}`, 302);
+      return Response.redirect(`${haulShareBase}/view/${viewMatch[1]}`, 302);
     }
 
     // ── Raw share data JSON for Vercel SSR (GET) ───────────────────────────
@@ -326,7 +327,7 @@ function randomId() {
   return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
 }
 
-async function handleShare({ products, title, author, isPublic }, env, reqUrl) {
+async function handleShare({ products, title, author, isPublic }, env) {
   if (!Array.isArray(products) || products.length === 0) {
     return jsonResponse({ error: 'products array required' }, 400);
   }
@@ -356,8 +357,8 @@ async function handleShare({ products, title, author, isPublic }, env, reqUrl) {
     });
   }
 
-  const base = 'https://haul-share.vercel.app';
-  return jsonResponse({ shareId, url: `${base}/view/${shareId}` });
+  const haulShareBase = env.HAUL_SHARE_URL || 'https://haul-share-production.up.railway.app';
+  return jsonResponse({ shareId, url: `${haulShareBase}/view/${shareId}` });
 }
 
 // ─── /feed ────────────────────────────────────────────────────────────────────
