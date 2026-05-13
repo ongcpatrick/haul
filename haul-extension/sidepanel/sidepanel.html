@@ -69,6 +69,15 @@
     }
     .icon-btn:hover { background: var(--border); color: var(--text); }
 
+    /* Content area (flex child between header and footer) */
+    #content-area {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
     /* Product list */
     .product-list {
       flex: 1;
@@ -235,6 +244,7 @@
     /* Empty state */
     .empty-state {
       flex: 1;
+      min-height: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
