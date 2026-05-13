@@ -75,7 +75,9 @@ chrome.runtime.sendMessage({ type: 'GET_PRODUCTS' }, (response) => {
         const img = document.createElement('img');
         img.alt = '';
         img.src = imgSrc;
-        img.addEventListener('error', () => img.remove());
+        img.addEventListener('error', () => {
+          img.style.display = 'none';
+        });
         placeholder.replaceWith(img);
       }
 

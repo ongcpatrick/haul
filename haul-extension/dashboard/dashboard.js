@@ -24,7 +24,7 @@ function safeUrl(url) {
 }
 
 function formatPrice(price) {
-  if (price == null) return '—';
+  if (price == null) return 'N/A';
   return '$' + price.toFixed(2);
 }
 
@@ -287,7 +287,7 @@ function renderContent() {
   content.querySelectorAll('.card-view-btn[data-url]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const url = safeUrl(btn.dataset.url);
-      if (url) chrome.tabs.create({ url });
+      if (url) chrome.tabs.create({ url, active: false });
     });
   });
   // Card: remove button
@@ -298,7 +298,7 @@ function renderContent() {
   content.querySelectorAll('.go-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       const url = safeUrl(btn.dataset.url);
-      if (url) chrome.tabs.create({ url });
+      if (url) chrome.tabs.create({ url, active: false });
     });
   });
   // Table: remove col button
@@ -367,34 +367,39 @@ function renderShareModalBody(shareUrl, products) {
   const tweetText = encodeURIComponent(`Shopping smarter with Haul 🛍️ ${shareUrl}`);
   const hasNative = typeof navigator.share === 'function';
 
+  const waIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.549 4.117 1.513 5.851L0 24l6.335-1.651A11.956 11.956 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.877 0-3.631-.516-5.127-1.411l-.369-.219-3.76.983.998-3.663-.241-.383A9.956 9.956 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>`;
+  const emailIcon = `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>`;
+  const xIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.261 5.634 5.903-5.634zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>`;
+
   shareModalBody.innerHTML = `
     ${hasNative ? `
     <button class="share-native-btn" id="share-native-btn">
-      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
         <polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>
       </svg>
-      Share via Messages, AirDrop &amp; more…
+      Share via Messages, AirDrop and more
     </button>` : ''}
     <div class="share-url-row">
       <span class="share-url-text">${esc(shareUrl)}</span>
       <button class="share-copy-btn" id="share-copy-btn">Copy</button>
     </div>
+    <div class="share-divider">or send via</div>
     <div class="share-platforms">
       <button class="share-platform-btn" data-url="https://wa.me/?text=${waText}">
-        <span class="share-platform-icon">💬</span>WhatsApp
+        ${waIcon}WhatsApp
       </button>
       <button class="share-platform-btn" data-url="mailto:?subject=${emailSubj}&body=${emailBody}">
-        <span class="share-platform-icon">📧</span>Email
+        ${emailIcon}Email
       </button>
       <button class="share-platform-btn" data-url="https://x.com/intent/tweet?text=${tweetText}">
-        <span class="share-platform-icon">𝕏</span>Post
+        ${xIcon}Post on X
       </button>
     </div>`;
 
   if (hasNative) {
     document.getElementById('share-native-btn').addEventListener('click', () => {
-      navigator.share({ title: products[0]?.name ?? 'My Haul', text: 'Check out my comparison on Haul 🛍️', url: shareUrl })
+      navigator.share({ title: products[0]?.name ?? 'My Haul', text: 'Check out my comparison on Haul', url: shareUrl })
         .then(() => closeShareModal()).catch(() => {});
     });
   }
@@ -410,26 +415,27 @@ function renderShareModalBody(shareUrl, products) {
 
   shareModalBody.querySelectorAll('.share-platform-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
-      if (btn.dataset.url) chrome.tabs.create({ url: btn.dataset.url });
+      // Open in background tab so dashboard stays focused
+      if (btn.dataset.url) chrome.tabs.create({ url: btn.dataset.url, active: false });
     });
   });
 }
 
-// Quick-share from the bottom bar: builds URL in background, opens directly
+// Quick-share from the bottom bar: builds URL in background, opens in background tab
 async function quickShare(platform) {
   const products = filteredProducts();
   if (products.length === 0) return;
   const shareUrl = await getShareUrl() || '';
-  const waText    = encodeURIComponent(`Check out my comparison on Haul 🛍️ ${shareUrl}`);
+  const waText    = encodeURIComponent(`Check out my haul: ${shareUrl}`);
   const emailSubj = encodeURIComponent('My Haul Comparison');
-  const emailBody = encodeURIComponent(`I compared some products on Haul — take a look:\n\n${shareUrl}`);
-  const tweetText = encodeURIComponent(`Shopping smarter with Haul 🛍️ ${shareUrl}`);
+  const emailBody = encodeURIComponent(`I compared some products on Haul. Take a look:\n\n${shareUrl}`);
+  const tweetText = encodeURIComponent(`Shopping smarter with Haul ${shareUrl}`);
   const urls = {
     wa:    `https://wa.me/?text=${waText}`,
     email: `mailto:?subject=${emailSubj}&body=${emailBody}`,
     x:     `https://x.com/intent/tweet?text=${tweetText}`,
   };
-  if (urls[platform]) chrome.tabs.create({ url: urls[platform] });
+  if (urls[platform]) chrome.tabs.create({ url: urls[platform], active: false });
 }
 
 function showCopyToast(msg = '✓ Copied to clipboard') {

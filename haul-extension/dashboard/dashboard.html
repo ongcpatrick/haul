@@ -3,38 +3,45 @@
 <head>
   <meta charset="UTF-8" />
   <title>Haul — Compare Products</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg:          #fafaf7;
-      --surface:     #f2ede4;
-      --border:      #ddd8cf;
-      --primary:     #7a9e76;
-      --primary-h:   #6a8c66;
-      --blue:        #93bedf;
-      --text:        #3d3529;
-      --muted:       #8a7e72;
-      --price:       #b07d4a;
-      --success:     #7a9e76;
-      --danger:      #c97b7b;
-      --badge-bg:    #e8f0e6;
-      --radius-card: 16px;
+      --bg:          #f8f7f4;
+      --surface:     #f0ebe0;
+      --surface-2:   #e8e2d6;
+      --border:      #d8d2c8;
+      --border-2:    #c8c2b6;
+      --primary:     #6b9468;
+      --primary-h:   #5c8259;
+      --primary-faint: #eaf2e9;
+      --blue:        #7aafd4;
+      --text:        #2e2820;
+      --text-2:      #6b6158;
+      --price:       #a87040;
+      --success:     #6b9468;
+      --danger:      #c07070;
+      --card-bg:     #faf8f4;
+      --radius-card: 18px;
       --radius-btn:  10px;
-      --shadow-card: 0 2px 12px rgba(61,53,41,0.08);
-      --shadow-elev: 0 4px 24px rgba(61,53,41,0.12);
-      --transition:  0.15s ease;
+      --shadow-sm:   0 1px 4px rgba(46,40,32,0.07);
+      --shadow-md:   0 4px 16px rgba(46,40,32,0.10);
+      --shadow-lg:   0 8px 32px rgba(46,40,32,0.13);
+      --t:           0.15s ease;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
       line-height: 1.5;
-      /* account for sticky share bar */
+      font-size: 14px;
       padding-bottom: 64px;
+      -webkit-font-smoothing: antialiased;
     }
 
-    /* ── Header ────────────────────────────────────── */
+    /* ── Header ─────────────────────────────────────── */
     .header {
       background: var(--surface);
       border-bottom: 1px solid var(--border);
@@ -46,22 +53,23 @@
       top: 0;
       z-index: 10;
     }
+    .header-left { min-width: 0; }
     .header-left h1 {
-      font-size: 18px;
+      font-size: 17px;
       font-weight: 700;
       color: var(--text);
-      letter-spacing: -0.01em;
+      letter-spacing: -0.02em;
     }
     .header-left p {
       font-size: 12px;
-      color: var(--muted);
+      color: var(--text-2);
       margin-top: 1px;
-      max-width: 500px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      max-width: 520px;
     }
-    .close-icon-btn {
+    .close-btn {
       width: 32px;
       height: 32px;
       background: none;
@@ -71,13 +79,14 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--muted);
-      transition: background var(--transition), color var(--transition);
+      color: var(--text-2);
+      transition: background var(--t), color var(--t);
       flex-shrink: 0;
+      margin-left: 16px;
     }
-    .close-icon-btn:hover { background: var(--border); color: var(--text); }
+    .close-btn:hover { background: var(--surface-2); color: var(--text); }
 
-    /* ── Filter bar ────────────────────────────────── */
+    /* ── Filter bar ──────────────────────────────────── */
     .filters {
       padding: 10px 24px;
       background: var(--surface);
@@ -90,41 +99,42 @@
     .filters::-webkit-scrollbar { display: none; }
     .filter-btn {
       padding: 5px 13px;
-      border: 1.5px solid transparent;
+      border: 1px solid var(--border);
       border-radius: 20px;
       background: var(--bg);
       font-size: 12px;
-      font-weight: 600;
+      font-weight: 500;
       cursor: pointer;
-      color: var(--muted);
+      color: var(--text-2);
       white-space: nowrap;
-      transition: all var(--transition);
-      box-shadow: 0 1px 3px rgba(61,53,41,0.06);
+      transition: all var(--t);
+      font-family: inherit;
     }
     .filter-btn.active {
-      background: #fff;
+      background: var(--primary);
       border-color: var(--primary);
-      color: var(--primary);
-      box-shadow: 0 1px 6px rgba(122,158,118,0.18);
+      color: #fff;
+      font-weight: 600;
     }
     .filter-btn:not(.active):hover {
-      background: var(--surface);
-      border-color: var(--border);
+      background: var(--surface-2);
+      border-color: var(--border-2);
       color: var(--text);
     }
-    .savings-badge {
+    .savings-pill {
       margin-left: auto;
       flex-shrink: 0;
-      font-size: 12px;
-      font-weight: 700;
+      font-size: 11px;
+      font-weight: 600;
       color: var(--success);
-      background: var(--badge-bg);
+      background: var(--primary-faint);
       padding: 4px 10px;
       border-radius: 20px;
       white-space: nowrap;
+      letter-spacing: 0.01em;
     }
 
-    /* ── Empty state ───────────────────────────────── */
+    /* ── Empty state ──────────────────────────────────── */
     .empty {
       display: flex;
       flex-direction: column;
@@ -134,137 +144,138 @@
       text-align: center;
     }
     .empty-icon {
-      width: 72px; height: 72px;
-      background: var(--badge-bg);
+      width: 68px; height: 68px;
+      background: var(--primary-faint);
       border-radius: 20px;
       display: flex; align-items: center; justify-content: center;
       color: var(--primary);
       margin-bottom: 20px;
     }
-    .empty h2 { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
-    .empty p  { font-size: 14px; color: var(--muted); }
+    .empty h2 { font-size: 17px; font-weight: 600; margin-bottom: 8px; letter-spacing: -0.01em; }
+    .empty p  { font-size: 13px; color: var(--text-2); }
 
-    /* ── Card grid (≤4 products) ───────────────────── */
+    /* ── Card grid ─────────────────────────────────────── */
     .card-grid {
       display: flex;
       flex-wrap: wrap;
       gap: 16px;
       padding: 24px;
+      align-items: flex-start;
     }
     .product-card {
-      background: var(--surface);
-      border: 1.5px solid var(--border);
+      background: var(--card-bg);
+      border: 1px solid var(--border);
       border-radius: var(--radius-card);
-      box-shadow: var(--shadow-card);
+      box-shadow: var(--shadow-sm);
       display: flex;
       flex-direction: column;
       flex: 1 1 220px;
-      max-width: 280px;
+      max-width: 272px;
       min-width: 200px;
       overflow: hidden;
-      transition: box-shadow var(--transition), transform var(--transition);
+      transition: box-shadow var(--t), transform var(--t);
     }
     .product-card:hover {
-      box-shadow: var(--shadow-elev);
+      box-shadow: var(--shadow-md);
       transform: translateY(-2px);
     }
-    .card-winner { border-color: var(--price); }
-    .card-winner-badge {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 11px;
+    .card-winner {
+      border-color: var(--price);
+      box-shadow: 0 0 0 2px rgba(168,112,64,0.15), var(--shadow-sm);
+    }
+    .card-winner-bar {
+      background: var(--price);
+      color: #fff;
+      font-size: 10px;
       font-weight: 700;
-      color: var(--price);
-      background: #fde8c8;
-      padding: 6px 12px;
-      letter-spacing: 0.02em;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 5px 12px;
     }
     .card-img-wrap {
       position: relative;
-      background: linear-gradient(135deg, #ede8df, #ddd8cf);
-      height: 200px;
+      background: var(--surface);
+      height: 196px;
       overflow: hidden;
     }
     .card-img-wrap img {
       width: 100%;
       height: 100%;
       object-fit: contain;
-      padding: 12px;
+      padding: 16px;
     }
-    .card-badge {
+    .card-drop-badge {
       position: absolute;
-      top: 8px;
-      left: 8px;
-      font-size: 11px;
+      top: 10px;
+      left: 10px;
+      font-size: 10px;
       font-weight: 700;
       padding: 3px 8px;
       border-radius: 8px;
+      background: var(--success);
+      color: #fff;
+      letter-spacing: 0.02em;
     }
-    .badge-drop  { background: var(--success); color: #fff; }
-    .badge-sale  { background: var(--price);   color: #fff; }
     .card-body {
       padding: 16px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
       flex: 1;
+    }
+    .card-site {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-2);
+      text-transform: uppercase;
+      letter-spacing: 0.10em;
     }
     .card-name {
       font-size: 14px;
       font-weight: 600;
       color: var(--text);
-      line-height: 1.35;
+      line-height: 1.3;
       display: -webkit-box;
       -webkit-box-orient: vertical;
       -webkit-line-clamp: 2;
       overflow: hidden;
+      letter-spacing: -0.01em;
     }
-    .card-site {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
+    .card-price-block { margin-top: 2px; }
+    .card-price {
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--price);
+      letter-spacing: -0.03em;
+      line-height: 1;
     }
     .card-price-row {
       display: flex;
       align-items: baseline;
       gap: 8px;
-      flex-wrap: wrap;
-    }
-    .card-price {
-      font-size: 28px;
-      font-weight: 700;
-      color: var(--price);
-      letter-spacing: -0.02em;
-      line-height: 1;
+      margin-top: 2px;
     }
     .card-orig {
-      font-size: 13px;
-      color: var(--muted);
+      font-size: 12px;
+      color: var(--text-2);
       text-decoration: line-through;
     }
     .card-savings {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 12px;
-      font-weight: 700;
+      font-size: 11px;
+      font-weight: 600;
       color: var(--success);
-      background: var(--badge-bg);
-      padding: 3px 8px;
-      border-radius: 8px;
+      background: var(--primary-faint);
+      padding: 2px 7px;
+      border-radius: 6px;
     }
     .card-actions {
       display: flex;
       gap: 8px;
-      margin-top: auto;
-      padding-top: 4px;
+      margin-top: 8px;
     }
     .card-view-btn {
       flex: 1;
-      padding: 9px 12px;
+      height: 36px;
       background: var(--blue);
       color: #fff;
       font-size: 13px;
@@ -272,101 +283,101 @@
       border: none;
       border-radius: var(--radius-btn);
       cursor: pointer;
-      transition: filter var(--transition);
+      transition: filter var(--t);
+      font-family: inherit;
+      letter-spacing: -0.01em;
     }
     .card-view-btn:hover { filter: brightness(0.92); }
+    .card-view-btn:disabled { opacity: 0.35; cursor: default; filter: none; }
     .card-remove-btn {
       width: 36px;
       height: 36px;
-      background: var(--bg);
-      border: 1.5px solid var(--border);
+      background: none;
+      border: 1px solid var(--border);
       border-radius: var(--radius-btn);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--muted);
+      color: var(--text-2);
       flex-shrink: 0;
-      transition: all var(--transition);
+      transition: all var(--t);
     }
-    .card-remove-btn:hover { background: #f0d5d5; border-color: var(--danger); color: var(--danger); }
+    .card-remove-btn:hover { background: #f5e8e8; border-color: var(--danger); color: var(--danger); }
 
-    /* ── Table (5+ products) ───────────────────────── */
+    /* ── Table (5+ products) ───────────────────────────── */
     .table-wrapper { padding: 24px; overflow-x: auto; }
     table {
       width: auto;
       min-width: min(100%, 480px);
       border-collapse: collapse;
-      background: var(--surface);
+      background: var(--card-bg);
       border-radius: var(--radius-card);
       overflow: hidden;
-      box-shadow: var(--shadow-card);
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border);
     }
     th, td { padding: 12px 16px; text-align: left; }
-    thead tr { border-bottom: 1px solid var(--border); background: var(--bg); }
+    thead tr { border-bottom: 1px solid var(--border); background: var(--surface); }
     tbody tr { border-bottom: 1px solid var(--border); }
     tbody tr:last-child { border-bottom: none; }
-    tbody tr:hover { background: var(--bg); }
+    tbody tr:hover { background: var(--surface); }
     .row-label {
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 600;
-      color: var(--muted);
+      color: var(--text-2);
       text-transform: uppercase;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.10em;
       white-space: nowrap;
-      width: 90px;
+      width: 80px;
     }
     .product-col-header {
       width: 220px; min-width: 220px; max-width: 220px;
       vertical-align: top; position: relative;
     }
-    .product-col-header .remove-col-btn {
+    .remove-col-btn {
       position: absolute; top: 0; right: 0;
-      width: 24px; height: 24px;
-      background: var(--border); border: none; border-radius: 50%;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      color: var(--muted); opacity: 0; transition: opacity var(--transition);
+      width: 22px; height: 22px;
+      background: var(--surface-2); border: none; border-radius: 50%;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      color: var(--text-2); opacity: 0; transition: opacity var(--t);
     }
     th:hover .remove-col-btn { opacity: 1; }
-    .remove-col-btn:hover { background: #f0d5d5; color: var(--danger); }
+    .remove-col-btn:hover { background: #f5e8e8; color: var(--danger); }
     .product-img-cell {
       width: 188px; height: 188px;
-      background: linear-gradient(135deg, var(--border), #ccc9c0);
+      background: var(--surface);
       border-radius: 10px; overflow: hidden; margin-bottom: 8px;
       position: relative;
     }
-    .product-img-cell img {
-      width: 100%; height: 100%;
-      object-fit: contain; padding: 8px;
-    }
-    .price-drop-badge, .sale-badge {
+    .product-img-cell img { width: 100%; height: 100%; object-fit: contain; padding: 8px; }
+    .price-drop-badge {
       position: absolute; top: 6px; left: 6px;
-      font-size: 11px; font-weight: 700;
-      padding: 2px 7px; border-radius: 6px;
+      font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 6px;
+      background: var(--success); color: #fff;
     }
-    .price-drop-badge { background: var(--success); color: #fff; }
-    .sale-badge       { background: var(--price);   color: #fff; }
     td.data-cell { font-size: 13px; color: var(--text); vertical-align: middle; }
     .price-display { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
-    .price-main { font-size: 18px; font-weight: 700; color: var(--price); }
-    .price-orig { font-size: 12px; color: var(--muted); text-decoration: line-through; }
+    .price-main { font-size: 17px; font-weight: 700; color: var(--price); }
+    .price-orig { font-size: 12px; color: var(--text-2); text-decoration: line-through; }
     .go-btn {
       width: 100%; padding: 8px;
       background: var(--blue); color: #fff;
-      font-size: 13px; font-weight: 600;
+      font-size: 12px; font-weight: 600;
       border: none; border-radius: 8px;
-      cursor: pointer; transition: filter var(--transition);
+      cursor: pointer; transition: filter var(--t);
+      font-family: inherit;
     }
     .go-btn:hover { filter: brightness(0.92); }
-    .col-winner { background: #fdf5e8 !important; }
+    .col-winner { background: rgba(168,112,64,0.04) !important; }
     .winner-badge {
       display: inline-flex; align-items: center; gap: 4px;
-      font-size: 11px; font-weight: 700; color: var(--price);
-      background: #fde8c8; padding: 2px 8px; border-radius: 6px; margin-bottom: 6px;
+      font-size: 10px; font-weight: 700; color: var(--price);
+      background: rgba(168,112,64,0.12); padding: 2px 8px; border-radius: 6px; margin-bottom: 6px;
+      text-transform: uppercase; letter-spacing: 0.04em;
     }
 
-    /* ── Ask Claude FAB ────────────────────────────── */
+    /* ── Claude FAB ─────────────────────────────────── */
     #claude-fab {
       position: fixed;
       bottom: 76px;
@@ -374,42 +385,40 @@
       width: 52px;
       height: 52px;
       border-radius: 50%;
-      background: linear-gradient(135deg, var(--primary), var(--blue));
+      background: linear-gradient(140deg, var(--primary) 0%, var(--blue) 100%);
       border: none;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 22px;
-      box-shadow: 0 4px 16px rgba(122,158,118,0.35);
+      box-shadow: 0 4px 18px rgba(107,148,104,0.38);
       z-index: 30;
-      transition: transform var(--transition), box-shadow var(--transition);
+      transition: transform var(--t), box-shadow var(--t);
     }
-    #claude-fab:hover {
-      transform: scale(1.07);
-      box-shadow: 0 6px 20px rgba(122,158,118,0.45);
-    }
+    #claude-fab:hover { transform: scale(1.06); box-shadow: 0 6px 24px rgba(107,148,104,0.50); }
     #claude-fab:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-    #claude-fab-tooltip {
+    #claude-fab svg { color: #fff; }
+    #claude-fab-tip {
       position: fixed;
-      bottom: 139px;
+      bottom: 138px;
       right: 24px;
       background: var(--text);
       color: #fff;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
-      padding: 6px 12px;
-      border-radius: 8px;
+      padding: 5px 10px;
+      border-radius: 7px;
       white-space: nowrap;
       pointer-events: none;
       opacity: 0;
       transform: translateY(4px);
-      transition: opacity var(--transition), transform var(--transition);
+      transition: opacity var(--t), transform var(--t);
       z-index: 30;
+      font-family: inherit;
     }
-    #claude-fab:hover + #claude-fab-tooltip { opacity: 1; transform: translateY(0); }
+    #claude-fab:hover + #claude-fab-tip { opacity: 1; transform: translateY(0); }
 
-    /* ── Sticky share bar ──────────────────────────── */
+    /* ── Share bar ──────────────────────────────────── */
     #share-bar {
       position: fixed;
       bottom: 0; left: 0; right: 0;
@@ -419,9 +428,9 @@
       display: flex;
       align-items: center;
       padding: 0 20px;
-      gap: 10px;
+      gap: 8px;
       z-index: 20;
-      box-shadow: 0 -2px 12px rgba(61,53,41,0.06);
+      box-shadow: 0 -1px 8px rgba(46,40,32,0.06);
     }
     #share-bar-btn {
       flex: 1;
@@ -431,40 +440,42 @@
       border: none;
       border-radius: var(--radius-btn);
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 600;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 7px;
-      transition: background var(--transition);
+      transition: background var(--t);
+      font-family: inherit;
+      letter-spacing: -0.01em;
     }
     #share-bar-btn:hover { background: var(--primary-h); }
     .share-quick-btn {
       width: 36px;
       height: 36px;
-      background: var(--bg);
-      border: 1.5px solid var(--border);
+      background: none;
+      border: 1px solid var(--border);
       border-radius: var(--radius-btn);
-      font-size: 17px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all var(--transition);
+      color: var(--text-2);
       flex-shrink: 0;
+      transition: all var(--t);
     }
-    .share-quick-btn:hover { border-color: var(--primary); background: var(--badge-bg); transform: translateY(-1px); }
+    .share-quick-btn:hover { border-color: var(--primary); background: var(--primary-faint); color: var(--primary); transform: translateY(-1px); }
 
-    /* ── Claude panel ──────────────────────────────── */
+    /* ── Claude panel ───────────────────────────────── */
     #claude-panel {
       position: fixed;
       bottom: 0; left: 0; right: 0;
       background: var(--surface);
       border-top: 2px solid var(--primary);
-      border-radius: 16px 16px 0 0;
-      padding: 20px 28px 24px;
-      box-shadow: 0 -8px 32px rgba(122,158,118,0.15);
+      border-radius: 18px 18px 0 0;
+      padding: 20px 28px 28px;
+      box-shadow: 0 -8px 32px rgba(107,148,104,0.14);
       transform: translateY(100%);
       transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
       z-index: 50;
@@ -474,44 +485,46 @@
     #claude-panel.open { transform: translateY(0); }
     .claude-panel-header {
       display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 12px;
+      margin-bottom: 14px;
     }
     .claude-panel-title {
-      font-size: 14px; font-weight: 700; color: var(--primary);
-      display: flex; align-items: center; gap: 6px;
+      font-size: 13px; font-weight: 700; color: var(--primary);
+      display: flex; align-items: center; gap: 7px;
+      text-transform: uppercase; letter-spacing: 0.06em;
     }
     .claude-close-btn {
-      background: none; border: none; cursor: pointer; color: var(--muted);
+      background: none; border: none; cursor: pointer; color: var(--text-2);
       padding: 4px; border-radius: 6px; display: flex; align-items: center;
+      transition: background var(--t);
     }
-    .claude-close-btn:hover { background: var(--border); color: var(--text); }
+    .claude-close-btn:hover { background: var(--surface-2); color: var(--text); }
     .claude-loading {
       display: flex; align-items: center; gap: 10px;
-      color: var(--muted); font-size: 14px;
+      color: var(--text-2); font-size: 13px;
     }
     .claude-spinner {
-      width: 18px; height: 18px;
+      width: 16px; height: 16px;
       border: 2px solid var(--border); border-top-color: var(--primary);
       border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .claude-summary { font-size: 14px; line-height: 1.6; color: var(--text); margin-bottom: 12px; }
-    .claude-insights { display: flex; flex-direction: column; gap: 6px; }
+    .claude-summary { font-size: 14px; line-height: 1.65; color: var(--text); margin-bottom: 14px; }
+    .claude-insights { display: flex; flex-direction: column; gap: 7px; }
     .claude-insight {
       display: flex; align-items: flex-start; gap: 8px;
-      font-size: 13px; color: var(--text);
+      font-size: 13px; color: var(--text); line-height: 1.5;
     }
     .claude-insight::before {
-      content: '→'; color: var(--primary); font-weight: 700;
-      flex-shrink: 0; margin-top: 1px;
+      content: '→'; color: var(--primary); font-weight: 700; flex-shrink: 0; margin-top: 1px;
     }
     .claude-error { font-size: 13px; color: var(--danger); }
 
-    /* ── Share modal ───────────────────────────────── */
+    /* ── Share modal ────────────────────────────────── */
     #share-overlay {
       position: fixed; inset: 0;
-      background: rgba(61,53,41,0.4);
-      backdrop-filter: blur(3px);
+      background: rgba(46,40,32,0.45);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
       z-index: 200;
       display: flex; align-items: flex-end; justify-content: center;
       opacity: 0; pointer-events: none;
@@ -519,130 +532,166 @@
     }
     #share-overlay.open { opacity: 1; pointer-events: all; }
     #share-modal {
-      background: var(--surface);
-      border-radius: 20px 20px 0 0;
-      padding: 24px 28px 32px;
-      width: 100%; max-width: 520px;
-      box-shadow: 0 -8px 40px rgba(61,53,41,0.18);
+      background: var(--card-bg);
+      border-radius: 22px 22px 0 0;
+      padding: 24px 24px 36px;
+      width: 100%; max-width: 480px;
+      box-shadow: 0 -12px 48px rgba(46,40,32,0.16);
       transform: translateY(100%);
       transition: transform 0.3s cubic-bezier(0.34, 1.2, 0.64, 1);
     }
     #share-overlay.open #share-modal { transform: translateY(0); }
+    .share-handle {
+      width: 36px; height: 4px;
+      background: var(--border-2);
+      border-radius: 2px;
+      margin: 0 auto 20px;
+    }
     .share-modal-header {
       display: flex; align-items: center; justify-content: space-between;
       margin-bottom: 20px;
     }
-    .share-modal-title { font-size: 16px; font-weight: 700; color: var(--text); }
+    .share-modal-title { font-size: 15px; font-weight: 700; color: var(--text); letter-spacing: -0.02em; }
     .share-close-btn {
-      width: 30px; height: 30px; border-radius: 50%;
-      background: var(--border); border: none; cursor: pointer;
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--surface-2); border: none; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
-      color: var(--muted); transition: background var(--transition);
+      color: var(--text-2); transition: background var(--t);
     }
-    .share-close-btn:hover { background: #ccc9c0; color: var(--text); }
+    .share-close-btn:hover { background: var(--border-2); color: var(--text); }
+    .share-native-btn {
+      width: 100%; height: 46px; margin-bottom: 14px;
+      background: var(--primary); color: #fff;
+      border: none; border-radius: 12px; cursor: pointer;
+      font-size: 14px; font-weight: 600;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: background var(--t);
+      font-family: inherit; letter-spacing: -0.01em;
+    }
+    .share-native-btn:hover { background: var(--primary-h); }
     .share-url-row {
       display: flex; align-items: center; gap: 8px;
-      background: var(--bg); border: 1.5px solid var(--border);
-      border-radius: 12px; padding: 10px 14px; margin-bottom: 20px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px 14px; margin-bottom: 18px;
     }
     .share-url-text {
-      flex: 1; font-size: 13px; color: var(--muted);
+      flex: 1; font-size: 12px; color: var(--text-2);
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      font-family: 'SF Mono', 'Fira Code', monospace;
     }
     .share-copy-btn {
-      padding: 6px 14px; background: var(--primary); color: #fff;
-      border: none; border-radius: 8px; font-size: 12px; font-weight: 700;
-      cursor: pointer; flex-shrink: 0; transition: background var(--transition);
+      padding: 5px 13px; background: var(--primary); color: #fff;
+      border: none; border-radius: 7px; font-size: 11px; font-weight: 700;
+      cursor: pointer; flex-shrink: 0; transition: background var(--t);
+      font-family: inherit;
     }
     .share-copy-btn:hover { background: var(--primary-h); }
     .share-copy-btn.copied { background: var(--success); }
-    .share-platforms { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .share-divider {
+      font-size: 10px; font-weight: 600; color: var(--text-2);
+      text-transform: uppercase; letter-spacing: 0.12em;
+      text-align: center; margin-bottom: 14px;
+    }
+    .share-platforms { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
     .share-platform-btn {
-      display: flex; flex-direction: column; align-items: center; gap: 6px;
-      padding: 12px 8px; border-radius: 14px; border: 1.5px solid var(--border);
+      display: flex; flex-direction: column; align-items: center; gap: 7px;
+      padding: 14px 8px; border-radius: 14px; border: 1px solid var(--border);
       background: var(--bg); cursor: pointer; transition: all 0.12s;
-      font-size: 11px; font-weight: 600; color: var(--muted);
+      font-size: 11px; font-weight: 600; color: var(--text-2);
+      font-family: inherit;
     }
     .share-platform-btn:hover {
       border-color: var(--primary); color: var(--primary);
-      background: var(--badge-bg); transform: translateY(-1px);
+      background: var(--primary-faint); transform: translateY(-2px);
+      box-shadow: var(--shadow-sm);
     }
-    .share-platform-icon { font-size: 22px; line-height: 1; }
-    .share-native-btn {
-      width: 100%; padding: 13px 16px; margin-bottom: 16px;
-      background: var(--primary); color: #fff;
-      border: none; border-radius: 12px; cursor: pointer;
-      font-size: 14px; font-weight: 700;
-      display: flex; align-items: center; justify-content: center; gap: 8px;
-      transition: background var(--transition);
-    }
-    .share-native-btn:hover { background: var(--primary-h); }
+    .share-platform-btn svg { flex-shrink: 0; }
     .share-generating {
       display: flex; align-items: center; gap: 10px;
-      color: var(--muted); font-size: 14px; padding: 8px 0;
+      color: var(--text-2); font-size: 13px; padding: 8px 0;
     }
 
-    /* ── Toast ─────────────────────────────────────── */
+    /* ── Toast ──────────────────────────────────────── */
     #copy-toast {
       position: fixed; bottom: 72px; left: 50%;
-      transform: translateX(-50%) translateY(0);
+      transform: translateX(-50%);
       background: var(--text); color: #fff;
-      padding: 10px 20px; border-radius: 10px;
-      font-size: 13px; font-weight: 500;
+      padding: 9px 18px; border-radius: 10px;
+      font-size: 12px; font-weight: 600;
       opacity: 0; pointer-events: none;
       transition: opacity 0.2s ease;
       z-index: 300;
+      font-family: inherit;
     }
     #copy-toast.show { opacity: 1; }
   </style>
 </head>
 <body>
-  <!-- Header: title + subtitle + close icon only -->
+
   <div class="header">
     <div class="header-left">
       <h1>Compare Products</h1>
       <p id="header-sub">Loading…</p>
     </div>
-    <button class="close-icon-btn" id="close-btn" title="Close">
-      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+    <button class="close-btn" id="close-btn" title="Close">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
       </svg>
     </button>
   </div>
 
-  <!-- Filter pills + savings total -->
   <div class="filters" id="filters-bar"></div>
 
-  <!-- Product content area (cards or table) -->
   <div id="main-content"></div>
-
-  <div id="copy-toast">✓ Copied to clipboard</div>
+  <div id="copy-toast">Link copied</div>
 
   <!-- Ask Claude FAB -->
-  <button id="claude-fab" title="Ask Claude">✨</button>
-  <div id="claude-fab-tooltip">Ask Claude for insights</div>
+  <button id="claude-fab" title="Ask Claude">
+    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+      <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
+    </svg>
+  </button>
+  <div id="claude-fab-tip">Ask Claude for insights</div>
 
   <!-- Sticky share bar -->
   <div id="share-bar">
     <button id="share-bar-btn">
-      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
         <polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>
       </svg>
       Share this comparison
     </button>
-    <button class="share-quick-btn" id="quick-wa"  title="WhatsApp">💬</button>
-    <button class="share-quick-btn" id="quick-email" title="Email">📧</button>
-    <button class="share-quick-btn" id="quick-x"   title="Post on X">𝕏</button>
+    <!-- WhatsApp quick -->
+    <button class="share-quick-btn" id="quick-wa" title="Share via WhatsApp">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+        <path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.549 4.117 1.513 5.851L0 24l6.335-1.651A11.956 11.956 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.877 0-3.631-.516-5.127-1.411l-.369-.219-3.76.983.998-3.663-.241-.383A9.956 9.956 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
+      </svg>
+    </button>
+    <!-- Email quick -->
+    <button class="share-quick-btn" id="quick-email" title="Share via Email">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+        <polyline points="22,6 12,13 2,6"/>
+      </svg>
+    </button>
+    <!-- X quick -->
+    <button class="share-quick-btn" id="quick-x" title="Post on X">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.261 5.634 5.903-5.634zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+      </svg>
+    </button>
   </div>
 
   <!-- Share modal -->
   <div id="share-overlay">
     <div id="share-modal">
+      <div class="share-handle"></div>
       <div class="share-modal-header">
         <span class="share-modal-title">Share your haul</span>
         <button class="share-close-btn" id="share-modal-close">
-          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
           </svg>
         </button>
@@ -656,12 +705,17 @@
     </div>
   </div>
 
-  <!-- Claude panel (slides up from bottom) -->
+  <!-- Claude panel -->
   <div id="claude-panel">
     <div class="claude-panel-header">
-      <span class="claude-panel-title">✨ Claude's Take</span>
+      <span class="claude-panel-title">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/>
+        </svg>
+        Claude's Take
+      </span>
       <button class="claude-close-btn" id="claude-panel-close">
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
       </button>
