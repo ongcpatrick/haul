@@ -23,7 +23,7 @@
       align-items: center;
       gap: 8px;
       padding: 10px 18px;
-      background: #4f46e5;
+      background: #7a9e76;
       color: #fff;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       font-size: 14px;
@@ -31,11 +31,11 @@
       border: none;
       border-radius: 24px;
       cursor: pointer;
-      box-shadow: 0 4px 16px rgba(79,70,229,0.45);
+      box-shadow: 0 4px 16px rgba(122,158,118,0.45);
       transition: background 0.15s, transform 0.15s;
       user-select: none;
     }
-    #haul-save-btn:hover { background: #4338ca; transform: translateY(-1px); }
+    #haul-save-btn:hover { background: #6a8c66; transform: translateY(-1px); }
     #haul-save-btn:active { transform: translateY(0); }
     #haul-save-btn svg { flex-shrink: 0; }
     #haul-toast {
@@ -47,7 +47,7 @@
       align-items: center;
       gap: 10px;
       padding: 12px 18px;
-      background: #1e1b4b;
+      background: #3d3529;
       color: #fff;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       font-size: 13px;
