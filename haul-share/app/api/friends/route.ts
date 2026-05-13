@@ -1,5 +1,6 @@
-import { getCurrentDbUserId, getSupabaseAdminClient } from '@/lib/supabase-server';
+import { getCurrentDbUserId } from '@/lib/supabase-server';
 import { fail, ok, readJson } from '@/lib/api';
+import sql from '@/lib/db';
 
 interface FriendBody {
   targetUserId?: string;
@@ -14,47 +15,31 @@ export async function POST(req: Request) {
   if (!body?.targetUserId) return fail('targetUserId required');
   if (body.targetUserId === dbUserId) return fail('Cannot follow yourself');
 
-  const admin = getSupabaseAdminClient();
-  const action = body.action ?? 'follow';
-
-  if (action === 'unfollow') {
-    const { error } = await admin
-      .from('friendships')
-      .delete()
-      .eq('requester_id', dbUserId)
-      .eq('addressee_id', body.targetUserId);
-    if (error) return fail(error.message, 500);
+  if (body.action === 'unfollow') {
+    await sql`
+      DELETE FROM friendships
+      WHERE requester_id = ${dbUserId} AND addressee_id = ${body.targetUserId}
+    `;
     return ok({ following: false });
   }
 
-  // Auto-accept follows (Twitter-style). Switch to 'pending' for mutual-approval model.
-  const { data, error } = await admin
-    .from('friendships')
-    .upsert(
-      {
-        requester_id: dbUserId,
-        addressee_id: body.targetUserId,
-        status: 'accepted',
-      },
-      { onConflict: 'requester_id,addressee_id' }
-    )
-    .select()
-    .single();
-
-  if (error) return fail(error.message, 500);
-  return ok({ following: true, friendship: data });
+  const [friendship] = await sql`
+    INSERT INTO friendships (requester_id, addressee_id, status)
+    VALUES (${dbUserId}, ${body.targetUserId}, 'accepted')
+    ON CONFLICT (requester_id, addressee_id)
+    DO UPDATE SET status = 'accepted'
+    RETURNING *
+  `;
+  return ok({ following: true, friendship });
 }
 
 export async function GET() {
   const dbUserId = await getCurrentDbUserId();
   if (!dbUserId) return fail('Unauthorized', 401);
 
-  const admin = getSupabaseAdminClient();
-  const { data, error } = await admin
-    .from('friendships')
-    .select('*')
-    .or(`requester_id.eq.${dbUserId},addressee_id.eq.${dbUserId}`);
-
-  if (error) return fail(error.message, 500);
-  return ok(data ?? []);
+  const friendships = await sql`
+    SELECT * FROM friendships
+    WHERE requester_id = ${dbUserId} OR addressee_id = ${dbUserId}
+  `;
+  return ok(friendships);
 }

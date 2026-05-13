@@ -1,7 +1,8 @@
 import { notFound, redirect } from 'next/navigation';
 import { auth } from '@clerk/nextjs/server';
-import { getSupabaseAdminClient, getCurrentDbUserId } from '@/lib/supabase-server';
-import type { Circle, CircleMember, Haul, HaulWithAuthor, User } from '@/lib/types';
+import { getCurrentDbUserId } from '@/lib/supabase-server';
+import sql from '@/lib/db';
+import type { Circle, CircleMember, HaulWithAuthor, User } from '@/lib/types';
 import CircleClient from './CircleClient';
 
 export const dynamic = 'force-dynamic';
@@ -18,92 +19,68 @@ export default async function CirclePage({ params }: Params) {
   const dbUserId = await getCurrentDbUserId();
   if (!dbUserId) redirect('/');
 
-  const admin = getSupabaseAdminClient();
-
-  const { data: circle } = await admin
-    .from('circles')
-    .select('*')
-    .eq('id', id)
-    .maybeSingle<Circle>();
+  const [circle] = await sql`SELECT * FROM circles WHERE id = ${id} LIMIT 1`;
   if (!circle) notFound();
 
-  const { data: rawMembers } = await admin
-    .from('circle_members')
-    .select('*')
-    .eq('circle_id', id);
-
-  const memberRows = (rawMembers ?? []) as CircleMember[];
+  const memberRows = await sql<{ circle_id: string; user_id: string; role: string; joined_at: string }[]>`
+    SELECT circle_id, user_id, role, joined_at FROM circle_members WHERE circle_id = ${id}
+  `;
   const isMember = memberRows.some((m) => m.user_id === dbUserId);
   if (!isMember) redirect('/circles');
 
   const memberIds = memberRows.map((m) => m.user_id);
-  const { data: users } = await admin
-    .from('users')
-    .select('id, username, display_name, avatar_url')
-    .in('id', memberIds);
+
+  const [users, hauls] = await Promise.all([
+    sql`SELECT id, username, display_name, avatar_url FROM users WHERE id = ANY(${memberIds}::uuid[])`,
+    sql`SELECT * FROM hauls WHERE circle_id = ${id} ORDER BY created_at DESC LIMIT 60`,
+  ]);
 
   const userMap = new Map<string, Pick<User, 'id' | 'username' | 'display_name' | 'avatar_url'>>();
-  for (const u of users ?? []) userMap.set(u.id as string, u as User);
+  for (const u of users) userMap.set(u.id as string, u as unknown as User);
 
   const members: CircleMember[] = memberRows.map((m) => ({
     ...m,
     user: userMap.get(m.user_id),
-  }));
+  })) as CircleMember[];
 
-  const { data: rawHauls } = await admin
-    .from('hauls')
-    .select('*')
-    .eq('circle_id', id)
-    .order('created_at', { ascending: false })
-    .limit(60);
+  const haulIds = hauls.map((h) => h.id as string);
+  const haulsUserIds = Array.from(new Set(hauls.map((h) => h.user_id as string)));
 
-  const hauls = (rawHauls ?? []) as Haul[];
-  const haulIds = hauls.map((h) => h.id);
-  const userIdsFromHauls = Array.from(new Set(hauls.map((h) => h.user_id)));
-
-  const [{ data: extraUsers }, { data: reactions }, { data: comments }] = await Promise.all([
-    admin
-      .from('users')
-      .select('id, username, display_name, avatar_url')
-      .in('id', userIdsFromHauls),
+  const [extraUsers, reactions, comments] = await Promise.all([
+    haulsUserIds.length
+      ? sql`SELECT id, username, display_name, avatar_url FROM users WHERE id = ANY(${haulsUserIds}::uuid[])`
+      : Promise.resolve([]),
     haulIds.length
-      ? admin.from('reactions').select('haul_id, emoji').in('haul_id', haulIds)
-      : Promise.resolve({ data: [] as { haul_id: string; emoji: string }[] }),
+      ? sql<{ haul_id: string; emoji: string }[]>`SELECT haul_id, emoji FROM reactions WHERE haul_id = ANY(${haulIds}::uuid[])`
+      : Promise.resolve([]),
     haulIds.length
-      ? admin.from('comments').select('haul_id').in('haul_id', haulIds)
-      : Promise.resolve({ data: [] as { haul_id: string }[] }),
+      ? sql<{ haul_id: string }[]>`SELECT haul_id FROM comments WHERE haul_id = ANY(${haulIds}::uuid[])`
+      : Promise.resolve([]),
   ]);
 
-  for (const u of extraUsers ?? []) userMap.set(u.id as string, u as User);
+  for (const u of extraUsers) userMap.set(u.id as string, u as unknown as User);
 
   const reactionCounts = new Map<string, Record<string, number>>();
-  for (const r of reactions ?? []) {
-    const key = r.haul_id as string;
-    const cur = reactionCounts.get(key) ?? {};
-    cur[r.emoji as string] = (cur[r.emoji as string] ?? 0) + 1;
-    reactionCounts.set(key, cur);
+  for (const r of reactions) {
+    const cur = reactionCounts.get(r.haul_id) ?? {};
+    cur[r.emoji] = (cur[r.emoji] ?? 0) + 1;
+    reactionCounts.set(r.haul_id, cur);
   }
   const commentCounts = new Map<string, number>();
-  for (const c of comments ?? []) {
-    const key = c.haul_id as string;
-    commentCounts.set(key, (commentCounts.get(key) ?? 0) + 1);
+  for (const c of comments) {
+    commentCounts.set(c.haul_id, (commentCounts.get(c.haul_id) ?? 0) + 1);
   }
 
   const enrichedHauls: HaulWithAuthor[] = hauls.map((h) => ({
-    ...h,
-    author: userMap.get(h.user_id) ?? {
-      id: h.user_id,
-      username: 'unknown',
-      display_name: null,
-      avatar_url: null,
-    },
-    reaction_counts: reactionCounts.get(h.id) ?? {},
-    comment_count: commentCounts.get(h.id) ?? 0,
+    ...(h as unknown as HaulWithAuthor),
+    author: userMap.get(h.user_id as string) ?? { id: h.user_id as string, username: 'unknown', display_name: null, avatar_url: null },
+    reaction_counts: reactionCounts.get(h.id as string) ?? {},
+    comment_count: commentCounts.get(h.id as string) ?? 0,
   }));
 
   return (
     <CircleClient
-      circle={circle}
+      circle={circle as unknown as Circle}
       members={members}
       initialHauls={enrichedHauls}
       currentUserId={dbUserId}

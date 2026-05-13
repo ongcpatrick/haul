@@ -1,5 +1,6 @@
-import { getCurrentDbUserId, getSupabaseAdminClient } from '@/lib/supabase-server';
+import { getCurrentDbUserId } from '@/lib/supabase-server';
 import { fail, ok, readJson, requireString } from '@/lib/api';
+import sql from '@/lib/db';
 
 interface CommentBody {
   haulId?: string;
@@ -23,15 +24,12 @@ export async function POST(req: Request) {
   }
   if (text.length > 500) return fail('Comment too long');
 
-  const admin = getSupabaseAdminClient();
-  const { data, error } = await admin
-    .from('comments')
-    .insert({ haul_id: haulId, user_id: dbUserId, body: text })
-    .select()
-    .single();
-
-  if (error) return fail(error.message, 500);
-  return ok(data);
+  const [comment] = await sql`
+    INSERT INTO comments (haul_id, user_id, body)
+    VALUES (${haulId}, ${dbUserId}, ${text})
+    RETURNING *
+  `;
+  return ok(comment);
 }
 
 export async function GET(req: Request) {
@@ -39,25 +37,15 @@ export async function GET(req: Request) {
   const haulId = searchParams.get('haulId');
   if (!haulId) return fail('haulId required');
 
-  const admin = getSupabaseAdminClient();
-  const { data, error } = await admin
-    .from('comments')
-    .select('*')
-    .eq('haul_id', haulId)
-    .order('created_at', { ascending: true })
-    .limit(200);
+  const comments = await sql`
+    SELECT * FROM comments WHERE haul_id = ${haulId} ORDER BY created_at ASC LIMIT 200
+  `;
 
-  if (error) return fail(error.message, 500);
+  const userIds = Array.from(new Set(comments.map((c) => c.user_id as string)));
+  const users = userIds.length
+    ? await sql`SELECT id, username, display_name, avatar_url FROM users WHERE id = ANY(${userIds}::uuid[])`
+    : [];
 
-  const userIds = Array.from(new Set((data ?? []).map((c) => c.user_id as string)));
-  let authors: Record<string, unknown> = {};
-  if (userIds.length) {
-    const { data: users } = await admin
-      .from('users')
-      .select('id, username, display_name, avatar_url')
-      .in('id', userIds);
-    authors = Object.fromEntries((users ?? []).map((u) => [u.id, u]));
-  }
-
-  return ok({ comments: data ?? [], authors });
+  const authors = Object.fromEntries(users.map((u) => [u.id, u]));
+  return ok({ comments, authors });
 }

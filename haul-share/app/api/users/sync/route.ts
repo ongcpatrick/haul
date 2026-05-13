@@ -1,5 +1,5 @@
 import { auth } from '@clerk/nextjs/server';
-import { getSupabaseAdminClient } from '@/lib/supabase-server';
+import sql from '@/lib/db';
 import { fail, ok, readJson, requireString } from '@/lib/api';
 
 interface SyncBody {
@@ -23,33 +23,23 @@ export async function POST(req: Request) {
     return fail(e instanceof Error ? e.message : 'Invalid request');
   }
 
-  // If the caller is authenticated, enforce that they only sync their own record
   const { userId } = await auth();
-  if (userId && userId !== clerkId) {
-    return fail('Cannot sync a different user', 403);
-  }
+  if (userId && userId !== clerkId) return fail('Cannot sync a different user', 403);
 
   if (!/^[a-z0-9_]{3,30}$/.test(username)) {
     return fail('Username must be 3-30 chars (a-z, 0-9, underscore)');
   }
 
-  const admin = getSupabaseAdminClient();
-
-  const { data, error } = await admin
-    .from('users')
-    .upsert(
-      {
-        clerk_id: clerkId,
-        username,
-        display_name: body.displayName ?? null,
-        avatar_url: body.avatarUrl ?? null,
-        bio: body.bio ?? null,
-      },
-      { onConflict: 'clerk_id' }
-    )
-    .select()
-    .single();
-
-  if (error) return fail(error.message, 500);
-  return ok(data);
+  const rows = await sql`
+    INSERT INTO users (clerk_id, username, display_name, avatar_url, bio)
+    VALUES (${clerkId}, ${username}, ${body.displayName ?? null}, ${body.avatarUrl ?? null}, ${body.bio ?? null})
+    ON CONFLICT (clerk_id) DO UPDATE SET
+      username = EXCLUDED.username,
+      display_name = EXCLUDED.display_name,
+      avatar_url = EXCLUDED.avatar_url,
+      bio = EXCLUDED.bio
+    RETURNING *
+  `;
+  if (!rows[0]) return fail('Failed to sync user', 500);
+  return ok(rows[0]);
 }

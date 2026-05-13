@@ -1,12 +1,13 @@
-import { getCurrentDbUserId, getSupabaseAdminClient } from '@/lib/supabase-server';
+import { getCurrentDbUserId } from '@/lib/supabase-server';
 import { fail, ok, readJson } from '@/lib/api';
+import sql from '@/lib/db';
 
 interface ReactBody {
   haulId?: string;
   emoji?: string;
 }
 
-const ALLOWED_EMOJIS = new Set(['heart', 'fire', 'eyes', '❤️', '🔥', '👀']);
+const ALLOWED_EMOJIS = new Set(['❤️', '🔥', '👀', 'heart', 'fire', 'eyes']);
 
 export async function POST(req: Request) {
   const dbUserId = await getCurrentDbUserId();
@@ -16,26 +17,20 @@ export async function POST(req: Request) {
   if (!body?.haulId || !body.emoji) return fail('haulId and emoji required');
   if (!ALLOWED_EMOJIS.has(body.emoji)) return fail('Unsupported reaction');
 
-  const admin = getSupabaseAdminClient();
-
-  // Toggle: if reaction exists, delete; otherwise insert.
-  const { data: existing } = await admin
-    .from('reactions')
-    .select('id')
-    .eq('haul_id', body.haulId)
-    .eq('user_id', dbUserId)
-    .eq('emoji', body.emoji)
-    .maybeSingle();
+  const [existing] = await sql`
+    SELECT id FROM reactions
+    WHERE haul_id = ${body.haulId} AND user_id = ${dbUserId} AND emoji = ${body.emoji}
+    LIMIT 1
+  `;
 
   if (existing) {
-    const { error } = await admin.from('reactions').delete().eq('id', existing.id);
-    if (error) return fail(error.message, 500);
+    await sql`DELETE FROM reactions WHERE id = ${existing.id}`;
     return ok({ reacted: false });
   }
 
-  const { error } = await admin
-    .from('reactions')
-    .insert({ haul_id: body.haulId, user_id: dbUserId, emoji: body.emoji });
-  if (error) return fail(error.message, 500);
+  await sql`
+    INSERT INTO reactions (haul_id, user_id, emoji)
+    VALUES (${body.haulId}, ${dbUserId}, ${body.emoji})
+  `;
   return ok({ reacted: true });
 }

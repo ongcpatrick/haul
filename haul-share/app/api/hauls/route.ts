@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
-import { getCurrentDbUserId, getSupabaseAdminClient } from '@/lib/supabase-server';
+import { getCurrentDbUserId } from '@/lib/supabase-server';
 import { fail, ok, readJson } from '@/lib/api';
+import sql from '@/lib/db';
 import type { Product } from '@/lib/types';
 
 interface CreateHaulBody {
@@ -21,33 +22,28 @@ export async function POST(req: Request) {
   const body = await readJson<CreateHaulBody>(req);
   if (!body || !Array.isArray(body.products)) return fail('Invalid body');
 
-  const admin = getSupabaseAdminClient();
-
   if (body.circleId) {
-    const { data: member } = await admin
-      .from('circle_members')
-      .select('user_id')
-      .eq('circle_id', body.circleId)
-      .eq('user_id', dbUserId)
-      .maybeSingle();
+    const [member] = await sql`
+      SELECT user_id FROM circle_members
+      WHERE circle_id = ${body.circleId} AND user_id = ${dbUserId} LIMIT 1
+    `;
     if (!member) return fail('Not a member of that circle', 403);
   }
 
-  const { data, error } = await admin
-    .from('hauls')
-    .insert({
-      user_id: dbUserId,
-      share_id: body.shareId ?? null,
-      title: body.title ?? null,
-      products: body.products,
-      is_public: body.isPublic ?? true,
-      circle_id: body.circleId ?? null,
-    })
-    .select()
-    .single();
-
-  if (error) return fail(error.message, 500);
-  return ok(data);
+  const [haul] = await sql`
+    INSERT INTO hauls (user_id, share_id, title, products, is_public, circle_id)
+    VALUES (
+      ${dbUserId},
+      ${body.shareId ?? null},
+      ${body.title ?? null},
+      ${JSON.stringify(body.products)}::jsonb,
+      ${body.isPublic ?? true},
+      ${body.circleId ?? null}
+    )
+    RETURNING *
+  `;
+  if (!haul) return fail('Failed to create haul', 500);
+  return ok(haul);
 }
 
 export async function GET(req: Request) {
@@ -55,15 +51,11 @@ export async function GET(req: Request) {
   const username = searchParams.get('username');
   const limit = Math.min(Number(searchParams.get('limit') ?? 30), 100);
 
-  const admin = getSupabaseAdminClient();
-
   let userId: string | null = null;
   if (username) {
-    const { data: u } = await admin
-      .from('users')
-      .select('id')
-      .eq('username', username.toLowerCase())
-      .maybeSingle();
+    const [u] = await sql`
+      SELECT id FROM users WHERE username = ${username.toLowerCase()} LIMIT 1
+    `;
     if (!u) return ok([]);
     userId = u.id as string;
   } else {
@@ -71,14 +63,11 @@ export async function GET(req: Request) {
     if (!userId) return fail('Unauthorized', 401);
   }
 
-  const { data, error } = await admin
-    .from('hauls')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('is_public', true)
-    .order('created_at', { ascending: false })
-    .limit(limit);
-
-  if (error) return fail(error.message, 500);
-  return ok(data ?? []);
+  const hauls = await sql`
+    SELECT * FROM hauls
+    WHERE user_id = ${userId} AND is_public = true
+    ORDER BY created_at DESC
+    LIMIT ${limit}
+  `;
+  return ok(hauls);
 }

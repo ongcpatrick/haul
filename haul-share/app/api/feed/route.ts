@@ -1,6 +1,6 @@
-import { getCurrentDbUserId, getSupabaseAdminClient } from '@/lib/supabase-server';
+import { getCurrentDbUserId } from '@/lib/supabase-server';
 import { fail, ok } from '@/lib/api';
-import type { Haul } from '@/lib/types';
+import sql from '@/lib/db';
 
 export async function GET(req: Request) {
   const dbUserId = await getCurrentDbUserId();
@@ -10,28 +10,29 @@ export async function GET(req: Request) {
   const limit = Math.min(Number(searchParams.get('limit') ?? 20), 50);
   const before = searchParams.get('before');
 
-  const admin = getSupabaseAdminClient();
+  const followRows = await sql<{ addressee_id: string }[]>`
+    SELECT addressee_id FROM friendships
+    WHERE requester_id = ${dbUserId} AND status = 'accepted'
+  `;
+  const followIds = followRows.map((f) => f.addressee_id);
+  if (followIds.length === 0) return ok([]);
 
-  const { data: follows } = await admin
-    .from('friendships')
-    .select('addressee_id')
-    .eq('requester_id', dbUserId)
-    .eq('status', 'accepted');
+  const hauls = before
+    ? await sql`
+        SELECT * FROM hauls
+        WHERE user_id = ANY(${followIds}::uuid[])
+          AND is_public = true
+          AND created_at < ${before}
+        ORDER BY created_at DESC
+        LIMIT ${limit}
+      `
+    : await sql`
+        SELECT * FROM hauls
+        WHERE user_id = ANY(${followIds}::uuid[])
+          AND is_public = true
+        ORDER BY created_at DESC
+        LIMIT ${limit}
+      `;
 
-  const followIds = (follows ?? []).map((f) => f.addressee_id as string);
-  if (followIds.length === 0) return ok<Haul[]>([]);
-
-  let q = admin
-    .from('hauls')
-    .select('*')
-    .in('user_id', followIds)
-    .eq('is_public', true)
-    .order('created_at', { ascending: false })
-    .limit(limit);
-
-  if (before) q = q.lt('created_at', before);
-
-  const { data, error } = await q;
-  if (error) return fail(error.message, 500);
-  return ok(data ?? []);
+  return ok(hauls);
 }

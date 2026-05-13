@@ -1,54 +1,39 @@
-import { getCurrentDbUserId, getSupabaseAdminClient } from '@/lib/supabase-server';
+import { getCurrentDbUserId } from '@/lib/supabase-server';
 import { fail, ok, readJson } from '@/lib/api';
+import sql from '@/lib/db';
 
 interface JoinBody {
   inviteCode?: string;
 }
 
-/**
- * Join a circle either by circle id (the [id] route param) or via an invite code in the body.
- * If the route param matches a circle id and the inviteCode matches that circle's invite_code, join.
- * Otherwise inviteCode alone (with route id == 'by-code') is accepted.
- */
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const dbUserId = await getCurrentDbUserId();
   if (!dbUserId) return fail('Unauthorized', 401);
 
   const { id } = await ctx.params;
   const body = (await readJson<JoinBody>(req)) ?? {};
-  const admin = getSupabaseAdminClient();
 
-  let circleId: string | null = null;
+  let circleId: string;
 
   if (id === 'by-code') {
     if (!body.inviteCode) return fail('inviteCode required');
-    const { data: c } = await admin
-      .from('circles')
-      .select('id')
-      .eq('invite_code', body.inviteCode)
-      .maybeSingle();
+    const [c] = await sql`
+      SELECT id FROM circles WHERE invite_code = ${body.inviteCode} LIMIT 1
+    `;
     if (!c) return fail('Invalid invite code', 404);
     circleId = c.id as string;
   } else {
-    const { data: c } = await admin
-      .from('circles')
-      .select('id, invite_code')
-      .eq('id', id)
-      .maybeSingle();
+    const [c] = await sql`SELECT id, invite_code FROM circles WHERE id = ${id} LIMIT 1`;
     if (!c) return fail('Circle not found', 404);
-    if (body.inviteCode && body.inviteCode !== c.invite_code) {
-      return fail('Invalid invite code', 403);
-    }
+    if (body.inviteCode && body.inviteCode !== c.invite_code) return fail('Invalid invite code', 403);
     circleId = c.id as string;
   }
 
-  const { error } = await admin
-    .from('circle_members')
-    .upsert(
-      { circle_id: circleId, user_id: dbUserId, role: 'member' },
-      { onConflict: 'circle_id,user_id' }
-    );
+  await sql`
+    INSERT INTO circle_members (circle_id, user_id, role)
+    VALUES (${circleId}, ${dbUserId}, 'member')
+    ON CONFLICT (circle_id, user_id) DO NOTHING
+  `;
 
-  if (error) return fail(error.message, 500);
   return ok({ circleId });
 }

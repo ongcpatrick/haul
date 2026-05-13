@@ -1,5 +1,6 @@
-import { getCurrentDbUserId, getSupabaseAdminClient } from '@/lib/supabase-server';
+import { getCurrentDbUserId } from '@/lib/supabase-server';
 import { fail, ok, readJson, requireString } from '@/lib/api';
+import sql from '@/lib/db';
 
 interface CreateCircleBody {
   name?: string;
@@ -21,25 +22,17 @@ export async function POST(req: Request) {
   }
   if (name.length > 60) return fail('Name too long');
 
-  const admin = getSupabaseAdminClient();
-  const { data: circle, error: cErr } = await admin
-    .from('circles')
-    .insert({
-      name,
-      description: body.description ?? null,
-      created_by: dbUserId,
-    })
-    .select()
-    .single();
+  const [circle] = await sql`
+    INSERT INTO circles (name, description, created_by)
+    VALUES (${name}, ${body.description ?? null}, ${dbUserId})
+    RETURNING *
+  `;
+  if (!circle) return fail('Failed to create circle', 500);
 
-  if (cErr || !circle) return fail(cErr?.message ?? 'Failed to create circle', 500);
-
-  const { error: mErr } = await admin.from('circle_members').insert({
-    circle_id: circle.id,
-    user_id: dbUserId,
-    role: 'owner',
-  });
-  if (mErr) return fail(mErr.message, 500);
+  await sql`
+    INSERT INTO circle_members (circle_id, user_id, role)
+    VALUES (${circle.id}, ${dbUserId}, 'owner')
+  `;
 
   return ok(circle);
 }
@@ -48,20 +41,16 @@ export async function GET() {
   const dbUserId = await getCurrentDbUserId();
   if (!dbUserId) return fail('Unauthorized', 401);
 
-  const admin = getSupabaseAdminClient();
-  const { data: memberships } = await admin
-    .from('circle_members')
-    .select('circle_id')
-    .eq('user_id', dbUserId);
-
-  const ids = (memberships ?? []).map((m) => m.circle_id as string);
+  const memberships = await sql<{ circle_id: string }[]>`
+    SELECT circle_id FROM circle_members WHERE user_id = ${dbUserId}
+  `;
+  const ids = memberships.map((m) => m.circle_id);
   if (ids.length === 0) return ok([]);
 
-  const { data, error } = await admin
-    .from('circles')
-    .select('*')
-    .in('id', ids)
-    .order('created_at', { ascending: false });
-  if (error) return fail(error.message, 500);
-  return ok(data ?? []);
+  const circles = await sql`
+    SELECT * FROM circles
+    WHERE id = ANY(${ids}::uuid[])
+    ORDER BY created_at DESC
+  `;
+  return ok(circles);
 }
