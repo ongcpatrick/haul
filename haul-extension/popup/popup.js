@@ -49,39 +49,31 @@ chrome.runtime.sendMessage({ type: 'GET_PRODUCTS' }, (response) => {
     trayLabel.textContent = `View ${products.length} Saved Item${products.length !== 1 ? 's' : ''}`;
   }
 
-  // ── Thumbnail strip (up to 3 most recent)
-  const recent = products.slice(0, 3);
-  if (recent.length > 0) {
+  // ── Thumbnail strip (all products, scrollable)
+  if (products.length > 0) {
     const strip = document.getElementById('thumb-strip');
     strip.classList.add('visible');
 
-    recent.forEach((p, i) => {
-      const wrap = document.getElementById(`thumb-${i}`);
-      if (!wrap) return;
-      wrap.classList.add('visible');
+    const PLACEHOLDER_SVG = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><polyline points="16 3 12 7 8 3"/></svg>`;
 
-      const imgBox     = wrap.querySelector('.thumb-img-box');
-      const nameEl     = wrap.querySelector('.thumb-name');
-      const priceEl    = wrap.querySelector('.thumb-price');
-      const placeholder = wrap.querySelector('.thumb-placeholder');
+    products.forEach((p) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'thumb-wrap';
 
-      // Name + price labels
-      nameEl.textContent  = (p.name || '').split(' ').slice(0, 4).join(' ');
-      priceEl.textContent = p.price != null ? formatPrice(p.price) : '';
+      const imgBox = document.createElement('div');
+      imgBox.className = 'thumb-img-box';
 
-      // Image
       const imgSrc = safeUrl(p.imageUrl);
       if (imgSrc) {
         const img = document.createElement('img');
         img.alt = '';
         img.src = imgSrc;
-        img.addEventListener('error', () => {
-          img.style.display = 'none';
-        });
-        placeholder.replaceWith(img);
+        img.addEventListener('error', () => { img.style.display = 'none'; });
+        imgBox.appendChild(img);
+      } else {
+        imgBox.innerHTML = `<div class="thumb-placeholder">${PLACEHOLDER_SVG}</div>`;
       }
 
-      // Click → open product page
       const productUrl = safeUrl(p.sourceUrl);
       if (productUrl) {
         imgBox.style.cursor = 'pointer';
@@ -90,6 +82,19 @@ chrome.runtime.sendMessage({ type: 'GET_PRODUCTS' }, (response) => {
           window.close();
         });
       }
+
+      const nameEl = document.createElement('div');
+      nameEl.className = 'thumb-name';
+      nameEl.textContent = (p.name || '').split(' ').slice(0, 4).join(' ');
+
+      const priceEl = document.createElement('div');
+      priceEl.className = 'thumb-price';
+      priceEl.textContent = p.price != null ? formatPrice(p.price) : '';
+
+      wrap.appendChild(imgBox);
+      wrap.appendChild(nameEl);
+      wrap.appendChild(priceEl);
+      strip.appendChild(wrap);
     });
   }
 });

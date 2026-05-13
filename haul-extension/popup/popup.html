@@ -82,26 +82,26 @@
     /* ── Thumbnail strip ─────────────────────────────── */
     #thumb-strip {
       display: none;
-      align-items: center;
+      align-items: flex-start;
       gap: 8px;
       margin-bottom: 14px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
     }
+    #thumb-strip::-webkit-scrollbar { height: 3px; }
+    #thumb-strip::-webkit-scrollbar-track { background: transparent; }
+    #thumb-strip::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
     #thumb-strip.visible { display: flex; }
-    .thumb-strip-label {
-      font-size: 10px;
-      font-weight: 600;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin-bottom: 6px;
-    }
     .thumb-wrap {
       position: relative;
-      flex: 1;
-      display: none;
+      flex-shrink: 0;
+      width: 72px;
+      display: flex;
       flex-direction: column;
+      scroll-snap-align: start;
     }
-    .thumb-wrap.visible { display: flex; }
     .thumb-img-box {
       width: 100%;
       aspect-ratio: 1;
@@ -193,24 +193,8 @@
     </div>
   </div>
 
-  <!-- Product thumbnail strip (up to 3) -->
-  <div id="thumb-strip">
-    <div class="thumb-wrap" id="thumb-0">
-      <div class="thumb-img-box"><div class="thumb-placeholder"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><polyline points="16 3 12 7 8 3"/></svg></div></div>
-      <div class="thumb-name"></div>
-      <div class="thumb-price"></div>
-    </div>
-    <div class="thumb-wrap" id="thumb-1">
-      <div class="thumb-img-box"><div class="thumb-placeholder"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><polyline points="16 3 12 7 8 3"/></svg></div></div>
-      <div class="thumb-name"></div>
-      <div class="thumb-price"></div>
-    </div>
-    <div class="thumb-wrap" id="thumb-2">
-      <div class="thumb-img-box"><div class="thumb-placeholder"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><polyline points="16 3 12 7 8 3"/></svg></div></div>
-      <div class="thumb-name"></div>
-      <div class="thumb-price"></div>
-    </div>
-  </div>
+  <!-- Product thumbnail strip (all products, horizontally scrollable) -->
+  <div id="thumb-strip"></div>
 
   <button class="btn btn-primary" id="open-tray-btn">
     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
