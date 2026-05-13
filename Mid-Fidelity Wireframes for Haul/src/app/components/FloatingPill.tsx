@@ -24,7 +24,7 @@ export function FloatingPill() {
               </div>
               {/* Haul Extension Badge */}
               <div className="relative">
-                <div className="w-6 h-6 bg-gradient-to-br from-[#4f46e5] to-[#4338ca] rounded flex items-center justify-center cursor-pointer hover:scale-110 transition-transform">
+                <div className="w-6 h-6 bg-[#7a9e76] rounded flex items-center justify-center cursor-pointer hover:scale-110 transition-transform">
                   <Sparkles className="w-3.5 h-3.5 text-white" />
                 </div>
                 <div className="absolute -top-1 -right-1 w-4 h-4 bg-[#ef4444] rounded-full flex items-center justify-center">
@@ -43,7 +43,7 @@ export function FloatingPill() {
           </div>
 
           {/* Annotation */}
-          <div className="bg-[#f0f9f4] border border-[#d4f0dd] rounded-lg p-4">
+          <div className="bg-[#e8f0e6] border border-[#7a9e76] rounded-lg p-4">
             <h4 className="text-sm font-semibold text-[#1a1a1a] mb-2">Minimal Design Philosophy</h4>
             <ul className="space-y-1.5 text-sm text-[#666]">
               <li>• No floating elements or overlays on the page</li>

@@ -47,28 +47,28 @@ export function ComparisonDashboard() {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-2xl font-semibold text-slate-900 mb-2">Screen 5: Comparison Dashboard</h2>
-        <p className="text-slate-600">Full popup view with category filters and side-by-side comparison grid</p>
+        <h2 className="text-2xl font-semibold text-[#3d3529] mb-2">Screen 5: Comparison Dashboard</h2>
+        <p className="text-[#8a7e72]">Full popup view with category filters and side-by-side comparison grid</p>
       </div>
 
       <div className="bg-white rounded-lg shadow-lg border border-[#e5e5e5] overflow-hidden">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
+        <div className="px-6 py-4 border-b border-[#ddd8cf] bg-[#f2ede4]">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-xl font-bold text-slate-900">Compare Products</h3>
-              <p className="text-sm text-slate-600">4 items · 2 categories</p>
+              <h3 className="text-xl font-bold text-[#3d3529]">Compare Products</h3>
+              <p className="text-sm text-[#8a7e72]">4 items · 2 categories</p>
             </div>
             <div className="flex items-center gap-2">
-              <button className="px-3 py-2 text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-white rounded-xl transition-colors flex items-center gap-2 border border-transparent hover:border-slate-200">
+              <button className="px-3 py-2 text-sm font-semibold text-[#8a7e72] hover:text-[#3d3529] hover:bg-[#fafaf7] rounded-xl transition-colors flex items-center gap-2 border border-transparent hover:border-[#ddd8cf]">
                 <SlidersHorizontal className="w-4 h-4" />
                 Filter
               </button>
-              <button className="px-3 py-2 text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-white rounded-xl transition-colors flex items-center gap-2 border border-transparent hover:border-slate-200">
+              <button className="px-3 py-2 text-sm font-semibold text-[#8a7e72] hover:text-[#3d3529] hover:bg-[#fafaf7] rounded-xl transition-colors flex items-center gap-2 border border-transparent hover:border-[#ddd8cf]">
                 <Share2 className="w-4 h-4" />
                 Share
               </button>
-              <button className="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-colors flex items-center gap-2 shadow-sm">
+              <button className="px-4 py-2 text-sm font-semibold text-white bg-[#7a9e76] hover:bg-[#6a8c66] rounded-xl transition-colors flex items-center gap-2 shadow-sm">
                 <Download className="w-4 h-4" />
                 Export
               </button>
@@ -76,18 +76,18 @@ export function ComparisonDashboard() {
           </div>
 
           <div className="flex gap-2">
-            <button className="px-3 py-1.5 text-xs font-semibold bg-white text-slate-900 rounded-lg border-2 border-slate-300 shadow-sm">
+            <button className="px-3 py-1.5 text-xs font-semibold bg-[#fafaf7] text-[#3d3529] rounded-lg border-2 border-[#ddd8cf] shadow-sm">
               All (4)
             </button>
-            <button className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-white hover:text-slate-900 rounded-lg transition-colors border border-transparent hover:border-slate-200">
+            <button className="px-3 py-1.5 text-xs font-semibold text-[#8a7e72] hover:bg-[#fafaf7] hover:text-[#3d3529] rounded-lg transition-colors border border-transparent hover:border-[#ddd8cf]">
               Shoes (3)
             </button>
-            <button className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-white hover:text-slate-900 rounded-lg transition-colors border border-transparent hover:border-slate-200">
+            <button className="px-3 py-1.5 text-xs font-semibold text-[#8a7e72] hover:bg-[#fafaf7] hover:text-[#3d3529] rounded-lg transition-colors border border-transparent hover:border-[#ddd8cf]">
               Electronics (1)
             </button>
-            <button className="px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-lg transition-colors border border-emerald-200 hover:bg-emerald-100 inline-flex items-center gap-1.5">
+            <button className="px-3 py-1.5 text-xs font-semibold text-[#7a9e76] bg-[#e8f0e6] rounded-lg transition-colors border border-[#7a9e76] hover:bg-[#d4e8d0] inline-flex items-center gap-1.5">
               <span>Price Drops (2)</span>
-              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded text-[9px] font-bold">
+              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-[#7a9e76] text-white rounded text-[9px] font-bold">
                 PRO
               </span>
             </button>
@@ -106,9 +106,9 @@ export function ComparisonDashboard() {
                       <div className="aspect-square bg-gradient-to-br from-[#f5f5f5] to-[#e5e5e5] rounded-lg mb-3 relative">
                         {product.badge && (
                           <span className={`absolute top-2 left-2 text-xs font-bold px-2 py-1 rounded-md z-10 shadow-sm ${
-                            product.badgeType === 'drop' ? 'bg-emerald-500 text-white' :
-                            product.badgeType === 'sale' ? 'bg-amber-500 text-white' :
-                            'bg-rose-500 text-white'
+                            product.badgeType === 'drop' ? 'bg-[#7a9e76] text-white' :
+                            product.badgeType === 'sale' ? 'bg-[#b07d4a] text-white' :
+                            'bg-[#c97b7b] text-white'
                           }`}>
                             {product.badge}
                           </span>
@@ -182,7 +182,7 @@ export function ComparisonDashboard() {
                 <td className="py-3 pr-4 text-sm font-medium text-[#666]">Link</td>
                 {products.map((product, i) => (
                   <td key={i} className="py-3 px-4">
-                    <button className="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors w-full shadow-sm">
+                    <button className="px-4 py-2 bg-[#7a9e76] text-white text-sm font-semibold rounded-xl hover:bg-[#6a8c66] transition-colors w-full shadow-sm">
                       Go to Site
                     </button>
                   </td>
@@ -194,9 +194,9 @@ export function ComparisonDashboard() {
       </div>
 
       {/* Annotation */}
-      <div className="bg-indigo-50 border-2 border-indigo-200 rounded-xl p-4">
-        <h4 className="text-sm font-bold text-slate-900 mb-2">Dashboard Features</h4>
-        <ul className="space-y-1.5 text-sm text-slate-700">
+      <div className="bg-[#e8f0e6] border-2 border-[#7a9e76] rounded-xl p-4">
+        <h4 className="text-sm font-bold text-[#3d3529] mb-2">Dashboard Features</h4>
+        <ul className="space-y-1.5 text-sm text-[#3d3529]">
           <li>• Products displayed as columns, specs as rows</li>
           <li>• <strong>Filter tabs by category</strong> - Shoes, Electronics, etc.</li>
           <li>• Special "Price Drops" filter shows only discounted items</li>

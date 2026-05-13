@@ -39,9 +39,9 @@ export default function FeedClient({ currentUserId, initialHauls }: Props) {
     return (
       <EmptyState
         title="Your feed is empty"
-        description="Follow friends to see what they're shopping for."
-        ctaLabel="Find people to follow"
-        ctaHref="/circles"
+        description="Follow people to see what they're shopping for."
+        ctaLabel="Discover people to follow"
+        ctaHref="/people"
       />
     );
   }

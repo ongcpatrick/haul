@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import type { HaulWithAuthor } from '@/lib/types';
+import CommentDrawer from './CommentDrawer';
 
 const WORKER = 'https://haul-ai.haulapp.workers.dev';
 const REACTIONS = ['heart', 'fire', 'eyes'] as const;
@@ -52,17 +53,11 @@ function ReactionIcon({ kind }: { kind: ReactionKey }) {
   );
 }
 
-function CommentIcon() {
-  return (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-    </svg>
-  );
-}
 
 export default function HaulCard({ haul, currentUserId, onReact }: HaulCardProps) {
   const [counts, setCounts] = useState<Record<string, number>>(haul.reaction_counts ?? {});
   const [busy, setBusy] = useState<ReactionKey | null>(null);
+  const [commentCount, setCommentCount] = useState(haul.comment_count ?? 0);
 
   const totalSavings = haul.products.reduce((sum, p) => {
     if (p.originalPrice != null && p.price != null && p.originalPrice > p.price) {
@@ -189,10 +184,12 @@ export default function HaulCard({ haul, currentUserId, onReact }: HaulCardProps
             <span>{counts[r] ?? 0}</span>
           </button>
         ))}
-        <div className="ml-auto flex items-center gap-1.5 text-xs text-[var(--muted)]">
-          <CommentIcon />
-          <span>{haul.comment_count ?? 0}</span>
-        </div>
+        <CommentDrawer
+          haulId={haul.id}
+          initialCount={commentCount}
+          isLoggedIn={!!currentUserId}
+          onCountChange={setCommentCount}
+        />
       </div>
     </article>
   );

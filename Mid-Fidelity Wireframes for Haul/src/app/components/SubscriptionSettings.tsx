@@ -6,38 +6,38 @@ export function SubscriptionSettings() {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-2xl font-semibold text-slate-900 mb-2">Screen 11: Subscription Management</h2>
-        <p className="text-slate-600">Manage Pro subscription and view feature access</p>
+        <h2 className="text-2xl font-semibold text-[#3d3529] mb-2">Screen 11: Subscription Management</h2>
+        <p className="text-[#8a7e72]">Manage Pro subscription and view feature access</p>
       </div>
 
       <div className="max-w-2xl mx-auto space-y-4">
         {/* Free Tier Status */}
-        <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-6">
+        <div className="bg-white rounded-xl shadow-lg border border-[#ddd8cf] p-6">
           <div className="flex items-start justify-between mb-6">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <h3 className="text-lg font-bold text-slate-900">Free Plan</h3>
-                <span className="text-xs bg-slate-100 text-slate-600 font-semibold px-2 py-1 rounded">Current</span>
+                <h3 className="text-lg font-bold text-[#3d3529]">Free Plan</h3>
+                <span className="text-xs bg-[#f2ede4] text-[#8a7e72] font-semibold px-2 py-1 rounded">Current</span>
               </div>
-              <p className="text-sm text-slate-600">Limited AI features</p>
+              <p className="text-sm text-[#8a7e72]">Limited AI features</p>
             </div>
-            <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center">
-              <SettingsIcon className="w-6 h-6 text-slate-600" />
+            <div className="w-12 h-12 bg-[#f2ede4] rounded-xl flex items-center justify-center">
+              <SettingsIcon className="w-6 h-6 text-[#8a7e72]" />
             </div>
           </div>
 
           <div className="space-y-2 mb-6">
             <div className="flex items-center gap-2 text-sm">
-              <Check className="w-4 h-4 text-emerald-500" />
-              <span className="text-slate-700">Unlimited saves & comparisons</span>
+              <Check className="w-4 h-4 text-[#7a9e76]" />
+              <span className="text-[#3d3529]">Unlimited saves & comparisons</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
-              <Check className="w-4 h-4 text-emerald-500" />
-              <span className="text-slate-700">Manual categorization</span>
+              <Check className="w-4 h-4 text-[#7a9e76]" />
+              <span className="text-[#3d3529]">Manual categorization</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
-              <Check className="w-4 h-4 text-emerald-500" />
-              <span className="text-slate-700">Basic extraction</span>
+              <Check className="w-4 h-4 text-[#7a9e76]" />
+              <span className="text-[#3d3529]">Basic extraction</span>
             </div>
           </div>
 
@@ -45,7 +45,7 @@ export function SubscriptionSettings() {
         </div>
 
         {/* Pro Tier Preview */}
-        <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-xl shadow-xl p-6 text-white relative overflow-hidden">
+        <div className="bg-[#3d3529] rounded-xl shadow-xl p-6 text-white relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16" />
           <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full -ml-12 -mb-12" />
 
@@ -56,21 +56,21 @@ export function SubscriptionSettings() {
                   <h3 className="text-xl font-bold">Haul Pro</h3>
                   <Crown className="w-5 h-5 text-amber-400" />
                 </div>
-                <p className="text-indigo-100 text-sm">AI-powered shopping intelligence</p>
+                <p className="text-[#ddd8cf] text-sm">AI-powered shopping intelligence</p>
               </div>
               <div className="text-right">
                 <p className="text-2xl font-bold">$4.99</p>
-                <p className="text-xs text-indigo-200">/month</p>
+                <p className="text-xs text-[#ddd8cf]">/month</p>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3 mb-6">
               <div className="bg-white/10 backdrop-blur rounded-lg p-3">
-                <p className="text-xs text-indigo-200 mb-1">AI Features</p>
+                <p className="text-xs text-[#ddd8cf] mb-1">AI Features</p>
                 <p className="font-bold text-lg">Unlimited</p>
               </div>
               <div className="bg-white/10 backdrop-blur rounded-lg p-3">
-                <p className="text-xs text-indigo-200 mb-1">Price Alerts</p>
+                <p className="text-xs text-[#ddd8cf] mb-1">Price Alerts</p>
                 <p className="font-bold text-lg">Real-time</p>
               </div>
             </div>
@@ -94,7 +94,7 @@ export function SubscriptionSettings() {
               </div>
             </div>
 
-            <button className="w-full bg-white text-indigo-700 font-bold py-3 rounded-xl hover:bg-indigo-50 transition-colors shadow-lg">
+            <button className="w-full bg-[#fafaf7] text-[#3d3529] font-bold py-3 rounded-xl hover:bg-[#f2ede4] transition-colors shadow-lg">
               Start 7-Day Free Trial
             </button>
           </div>
@@ -127,12 +127,12 @@ export function SubscriptionSettings() {
       </div>
 
       {/* Implementation Guide */}
-      <div className="bg-indigo-50 border-2 border-indigo-200 rounded-xl p-4">
-        <h4 className="text-sm font-bold text-slate-900 mb-2">Implementation Guide</h4>
-        <div className="space-y-3 text-sm text-slate-700">
+      <div className="bg-[#e8f0e6] border-2 border-[#7a9e76] rounded-xl p-4">
+        <h4 className="text-sm font-bold text-[#3d3529] mb-2">Implementation Guide</h4>
+        <div className="space-y-3 text-sm text-[#3d3529]">
           <div>
             <p className="font-semibold mb-1">Environment Variable Setup:</p>
-            <div className="bg-slate-900 text-emerald-400 p-3 rounded-lg font-mono text-xs mb-2">
+            <div className="bg-[#3d3529] text-[#7a9e76] p-3 rounded-lg font-mono text-xs mb-2">
               <p># .env.development</p>
               <p>VITE_TEST_MODE=true</p>
               <p className="mt-2"># .env.production</p>
@@ -142,7 +142,7 @@ export function SubscriptionSettings() {
 
           <div>
             <p className="font-semibold mb-1">Feature Gating Pattern:</p>
-            <div className="bg-slate-900 text-slate-300 p-3 rounded-lg font-mono text-xs">
+            <div className="bg-[#3d3529] text-[#ddd8cf] p-3 rounded-lg font-mono text-xs">
               <p className="text-emerald-400">const isProUser = checkSubscription();</p>
               <p className="text-emerald-400">const testMode = import.meta.env.VITE_TEST_MODE;</p>
               <p className="mt-2">if (isProUser || testMode) {'{'}</p>

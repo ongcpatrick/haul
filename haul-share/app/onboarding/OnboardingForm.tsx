@@ -31,7 +31,7 @@ export default function OnboardingForm({ imageUrl, firstName, defaultUsername, d
     startTransition(async () => {
       const result = await completeOnboarding(formData);
       if ('error' in result) {
-        setError(result.error);
+        setError(result.error ?? 'Unknown error');
         return;
       }
       await user?.reload();

@@ -490,19 +490,31 @@ function renderShareModalBody(shareUrl, products, extUsername) {
       exploreLoaded = false;
 
       // If connected, also post to haul-share.com feed
+      let feedPosted = false;
       if (extUsername) {
-        chrome.runtime.sendMessage({ type: 'POST_HAUL_TO_WEBSITE', products, title });
+        await new Promise((resolve) => {
+          chrome.runtime.sendMessage({ type: 'POST_HAUL_TO_WEBSITE', products, title }, (res) => {
+            feedPosted = !!res?.success;
+            resolve();
+          });
+        });
       }
 
-      communityPostBtn.textContent = extUsername ? 'Posted to your feed + Explore!' : 'Posted to Explore!';
-      communityPostBtn.style.background = 'var(--primary)';
-      communityPostBtn.style.color = '#fff';
+      if (extUsername && !feedPosted) {
+        communityPostBtn.textContent = 'Posted to Explore (feed failed — reconnect)';
+        communityPostBtn.style.background = '#c0392b';
+        communityPostBtn.style.color = '#fff';
+      } else {
+        communityPostBtn.textContent = extUsername ? 'Posted to your feed + Explore!' : 'Posted to Explore!';
+        communityPostBtn.style.background = 'var(--primary)';
+        communityPostBtn.style.color = '#fff';
+      }
 
       // Close modal and switch to Explore tab so they can see it immediately
       setTimeout(() => {
         closeShareModal();
         setExploreMode(true);
-      }, 1200);
+      }, feedPosted || !extUsername ? 1200 : 3000);
     } catch {
       communityPostBtn.disabled = false;
       communityPostBtn.textContent = extUsername ? 'Post to My Feed + Explore' : 'Post to Explore';

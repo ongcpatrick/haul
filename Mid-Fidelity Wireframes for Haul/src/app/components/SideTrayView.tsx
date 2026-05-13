@@ -5,8 +5,8 @@ export function SideTrayView() {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-2xl font-semibold text-slate-900 mb-2">Screen 4: Side Tray View</h2>
-        <p className="text-slate-600">Compact panel with items organized by category - quick glances while browsing</p>
+        <h2 className="text-2xl font-semibold text-[#3d3529] mb-2">Screen 4: Side Tray View</h2>
+        <p className="text-[#8a7e72]">Compact panel with items organized by category - quick glances while browsing</p>
       </div>
 
       <div className="bg-[#fafafa] rounded-lg p-8">
@@ -24,11 +24,11 @@ export function SideTrayView() {
           {/* Side Tray */}
           <div className="w-[320px] bg-white rounded-lg shadow-lg border border-[#e5e5e5] flex flex-col" style={{ height: '600px' }}>
             {/* Header */}
-            <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+            <div className="px-4 py-3 border-b border-[#ddd8cf] flex items-center justify-between bg-[#f2ede4]">
               <div className="flex items-center gap-2">
-                <h3 className="font-bold text-slate-900">Your Saves</h3>
-                <span className="text-xs bg-indigo-100 text-indigo-700 font-bold px-2 py-1 rounded-md">4 items</span>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-md text-[10px] font-bold ml-1 shadow-sm">
+                <h3 className="font-bold text-[#3d3529]">Your Saves</h3>
+                <span className="text-xs bg-[#e8f0e6] text-[#3d3529] font-bold px-2 py-1 rounded-md">4 items</span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#7a9e76] text-white rounded-md text-[10px] font-bold ml-1 shadow-sm">
                   <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                   </svg>
@@ -36,11 +36,11 @@ export function SideTrayView() {
                 </span>
               </div>
               <div className="flex items-center gap-1">
-                <button className="p-1.5 hover:bg-white rounded-lg transition-colors">
-                  <Filter className="w-4 h-4 text-slate-600" />
+                <button className="p-1.5 hover:bg-[#fafaf7] rounded-lg transition-colors">
+                  <Filter className="w-4 h-4 text-[#8a7e72]" />
                 </button>
-                <button className="p-1.5 hover:bg-white rounded-lg transition-colors">
-                  <X className="w-4 h-4 text-slate-600" />
+                <button className="p-1.5 hover:bg-[#fafaf7] rounded-lg transition-colors">
+                  <X className="w-4 h-4 text-[#8a7e72]" />
                 </button>
               </div>
             </div>
@@ -82,12 +82,12 @@ export function SideTrayView() {
             </div>
 
             {/* Footer */}
-            <div className="p-3 border-t border-slate-200 space-y-2 bg-slate-50">
-              <button className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-semibold text-sm shadow-sm">
+            <div className="p-3 border-t border-[#ddd8cf] space-y-2 bg-[#f2ede4]">
+              <button className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#7a9e76] text-white rounded-xl hover:bg-[#6a8c66] transition-colors font-semibold text-sm shadow-sm">
                 <Maximize2 className="w-4 h-4" />
                 <span>Compare All</span>
               </button>
-              <button className="w-full text-sm font-medium text-slate-600 hover:text-slate-900 py-2">
+              <button className="w-full text-sm font-medium text-[#8a7e72] hover:text-[#3d3529] py-2">
                 Clear All
               </button>
             </div>
@@ -95,9 +95,9 @@ export function SideTrayView() {
         </div>
 
         {/* Annotation */}
-        <div className="mt-6 bg-indigo-50 border-2 border-indigo-200 rounded-xl p-4">
-          <h4 className="text-sm font-bold text-slate-900 mb-2">Side Tray Features</h4>
-          <ul className="space-y-1.5 text-sm text-slate-700">
+        <div className="mt-6 bg-[#e8f0e6] border-2 border-[#7a9e76] rounded-xl p-4">
+          <h4 className="text-sm font-bold text-[#3d3529] mb-2">Side Tray Features</h4>
+          <ul className="space-y-1.5 text-sm text-[#3d3529]">
             <li>• Slides in from right, 320px wide</li>
             <li>• <strong>Items grouped by category</strong> with dividers and counts</li>
             <li>• Compact cards show thumbnail, name, price, badges</li>

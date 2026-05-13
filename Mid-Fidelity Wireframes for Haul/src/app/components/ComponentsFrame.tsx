@@ -11,8 +11,8 @@ export function ComponentsFrame() {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-2xl font-semibold text-slate-900 mb-2">Component Library</h2>
-        <p className="text-slate-600">Reusable components for Haul shopping comparison</p>
+        <h2 className="text-2xl font-semibold text-[#3d3529] mb-2">Component Library</h2>
+        <p className="text-[#8a7e72]">Reusable components for Haul shopping comparison</p>
       </div>
 
       <div className="grid gap-8">
@@ -68,38 +68,38 @@ export function ComponentsFrame() {
 
         {/* Mini Badge */}
         <ComponentSection title="Minimized Badge (Corner Pill)">
-          <div className="w-[400px] h-32 bg-slate-50 rounded-lg relative">
+          <div className="w-[400px] h-32 bg-[#f2ede4] rounded-lg relative">
             <MiniBadge count={4} />
           </div>
         </ComponentSection>
 
         {/* Category Divider */}
         <ComponentSection title="Category Divider (for grouping items)">
-          <div className="w-[320px] bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+          <div className="w-[320px] bg-[#fafaf7] rounded-xl shadow-sm border border-[#ddd8cf] p-4">
             <CategoryDivider category="Shoes" count={3} />
             <div className="mt-2 space-y-2">
-              <div className="h-16 bg-slate-100 rounded-lg" />
-              <div className="h-16 bg-slate-100 rounded-lg" />
+              <div className="h-16 bg-[#f2ede4] rounded-lg" />
+              <div className="h-16 bg-[#f2ede4] rounded-lg" />
             </div>
           </div>
         </ComponentSection>
 
         {/* Pro Badge */}
         <ComponentSection title="Pro & AI Badges">
-          <div className="w-[400px] bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-3">
+          <div className="w-[400px] bg-[#fafaf7] rounded-xl shadow-sm border border-[#ddd8cf] p-4 space-y-3">
             <div>
-              <p className="text-xs font-semibold text-slate-600 mb-2">PRO BADGES</p>
+              <p className="text-xs font-semibold text-[#8a7e72] mb-2">PRO BADGES</p>
               <div className="flex gap-2 items-center">
                 <ProBadge variant="compact" />
                 <ProBadge variant="full" />
               </div>
             </div>
             <div>
-              <p className="text-xs font-semibold text-slate-600 mb-2">AI BADGE</p>
+              <p className="text-xs font-semibold text-[#8a7e72] mb-2">AI BADGE</p>
               <AIBadge />
             </div>
-            <div className="pt-3 border-t border-slate-200">
-              <p className="text-xs text-slate-600">
+            <div className="pt-3 border-t border-[#ddd8cf]">
+              <p className="text-xs text-[#8a7e72]">
                 Use to indicate AI-powered features that require Pro subscription
               </p>
             </div>
@@ -129,31 +129,31 @@ export function ComponentsFrame() {
 
         {/* Category Badge */}
         <ComponentSection title="Category & Status Badges">
-          <div className="w-[400px] bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-3">
+          <div className="w-[400px] bg-[#fafaf7] rounded-xl shadow-sm border border-[#ddd8cf] p-4 space-y-3">
             <div>
-              <p className="text-xs font-semibold text-slate-600 mb-2">CATEGORY TAGS</p>
+              <p className="text-xs font-semibold text-[#8a7e72] mb-2">CATEGORY TAGS</p>
               <div className="flex gap-2 flex-wrap">
-                <span className="inline-block text-xs font-semibold text-indigo-700 bg-indigo-50 px-2 py-1 rounded-md">
+                <span className="inline-block text-xs font-semibold text-[#3d3529] bg-[#e8f0e6] px-2 py-1 rounded-md">
                   Shoes
                 </span>
-                <span className="inline-block text-xs font-semibold text-indigo-700 bg-indigo-50 px-2 py-1 rounded-md">
+                <span className="inline-block text-xs font-semibold text-[#3d3529] bg-[#e8f0e6] px-2 py-1 rounded-md">
                   Clothing
                 </span>
-                <span className="inline-block text-xs font-semibold text-indigo-700 bg-indigo-50 px-2 py-1 rounded-md">
+                <span className="inline-block text-xs font-semibold text-[#3d3529] bg-[#e8f0e6] px-2 py-1 rounded-md">
                   Electronics
                 </span>
               </div>
             </div>
             <div>
-              <p className="text-xs font-semibold text-slate-600 mb-2">STATUS BADGES</p>
+              <p className="text-xs font-semibold text-[#8a7e72] mb-2">STATUS BADGES</p>
               <div className="flex gap-2 flex-wrap">
-                <span className="inline-block text-xs font-bold bg-emerald-500 text-white px-2 py-1 rounded-md shadow-sm">
+                <span className="inline-block text-xs font-bold bg-[#7a9e76] text-white px-2 py-1 rounded-md shadow-sm">
                   ↓ Price Drop
                 </span>
-                <span className="inline-block text-xs font-bold bg-amber-500 text-white px-2 py-1 rounded-md shadow-sm">
+                <span className="inline-block text-xs font-bold bg-[#b07d4a] text-white px-2 py-1 rounded-md shadow-sm">
                   SALE
                 </span>
-                <span className="inline-block text-xs font-bold bg-rose-500 text-white px-2 py-1 rounded-md shadow-sm">
+                <span className="inline-block text-xs font-bold bg-[#c97b7b] text-white px-2 py-1 rounded-md shadow-sm">
                   Out of Stock
                 </span>
               </div>

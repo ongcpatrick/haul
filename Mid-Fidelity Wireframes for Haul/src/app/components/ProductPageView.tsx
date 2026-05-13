@@ -6,8 +6,8 @@ export function ProductPageView() {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-2xl font-semibold text-slate-900 mb-2">Screen 2: Product Page with Save Button</h2>
-        <p className="text-slate-600">Floating save button appears when user is on a product page</p>
+        <h2 className="text-2xl font-semibold text-[#3d3529] mb-2">Screen 2: Product Page with Save Button</h2>
+        <p className="text-[#8a7e72]">Floating save button appears when user is on a product page</p>
       </div>
 
       <div className="bg-[#fafafa] rounded-lg p-8">
@@ -57,7 +57,7 @@ export function ProductPageView() {
                     <span className="text-3xl font-bold text-[#1a1a1a]">$150</span>
                     <span className="text-lg text-[#999] line-through">$180</span>
                   </div>
-                  <span className="inline-block text-sm font-semibold text-[#10b981] bg-[#f0fdf4] px-3 py-1 rounded">
+                  <span className="inline-block text-sm font-semibold text-[#7a9e76] bg-[#e8f0e6] px-3 py-1 rounded">
                     16% OFF
                   </span>
                 </div>
@@ -68,7 +68,7 @@ export function ProductPageView() {
                     {['8', '8.5', '9', '9.5', '10', '10.5', '11', '11.5'].map((size) => (
                       <button
                         key={size}
-                        className="px-3 py-2 border border-[#e5e5e5] rounded hover:border-[#6366f1] text-sm"
+                        className="px-3 py-2 border border-[#ddd8cf] rounded hover:border-[#7a9e76] text-sm"
                       >
                         {size}
                       </button>
@@ -101,9 +101,9 @@ export function ProductPageView() {
         </div>
 
         {/* Annotation */}
-        <div className="mt-6 bg-indigo-50 border-2 border-indigo-200 rounded-xl p-4">
-          <h4 className="text-sm font-bold text-slate-900 mb-2">How It Works</h4>
-          <ul className="space-y-1.5 text-sm text-slate-700">
+        <div className="mt-6 bg-[#e8f0e6] border-2 border-[#7a9e76] rounded-xl p-4">
+          <h4 className="text-sm font-bold text-[#3d3529] mb-2">How It Works</h4>
+          <ul className="space-y-1.5 text-sm text-[#3d3529]">
             <li>• Extension detects product page automatically</li>
             <li>• Floating "Save to Haul" button appears bottom-right</li>
             <li>• Click to save - AI extracts all details in background</li>

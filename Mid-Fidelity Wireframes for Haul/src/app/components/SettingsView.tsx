@@ -6,8 +6,8 @@ export function SettingsView() {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-2xl font-semibold text-slate-900 mb-2">Screen 9: Settings</h2>
-        <p className="text-slate-600">Configure preferences and manage data</p>
+        <h2 className="text-2xl font-semibold text-[#3d3529] mb-2">Screen 9: Settings</h2>
+        <p className="text-[#8a7e72]">Configure preferences and manage data</p>
       </div>
 
       <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg border border-[#e5e5e5]">
@@ -27,7 +27,7 @@ export function SettingsView() {
                 <input
                   type="password"
                   placeholder="sk-ant-api03-..."
-                  className="w-full px-3 py-2.5 border border-[#e5e5e5] rounded-lg text-sm text-[#1a1a1a] placeholder:text-[#999] focus:outline-none focus:ring-2 focus:ring-[#6366f1] focus:border-transparent"
+                  className="w-full px-3 py-2.5 border border-[#e5e5e5] rounded-lg text-sm text-[#1a1a1a] placeholder:text-[#999] focus:outline-none focus:ring-2 focus:ring-[#7a9e76] focus:border-transparent"
                 />
                 <p className="mt-2 text-xs text-[#666] leading-relaxed">
                   For sites without structured data. Uses schema.org by default. Key stored locally only.
@@ -35,7 +35,7 @@ export function SettingsView() {
               </div>
 
               <label className="flex items-start gap-3">
-                <input type="checkbox" defaultChecked className="mt-1 w-4 h-4 rounded border-[#e5e5e5] text-[#6366f1]" />
+                <input type="checkbox" defaultChecked className="mt-1 w-4 h-4 rounded border-[#e5e5e5] text-[#7a9e76]" />
                 <div>
                   <p className="text-sm font-medium text-[#1a1a1a]">Auto-detect product pages</p>
                   <p className="text-xs text-[#666]">Show save button when on shopping sites</p>
@@ -43,7 +43,7 @@ export function SettingsView() {
               </label>
 
               <label className="flex items-start gap-3">
-                <input type="checkbox" defaultChecked className="mt-1 w-4 h-4 rounded border-[#e5e5e5] text-[#6366f1]" />
+                <input type="checkbox" defaultChecked className="mt-1 w-4 h-4 rounded border-[#e5e5e5] text-[#7a9e76]" />
                 <div>
                   <p className="text-sm font-medium text-[#1a1a1a]">Extract product details automatically</p>
                   <p className="text-xs text-[#666]">Pulls price, name, rating without manual entry</p>
@@ -60,7 +60,7 @@ export function SettingsView() {
             </div>
             <div className="space-y-3">
               <label className="flex items-start gap-3">
-                <input type="checkbox" defaultChecked className="mt-1 w-4 h-4 rounded border-[#e5e5e5] text-[#6366f1]" />
+                <input type="checkbox" defaultChecked className="mt-1 w-4 h-4 rounded border-[#e5e5e5] text-[#7a9e76]" />
                 <div>
                   <p className="text-sm font-medium text-[#1a1a1a]">Price drop alerts</p>
                   <p className="text-xs text-[#666]">Notify when saved items go on sale</p>
@@ -68,7 +68,7 @@ export function SettingsView() {
               </label>
 
               <label className="flex items-start gap-3">
-                <input type="checkbox" className="mt-1 w-4 h-4 rounded border-[#e5e5e5] text-[#6366f1]" />
+                <input type="checkbox" className="mt-1 w-4 h-4 rounded border-[#e5e5e5] text-[#7a9e76]" />
                 <div>
                   <p className="text-sm font-medium text-[#1a1a1a]">Back in stock alerts</p>
                   <p className="text-xs text-[#666]">Notify when out-of-stock items return</p>
@@ -82,15 +82,15 @@ export function SettingsView() {
             <h4 className="text-sm font-semibold text-[#1a1a1a] mb-3">Default View</h4>
             <div className="space-y-2">
               <label className="flex items-center gap-3">
-                <input type="radio" name="view" defaultChecked className="w-4 h-4 text-[#6366f1]" />
+                <input type="radio" name="view" defaultChecked className="w-4 h-4 text-[#7a9e76]" />
                 <span className="text-sm text-[#666]">Minimized badge</span>
               </label>
               <label className="flex items-center gap-3">
-                <input type="radio" name="view" className="w-4 h-4 text-[#6366f1]" />
+                <input type="radio" name="view" className="w-4 h-4 text-[#7a9e76]" />
                 <span className="text-sm text-[#666]">Side tray</span>
               </label>
               <label className="flex items-center gap-3">
-                <input type="radio" name="view" className="w-4 h-4 text-[#6366f1]" />
+                <input type="radio" name="view" className="w-4 h-4 text-[#7a9e76]" />
                 <span className="text-sm text-[#666]">Full dashboard</span>
               </label>
             </div>
@@ -108,7 +108,7 @@ export function SettingsView() {
                   <p className="text-sm font-medium text-[#1a1a1a]">Storage Used</p>
                   <p className="text-xs text-[#666]">42 products saved • 2.3 MB</p>
                 </div>
-                <button className="text-sm text-[#6366f1] hover:text-[#5558e3] font-medium">
+                <button className="text-sm text-[#7a9e76] hover:text-[#6a8c66] font-medium">
                   Clear All
                 </button>
               </div>
@@ -118,7 +118,7 @@ export function SettingsView() {
                   <p className="text-sm font-medium text-[#1a1a1a]">Export Data</p>
                   <p className="text-xs text-[#666]">Download as JSON or CSV</p>
                 </div>
-                <button className="text-sm text-[#6366f1] hover:text-[#5558e3] font-medium">
+                <button className="text-sm text-[#7a9e76] hover:text-[#6a8c66] font-medium">
                   Export
                 </button>
               </div>
@@ -158,9 +158,9 @@ export function SettingsView() {
       </div>
 
       {/* Annotation */}
-      <div className="max-w-2xl mx-auto bg-indigo-50 border-2 border-indigo-200 rounded-xl p-4">
-        <h4 className="text-sm font-bold text-slate-900 mb-2">Settings Organization</h4>
-        <ul className="space-y-1.5 text-sm text-slate-700">
+      <div className="max-w-2xl mx-auto bg-[#e8f0e6] border-2 border-[#7a9e76] rounded-xl p-4">
+        <h4 className="text-sm font-bold text-[#3d3529] mb-2">Settings Organization</h4>
+        <ul className="space-y-1.5 text-sm text-[#3d3529]">
           <li>• AI settings: optional API key for non-schema sites</li>
           <li>• Notifications: price drops, stock alerts</li>
           <li>• Default view: badge, tray, or dashboard</li>

@@ -24,7 +24,7 @@ export function ProBadge({ variant = 'compact' }: ProBadgeProps) {
 
 export function AIBadge() {
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-md text-[10px] font-bold shadow-sm">
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#7a9e76] text-white rounded-md text-[10px] font-bold shadow-sm">
       <Sparkles className="w-2.5 h-2.5" />
       AI
     </span>

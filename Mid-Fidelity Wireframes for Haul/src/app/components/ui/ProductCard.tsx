@@ -87,7 +87,7 @@ export function ProductCard({
       </div>
       <div className="p-4">
         {category && (
-          <span className="inline-block text-xs font-semibold text-indigo-700 bg-indigo-50 px-2 py-1 rounded-md mb-2">
+          <span className="inline-block text-xs font-semibold text-[#3d3529] bg-[#e8f0e6] px-2 py-1 rounded-md mb-2">
             {category}
           </span>
         )}
@@ -121,7 +121,7 @@ export function ProductCard({
         {onOpen && (
           <button
             onClick={onOpen}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors text-sm font-semibold shadow-sm"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#7a9e76] text-white rounded-xl hover:bg-[#6a8c66] transition-colors text-sm font-semibold shadow-sm"
           >
             <span>Go to Site</span>
             <ExternalLink className="w-3.5 h-3.5" />
@@ -134,9 +134,9 @@ export function ProductCard({
 
 function StatusBadge({ type, label }: { type: 'drop' | 'sale' | 'stock'; label: string }) {
   const styles = {
-    drop: 'bg-emerald-500 text-white shadow-sm',
-    sale: 'bg-amber-500 text-white shadow-sm',
-    stock: 'bg-rose-500 text-white shadow-sm',
+    drop: 'bg-[#7a9e76] text-white shadow-sm',
+    sale: 'bg-[#b07d4a] text-white shadow-sm',
+    stock: 'bg-[#c97b7b] text-white shadow-sm',
   };
 
   return (

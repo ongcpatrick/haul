@@ -29,7 +29,8 @@ export async function POST(req: Request) {
     VALUES (${haulId}, ${dbUserId}, ${text})
     RETURNING *
   `;
-  return ok(comment);
+  const [user] = await sql`SELECT username, avatar_url FROM users WHERE id = ${dbUserId} LIMIT 1`;
+  return ok({ ...comment, author: user ?? { username: 'unknown', avatar_url: null } });
 }
 
 export async function GET(req: Request) {
@@ -43,9 +44,13 @@ export async function GET(req: Request) {
 
   const userIds = Array.from(new Set(comments.map((c) => c.user_id as string)));
   const users = userIds.length
-    ? await sql`SELECT id, username, display_name, avatar_url FROM users WHERE id = ANY(${userIds}::uuid[])`
+    ? await sql`SELECT id, username, avatar_url FROM users WHERE id = ANY(${userIds}::uuid[])`
     : [];
 
-  const authors = Object.fromEntries(users.map((u) => [u.id, u]));
-  return ok({ comments, authors });
+  const authorMap = new Map(users.map((u) => [u.id as string, u]));
+  const enriched = comments.map((c) => ({
+    ...c,
+    author: authorMap.get(c.user_id as string) ?? { username: 'unknown', avatar_url: null },
+  }));
+  return ok(enriched);
 }

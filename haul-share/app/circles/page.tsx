@@ -5,6 +5,7 @@ import { getCurrentDbUserId } from '@/lib/supabase-server';
 import sql from '@/lib/db';
 import type { Circle, User } from '@/lib/types';
 import CreateCircleButton from './CreateCircleButton';
+import EmptyState from '@/app/components/EmptyState';
 
 export const dynamic = 'force-dynamic';
 

@@ -156,19 +156,43 @@ function setExtToken(token, username) {
   });
 }
 
+async function refreshTokenViaTab() {
+  return new Promise((resolve) => {
+    chrome.tabs.create({ url: `${HAUL_SHARE_BASE}/feed`, active: false }, (tab) => {
+      // Give the content script time to run and send SET_EXT_TOKEN, then close the tab.
+      setTimeout(() => {
+        chrome.tabs.remove(tab.id, () => {});
+        resolve();
+      }, 4000);
+    });
+  });
+}
+
 async function postHaulToWebsite(products, title) {
   const { token } = await getExtToken();
-  if (!token) return null;
+  if (!token) return { success: false, reason: 'not_connected' };
   try {
-    const res = await fetch(`${HAUL_SHARE_BASE}/api/hauls`, {
+    let res = await fetch(`${HAUL_SHARE_BASE}/api/hauls`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify({ products, title, isPublic: true }),
     });
-    if (!res.ok) return null;
-    return await res.json();
+    if (res.status === 401) {
+      // Token expired — silently refresh via background tab then retry once.
+      await refreshTokenViaTab();
+      const { token: newToken } = await getExtToken();
+      if (!newToken) return { success: false, reason: 'token_expired' };
+      res = await fetch(`${HAUL_SHARE_BASE}/api/hauls`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${newToken}` },
+        body: JSON.stringify({ products, title, isPublic: true }),
+      });
+    }
+    if (!res.ok) return { success: false, reason: `server_error_${res.status}` };
+    const data = await res.json();
+    return { success: true, data };
   } catch {
-    return null;
+    return { success: false, reason: 'network_error' };
   }
 }
 
@@ -448,10 +472,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.type === 'POST_HAUL_TO_WEBSITE') {
     const { products, title } = message;
-    if (!Array.isArray(products)) { sendResponse({ success: false }); return false; }
+    if (!Array.isArray(products)) { sendResponse({ success: false, reason: 'invalid_products' }); return false; }
     postHaulToWebsite(products, title)
-      .then((result) => sendResponse({ success: !!result }))
-      .catch(() => sendResponse({ success: false }));
+      .then((result) => sendResponse(result))
+      .catch(() => sendResponse({ success: false, reason: 'unknown' }));
     return true;
   }
 
