@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
 import { completeOnboarding } from '@/app/actions/onboarding';
 
@@ -13,7 +12,6 @@ interface Props {
 }
 
 export default function OnboardingForm({ imageUrl, firstName, defaultUsername, defaultDisplayName }: Props) {
-  const router = useRouter();
   const { user } = useUser();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +33,7 @@ export default function OnboardingForm({ imageUrl, firstName, defaultUsername, d
         return;
       }
       await user?.reload();
-      router.push('/feed');
+      window.location.href = '/feed';
     });
   }
 
