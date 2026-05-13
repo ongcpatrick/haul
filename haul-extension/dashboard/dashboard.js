@@ -245,15 +245,30 @@ function renderTable() {
   });
 }
 
+const shareOverlay = document.getElementById('share-overlay');
+const shareModalBody = document.getElementById('share-modal-body');
+
+function openShareModal() { shareOverlay.classList.add('open'); }
+function closeShareModal() { shareOverlay.classList.remove('open'); }
+
+document.getElementById('share-modal-close').addEventListener('click', closeShareModal);
+shareOverlay.addEventListener('click', (e) => { if (e.target === shareOverlay) closeShareModal(); });
+
+function showCopyToast(msg = '✓ Copied to clipboard') {
+  const t = document.getElementById('copy-toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
 async function shareComparison() {
-  const shareBtn = document.getElementById('share-btn');
-  const toast = document.getElementById('share-toast');
   const products = filteredProducts();
   if (products.length === 0) return;
 
-  shareBtn.disabled = true;
-  shareBtn.textContent = 'Sharing…';
+  shareModalBody.innerHTML = `<div class="share-generating"><div class="claude-spinner"></div>Generating link…</div>`;
+  openShareModal();
 
+  let shareUrl;
   try {
     const res = await fetch(`${WORKER_BASE}/share`, {
       method: 'POST',
@@ -261,35 +276,61 @@ async function shareComparison() {
       body: JSON.stringify({ products, title: `Haul — ${products.length} item${products.length !== 1 ? 's' : ''}` }),
     });
     const data = await res.json();
-    if (!data.url) throw new Error('No URL returned');
-
-    await navigator.clipboard.writeText(data.url);
-    toast.textContent = '🔗 Link copied! Anyone can view this.';
-    toast.style.display = 'block';
-    setTimeout(() => { toast.style.display = 'none'; }, 3000);
-
-    // WhatsApp share option
-    const waUrl = `https://wa.me/?text=${encodeURIComponent(`Check out my comparison on Haul: ${data.url}`)}`;
-    const waToast = document.createElement('div');
-    waToast.style.cssText = 'position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:#25D366;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:100;cursor:pointer;';
-    waToast.textContent = '💬 Share on WhatsApp';
-    waToast.addEventListener('click', () => { chrome.tabs.create({ url: waUrl }); document.body.removeChild(waToast); });
-    document.body.appendChild(waToast);
-    setTimeout(() => { if (document.body.contains(waToast)) document.body.removeChild(waToast); }, 5000);
-
+    if (!data.url) throw new Error('no url');
+    shareUrl = data.url;
   } catch {
-    // Fallback to base64 URL
     const json = JSON.stringify(products);
-    const encoded = btoa(encodeURIComponent(json));
-    const fallbackUrl = `${window.location.href.split('?')[0]}?data=${encoded}`;
-    navigator.clipboard.writeText(fallbackUrl).catch(() => {});
-    toast.textContent = 'Link copied!';
-    toast.style.display = 'block';
-    setTimeout(() => { toast.style.display = 'none'; }, 2000);
-  } finally {
-    shareBtn.disabled = false;
-    shareBtn.innerHTML = `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Share`;
+    shareUrl = `${window.location.href.split('?')[0]}?data=${btoa(encodeURIComponent(json))}`;
   }
+
+  const waText = encodeURIComponent(`Check out my comparison on Haul 🛍️ ${shareUrl}`);
+  const smsText = encodeURIComponent(`Check this out: ${shareUrl}`);
+  const emailSubj = encodeURIComponent('My Haul Comparison');
+  const emailBody = encodeURIComponent(`I compared some products on Haul — take a look:\n\n${shareUrl}`);
+  const twitterText = encodeURIComponent(`Shopping smarter with Haul 🛍️ ${shareUrl}`);
+
+  shareModalBody.innerHTML = `
+    <div class="share-url-row">
+      <span class="share-url-text" id="share-url-display">${esc(shareUrl)}</span>
+      <button class="share-copy-btn" id="share-copy-btn">Copy</button>
+    </div>
+    <div class="share-platforms">
+      <button class="share-platform-btn" data-platform="whatsapp">
+        <span class="share-platform-icon">💬</span>WhatsApp
+      </button>
+      <button class="share-platform-btn" data-platform="sms">
+        <span class="share-platform-icon">✉️</span>iMessage
+      </button>
+      <button class="share-platform-btn" data-platform="email">
+        <span class="share-platform-icon">📧</span>Email
+      </button>
+      <button class="share-platform-btn" data-platform="twitter">
+        <span class="share-platform-icon">𝕏</span>Post
+      </button>
+    </div>`;
+
+  document.getElementById('share-copy-btn').addEventListener('click', () => {
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      const btn = document.getElementById('share-copy-btn');
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      showCopyToast();
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+    });
+  });
+
+  shareModalBody.querySelectorAll('.share-platform-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const platform = btn.dataset.platform;
+      const urls = {
+        whatsapp: `https://wa.me/?text=${waText}`,
+        sms: `sms:?body=${smsText}`,
+        email: `mailto:?subject=${emailSubj}&body=${emailBody}`,
+        twitter: `https://x.com/intent/tweet?text=${twitterText}`,
+      };
+      chrome.tabs.create({ url: urls[platform] });
+    });
+  });
 }
 
 function isValidProductArray(data) {
@@ -369,7 +410,7 @@ askClaudeBtn.addEventListener('click', () => {
   });
 });
 
-document.getElementById('share-btn').addEventListener('click', shareComparison);
+document.getElementById('share-btn').addEventListener('click', () => shareComparison());
 document.getElementById('close-btn').addEventListener('click', () => window.close());
 
 chrome.storage.onChanged.addListener((changes) => {

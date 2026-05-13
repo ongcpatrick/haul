@@ -207,28 +207,32 @@ async function handleView(shareId, env) {
   const { products, title } = data;
   const pageTitle = title || 'Haul Comparison';
 
-  const productsHtml = products.map((p) => {
+  const productsHtml = products.map((p, i) => {
     const price = p.price != null ? `$${Number(p.price).toFixed(2)}` : '—';
-    const origPrice = p.originalPrice && p.originalPrice > p.price
-      ? `<span style="text-decoration:line-through;color:#8a7e72;font-size:12px;margin-left:6px;">$${Number(p.originalPrice).toFixed(2)}</span>`
+    const hasDrop = p.originalPrice && p.price && p.originalPrice > p.price;
+    const origPrice = hasDrop
+      ? `<span style="text-decoration:line-through;color:#8a7e72;font-size:13px;margin-left:6px;">$${Number(p.originalPrice).toFixed(2)}</span>`
       : '';
-    const savings = p.originalPrice && p.price && p.originalPrice > p.price
-      ? `<span style="background:#e8f0e6;color:#7a9e76;font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;margin-left:6px;">↓ $${(p.originalPrice - p.price).toFixed(2)}</span>`
+    const savings = hasDrop
+      ? `<div style="display:inline-flex;align-items:center;gap:4px;background:#e8f0e6;color:#7a9e76;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;margin-top:6px;">↓ Save $${(p.originalPrice - p.price).toFixed(2)}</div>`
       : '';
     const imgHtml = p.imageUrl
-      ? `<img src="${p.imageUrl}" alt="" style="width:100%;height:160px;object-fit:contain;padding:8px;" onerror="this.style.display='none'" />`
-      : `<div style="width:100%;height:160px;background:#ddd8cf;"></div>`;
+      ? `<img src="${p.imageUrl}" alt="" style="width:100%;height:180px;object-fit:contain;padding:12px;" onerror="this.style.display='none'" loading="lazy"/>`
+      : `<div style="width:100%;height:180px;background:linear-gradient(135deg,#ddd8cf,#ccc9c0);display:flex;align-items:center;justify-content:center;font-size:32px;">🛍️</div>`;
+    const category = p.category ? `<span style="font-size:10px;font-weight:700;background:#e8f0e6;color:#7a9e76;padding:2px 8px;border-radius:20px;">${esc(p.category)}</span>` : '';
 
     return `
-      <div style="background:#f2ede4;border:1px solid #ddd8cf;border-radius:14px;overflow:hidden;min-width:200px;max-width:240px;flex:0 0 220px;">
-        <div style="background:#e8e2d8;">${imgHtml}</div>
-        <div style="padding:12px;">
-          <div style="font-size:13px;font-weight:500;color:#3d3529;line-height:1.4;margin-bottom:6px;">${esc(p.name)}</div>
-          <div style="font-size:11px;color:#8a7e72;margin-bottom:8px;">${esc(p.siteName || '')}</div>
-          <div style="display:flex;align-items:center;flex-wrap:wrap;">
-            <span style="font-size:17px;font-weight:700;color:#b07d4a;">${price}</span>${origPrice}${savings}
+      <div style="background:#fff;border:1px solid #e8e2d8;border-radius:18px;overflow:hidden;width:220px;box-shadow:0 2px 12px rgba(61,53,41,0.06);display:flex;flex-direction:column;">
+        <div style="background:#fafaf7;border-bottom:1px solid #f0ebe2;">${imgHtml}</div>
+        <div style="padding:14px 14px 18px;flex:1;display:flex;flex-direction:column;">
+          <div style="margin-bottom:8px;">${category}</div>
+          <div style="font-size:13px;font-weight:600;color:#3d3529;line-height:1.45;margin-bottom:4px;flex:1;">${esc(p.name)}</div>
+          <div style="font-size:11px;color:#8a7e72;margin-bottom:10px;">${esc(p.siteName || '')}</div>
+          <div style="display:flex;align-items:baseline;flex-wrap:wrap;gap:4px;margin-bottom:4px;">
+            <span style="font-size:20px;font-weight:800;color:#b07d4a;">${price}</span>${origPrice}
           </div>
-          ${p.sourceUrl ? `<a href="${p.sourceUrl}" target="_blank" style="display:block;margin-top:10px;text-align:center;padding:7px;background:#93bedf;color:#fff;font-size:12px;font-weight:600;border-radius:8px;text-decoration:none;">Go to Site →</a>` : ''}
+          ${savings}
+          ${p.sourceUrl ? `<a href="${p.sourceUrl}" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:14px;padding:9px 14px;background:#7a9e76;color:#fff;font-size:13px;font-weight:700;border-radius:10px;text-decoration:none;transition:filter 0.15s;" onmouseover="this.style.filter='brightness(0.92)'" onmouseout="this.style.filter='none'">View Product →</a>` : ''}
         </div>
       </div>`;
   }).join('');
@@ -239,29 +243,55 @@ async function handleView(shareId, env) {
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>${esc(pageTitle)} — Haul</title>
+  <meta property="og:title" content="${esc(pageTitle)} — Haul"/>
+  <meta property="og:description" content="Compare ${products.length} product${products.length !== 1 ? 's' : ''} side by side."/>
   <style>
     *{box-sizing:border-box;margin:0;padding:0;}
     body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#fafaf7;color:#3d3529;min-height:100vh;}
-    .header{background:#f2ede4;border-bottom:1px solid #ddd8cf;padding:16px 24px;display:flex;align-items:center;gap:12px;}
-    .logo{font-size:20px;font-weight:700;color:#7a9e76;}
-    .sub{font-size:13px;color:#8a7e72;}
-    .banner{background:#e8f0e6;border:1px solid #c5d9c2;border-radius:12px;padding:14px 20px;margin:24px auto;max-width:860px;display:flex;align-items:center;gap:10px;font-size:13px;color:#3d3529;}
-    .products{display:flex;gap:16px;flex-wrap:wrap;padding:0 24px 40px;max-width:900px;margin:0 auto;}
-    h1{font-size:18px;font-weight:600;padding:24px 24px 16px;max-width:860px;margin:0 auto;}
+    a{color:inherit;}
   </style>
 </head>
 <body>
-  <div class="header">
-    <span class="logo">Haul</span>
-    <span class="sub">Shopping Comparison</span>
+  <!-- Header -->
+  <div style="background:#f2ede4;border-bottom:1px solid #ddd8cf;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:20px;font-weight:800;color:#7a9e76;letter-spacing:-0.5px;">Haul</span>
+      <span style="font-size:12px;color:#8a7e72;font-weight:500;">Shopping Comparison</span>
+    </div>
+    <a href="https://chrome.google.com/webstore" target="_blank" rel="noopener"
+       style="padding:7px 16px;background:#7a9e76;color:#fff;font-size:12px;font-weight:700;border-radius:20px;text-decoration:none;">
+      Get Haul Free →
+    </a>
   </div>
-  <div style="max-width:860px;margin:0 auto;">
-    <h1>${esc(pageTitle)}</h1>
-    <div class="banner">
-      🛍️ Someone shared this comparison with you. <strong style="margin-left:4px;">Get Haul</strong> to build your own — it's a free Chrome extension.
+
+  <!-- Hero -->
+  <div style="max-width:900px;margin:0 auto;padding:36px 24px 0;">
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#8a7e72;margin-bottom:10px;">Shared with you</div>
+    <h1 style="font-size:26px;font-weight:800;color:#3d3529;margin-bottom:6px;">${esc(pageTitle)}</h1>
+    <p style="font-size:14px;color:#8a7e72;margin-bottom:28px;">${products.length} product${products.length !== 1 ? 's' : ''} compared</p>
+
+    <!-- Get Haul banner -->
+    <div style="background:#e8f0e6;border:1px solid #c5d9c2;border-radius:14px;padding:16px 20px;margin-bottom:32px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+      <div>
+        <div style="font-size:14px;font-weight:700;color:#3d3529;margin-bottom:2px;">Want to compare your own products?</div>
+        <div style="font-size:13px;color:#8a7e72;">Haul is a free Chrome extension — save products from any site and compare in seconds.</div>
+      </div>
+      <a href="https://chrome.google.com/webstore" target="_blank" rel="noopener"
+         style="padding:10px 20px;background:#7a9e76;color:#fff;font-size:13px;font-weight:700;border-radius:10px;text-decoration:none;white-space:nowrap;flex-shrink:0;">
+        Get Haul Free →
+      </a>
     </div>
   </div>
-  <div class="products">${productsHtml}</div>
+
+  <!-- Products grid -->
+  <div style="max-width:900px;margin:0 auto;padding:0 24px 60px;display:flex;gap:18px;flex-wrap:wrap;">
+    ${productsHtml}
+  </div>
+
+  <!-- Footer -->
+  <div style="border-top:1px solid #ddd8cf;padding:20px 24px;text-align:center;font-size:12px;color:#8a7e72;">
+    Made with <span style="color:#7a9e76;font-weight:700;">Haul</span> · Shopping comparison, simplified
+  </div>
 </body>
 </html>`;
 
