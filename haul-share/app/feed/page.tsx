@@ -4,7 +4,6 @@ import { getCurrentDbUserId } from '@/lib/supabase-server';
 import sql from '@/lib/db';
 import type { HaulWithAuthor, User } from '@/lib/types';
 import FeedClient from './FeedClient';
-import EmptyState from '@/app/components/EmptyState';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,17 +12,7 @@ export default async function FeedPage() {
   if (!userId) redirect('/sign-in?redirect_url=/feed');
 
   const dbUserId = await getCurrentDbUserId();
-  if (!dbUserId) {
-    return (
-      <div className="max-w-3xl mx-auto px-6 py-12">
-        <h1 className="text-3xl font-extrabold text-[var(--text)] mb-2">Your Feed</h1>
-        <EmptyState
-          title="Finish setting up your profile"
-          description="Open the Haul extension and complete profile setup to start following people."
-        />
-      </div>
-    );
-  }
+  if (!dbUserId) redirect('/onboarding');
 
   const initial = await loadFeed(dbUserId);
 

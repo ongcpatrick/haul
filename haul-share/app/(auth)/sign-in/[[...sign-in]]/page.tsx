@@ -10,6 +10,7 @@ export default function SignInPage() {
         </div>
         <div className="flex justify-center">
           <SignIn
+            fallbackRedirectUrl="/onboarding"
             appearance={{
               elements: {
                 rootBox: 'w-full',

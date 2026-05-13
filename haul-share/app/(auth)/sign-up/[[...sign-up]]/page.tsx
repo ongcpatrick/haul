@@ -12,6 +12,7 @@ export default function SignUpPage() {
         </div>
         <div className="flex justify-center">
           <SignUp
+            forceRedirectUrl="/onboarding"
             appearance={{
               elements: {
                 rootBox: 'w-full',

@@ -4,7 +4,6 @@ import { auth } from '@clerk/nextjs/server';
 import { getCurrentDbUserId } from '@/lib/supabase-server';
 import sql from '@/lib/db';
 import type { Circle, User } from '@/lib/types';
-import EmptyState from '@/app/components/EmptyState';
 import CreateCircleButton from './CreateCircleButton';
 
 export const dynamic = 'force-dynamic';
@@ -20,14 +19,7 @@ export default async function CirclesPage() {
   if (!userId) redirect('/sign-in?redirect_url=/circles');
 
   const dbUserId = await getCurrentDbUserId();
-  if (!dbUserId) {
-    return (
-      <div className="max-w-5xl mx-auto px-6 py-12">
-        <h1 className="text-3xl font-extrabold text-[var(--text)]">Circles</h1>
-        <EmptyState title="Finish profile setup" description="Sync your profile from the Haul extension first." />
-      </div>
-    );
-  }
+  if (!dbUserId) redirect('/onboarding');
 
   const summaries = await loadCircles(dbUserId);
 

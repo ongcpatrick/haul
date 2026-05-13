@@ -7,24 +7,35 @@ const isPublicRoute = createRouteMatcher([
   '/u/:username',
   '/sign-in(.*)',
   '/sign-up(.*)',
-  '/api/users/sync',
+  '/onboarding',
+  '/api/(.*)',
 ]);
 
-const isProtectedRoute = createRouteMatcher([
-  '/feed(.*)',
-  '/circles(.*)',
-  '/settings(.*)',
-]);
+const isOnboardingRoute = createRouteMatcher(['/onboarding']);
 
 export default clerkMiddleware(async (auth, req) => {
-  if (isProtectedRoute(req) && !isPublicRoute(req)) {
-    const { userId } = await auth();
-    if (!userId) {
-      const signInUrl = new URL('/sign-in', req.url);
-      signInUrl.searchParams.set('redirect_url', req.url);
-      return NextResponse.redirect(signInUrl);
-    }
+  const { userId, sessionClaims } = await auth();
+
+  // Not signed in → allow public routes, gate everything else
+  if (!userId) {
+    if (isPublicRoute(req)) return NextResponse.next();
+    const signInUrl = new URL('/sign-in', req.url);
+    signInUrl.searchParams.set('redirect_url', req.url);
+    return NextResponse.redirect(signInUrl);
   }
+
+  const onboarded = sessionClaims?.metadata?.onboardingComplete;
+
+  // Already onboarded visiting /onboarding → skip to feed
+  if (isOnboardingRoute(req) && onboarded) {
+    return NextResponse.redirect(new URL('/feed', req.url));
+  }
+
+  // Signed in but not onboarded → send to /onboarding (except API + public routes)
+  if (!onboarded && !isOnboardingRoute(req) && !isPublicRoute(req)) {
+    return NextResponse.redirect(new URL('/onboarding', req.url));
+  }
+
   return NextResponse.next();
 });
 
