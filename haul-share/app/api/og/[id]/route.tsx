@@ -16,7 +16,7 @@ interface Product {
 }
 
 function fmt(price: number | null) {
-  if (price == null) return '—';
+  if (price == null) return 'N/A';
   return '$' + price.toFixed(2);
 }
 
@@ -116,7 +116,7 @@ export async function GET(
                 <div style={{ background: '#f5f1ea', height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {imgSrc
                     ? <img src={imgSrc} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 16 }} />
-                    : <span style={{ fontSize: 48 }}>🛍️</span>
+                    : <span style={{ fontSize: 13, color: '#8a7e72', fontWeight: 600 }}>No image</span>
                   }
                 </div>
 

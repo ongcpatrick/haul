@@ -44,24 +44,24 @@ export async function generateMetadata(
     : 'https://haul-share.vercel.app';
 
   return {
-    title: `${title} — Haul`,
+    title: `${title} | Haul`,
     description: `Compare ${count} product${count !== 1 ? 's' : ''} side by side on Haul.`,
     openGraph: {
-      title: `${title} — Haul`,
+      title: `${title} | Haul`,
       description: `Compare ${count} product${count !== 1 ? 's' : ''} side by side.`,
       images: [{ url: `${base}/api/og/${id}`, width: 1200, height: 630 }],
       type: 'website',
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${title} — Haul`,
+      title: `${title} | Haul`,
       images: [`${base}/api/og/${id}`],
     },
   };
 }
 
 function fmt(price: number | null) {
-  if (price == null) return '—';
+  if (price == null) return 'N/A';
   return '$' + price.toFixed(2);
 }
 
@@ -88,7 +88,7 @@ export default async function ViewPage({ params }: { params: Promise<{ id: strin
           <div style={{ background: '#e8f0e6', border: '1px solid #c5d9c2', borderRadius: 14, padding: '16px 20px', marginBottom: 36, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' as const }}>
             <div>
               <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>Want to build your own comparison?</p>
-              <p style={{ fontSize: 13, color: '#8a7e72' }}>Haul is a free Chrome extension — save products from any site and compare in seconds.</p>
+              <p style={{ fontSize: 13, color: '#8a7e72' }}>Haul is a free Chrome extension. Save products from any site and compare in seconds.</p>
             </div>
             <a href="https://chrome.google.com/webstore" target="_blank" rel="noopener"
               style={{ padding: '10px 22px', background: '#7a9e76', color: '#fff', fontSize: 13, fontWeight: 700, borderRadius: 10, textDecoration: 'none', whiteSpace: 'nowrap' as const }}>
@@ -108,7 +108,7 @@ export default async function ViewPage({ params }: { params: Promise<{ id: strin
                   <div style={{ background: '#fafaf7', borderBottom: '1px solid #f0ebe2', height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                     {p.imageUrl
                       ? <img src={`${WORKER}/proxy-image?url=${encodeURIComponent(p.imageUrl)}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 12 }} />
-                      : <span style={{ fontSize: 36 }}>🛍️</span>
+                      : <span style={{ fontSize: 13, color: '#8a7e72', fontWeight: 600 }}>No image</span>
                     }
                   </div>
 

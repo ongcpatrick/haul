@@ -421,7 +421,7 @@ async function handleView(shareId, env) {
   const pageTitle = title || 'Haul Comparison';
 
   const productsHtml = products.map((p, i) => {
-    const price = p.price != null ? `$${Number(p.price).toFixed(2)}` : '—';
+    const price = p.price != null ? `$${Number(p.price).toFixed(2)}` : 'N/A';
     const hasDrop = p.originalPrice && p.price && p.originalPrice > p.price;
     const origPrice = hasDrop
       ? `<span style="text-decoration:line-through;color:#8a7e72;font-size:13px;margin-left:6px;">$${Number(p.originalPrice).toFixed(2)}</span>`
@@ -431,7 +431,7 @@ async function handleView(shareId, env) {
       : '';
     const imgHtml = p.imageUrl
       ? `<img src="${p.imageUrl}" alt="" style="width:100%;height:180px;object-fit:contain;padding:12px;" onerror="this.style.display='none'" loading="lazy"/>`
-      : `<div style="width:100%;height:180px;background:linear-gradient(135deg,#ddd8cf,#ccc9c0);display:flex;align-items:center;justify-content:center;font-size:32px;">🛍️</div>`;
+      : `<div style="width:100%;height:180px;background:linear-gradient(135deg,#ddd8cf,#ccc9c0);display:flex;align-items:center;justify-content:center;font-size:13px;color:#8a7e72;font-weight:600;">No image</div>`;
     const category = p.category ? `<span style="font-size:10px;font-weight:700;background:#e8f0e6;color:#7a9e76;padding:2px 8px;border-radius:20px;">${esc(p.category)}</span>` : '';
 
     return `
@@ -455,8 +455,8 @@ async function handleView(shareId, env) {
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>${esc(pageTitle)} — Haul</title>
-  <meta property="og:title" content="${esc(pageTitle)} — Haul"/>
+  <title>${esc(pageTitle)} | Haul</title>
+  <meta property="og:title" content="${esc(pageTitle)} | Haul"/>
   <meta property="og:description" content="Compare ${products.length} product${products.length !== 1 ? 's' : ''} side by side."/>
   <style>
     *{box-sizing:border-box;margin:0;padding:0;}
@@ -487,7 +487,7 @@ async function handleView(shareId, env) {
     <div style="background:#e8f0e6;border:1px solid #c5d9c2;border-radius:14px;padding:16px 20px;margin-bottom:32px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
       <div>
         <div style="font-size:14px;font-weight:700;color:#3d3529;margin-bottom:2px;">Want to compare your own products?</div>
-        <div style="font-size:13px;color:#8a7e72;">Haul is a free Chrome extension — save products from any site and compare in seconds.</div>
+        <div style="font-size:13px;color:#8a7e72;">Haul is a free Chrome extension. Save products from any site and compare in seconds.</div>
       </div>
       <a href="https://chrome.google.com/webstore" target="_blank" rel="noopener"
          style="padding:10px 20px;background:#7a9e76;color:#fff;font-size:13px;font-weight:700;border-radius:10px;text-decoration:none;white-space:nowrap;flex-shrink:0;">

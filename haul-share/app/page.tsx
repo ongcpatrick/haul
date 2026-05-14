@@ -25,7 +25,7 @@ export default function Home() {
               href="/sign-up"
               className="inline-flex items-center px-7 py-3 rounded-full bg-[var(--primary)] hover:bg-[var(--primary-h)] text-white text-sm font-bold transition-colors"
             >
-              Get started — it&apos;s free
+              Get started, it&apos;s free
             </Link>
             <a
               href="https://chrome.google.com/webstore"

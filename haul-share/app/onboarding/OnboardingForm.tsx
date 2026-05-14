@@ -35,7 +35,7 @@ export default function OnboardingForm({ imageUrl, firstName, defaultUsername, d
         }
         router.push('/feed');
       } catch (e: unknown) {
-        setError(e instanceof Error ? e.message : 'Unexpected error — please try again');
+        setError(e instanceof Error ? e.message : 'Unexpected error. Please try again.');
       }
     });
   }
