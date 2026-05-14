@@ -55,8 +55,10 @@ export async function GET(
         if (!r.ok) return null;
         const buf = await r.arrayBuffer();
         const mime = r.headers.get('content-type') || 'image/jpeg';
-        const b64 = Buffer.from(buf).toString('base64');
-        return `data:${mime};base64,${b64}`;
+        const bytes = new Uint8Array(buf);
+        let binary = '';
+        for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+        return `data:${mime};base64,${btoa(binary)}`;
       } catch {
         return null;
       }
