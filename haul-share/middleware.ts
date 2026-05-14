@@ -11,10 +11,8 @@ const isPublicRoute = createRouteMatcher([
   '/api/(.*)',
 ]);
 
-const isOnboardingRoute = createRouteMatcher(['/onboarding']);
-
 export default clerkMiddleware(async (auth, req) => {
-  const { userId, sessionClaims } = await auth();
+  const { userId } = await auth();
 
   // Not signed in → allow public routes, gate everything else
   if (!userId) {
@@ -24,21 +22,10 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.redirect(signInUrl);
   }
 
-  // JWT claims require custom Clerk dashboard session token config.
-  // Use the server-set cookie as the reliable fallback.
-  const cookieOnboarded = req.cookies.get('haul_onboarded')?.value === '1';
-  const onboarded = !!(sessionClaims?.metadata?.onboardingComplete) || cookieOnboarded;
-
-  // Already onboarded visiting /onboarding → skip to feed
-  if (isOnboardingRoute(req) && onboarded) {
-    return NextResponse.redirect(new URL('/feed', req.url));
-  }
-
-  // Signed in but not onboarded → send to /onboarding (except API + public routes)
-  if (!onboarded && !isOnboardingRoute(req) && !isPublicRoute(req)) {
-    return NextResponse.redirect(new URL('/onboarding', req.url));
-  }
-
+  // Signed in → let through. Each protected page checks the DB itself
+  // via getCurrentDbUserId() and redirects to /onboarding if needed.
+  // Doing the onboarding check here requires JWT custom claims config in
+  // the Clerk dashboard, which causes the "button does nothing" bug.
   return NextResponse.next();
 });
 

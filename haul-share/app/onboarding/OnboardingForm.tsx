@@ -27,12 +27,16 @@ export default function OnboardingForm({ imageUrl, firstName, defaultUsername, d
     formData.set('displayName', displayName);
 
     startTransition(async () => {
-      const result = await completeOnboarding(formData);
-      if ('error' in result) {
-        setError(result.error ?? 'Unknown error');
-        return;
+      try {
+        const result = await completeOnboarding(formData);
+        if ('error' in result) {
+          setError(result.error ?? 'Unknown error');
+          return;
+        }
+        router.push('/feed');
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : 'Unexpected error — please try again');
       }
-      router.push('/feed');
     });
   }
 
