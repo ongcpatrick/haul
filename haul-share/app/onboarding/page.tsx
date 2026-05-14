@@ -1,12 +1,25 @@
 import { auth, currentUser } from '@clerk/nextjs/server';
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import sql from '@/lib/db';
 import OnboardingForm from './OnboardingForm';
+import { setOnboardedCookie } from '@/app/actions/onboarding';
 
 export const dynamic = 'force-dynamic';
 
 export default async function OnboardingPage() {
-  const { sessionClaims } = await auth();
-  if (sessionClaims?.metadata?.onboardingComplete) redirect('/feed');
+  const { userId } = await auth();
+  if (!userId) redirect('/sign-in');
+
+  // Check DB directly — reliable regardless of JWT claim config.
+  const [existing] = await sql<{ id: string }[]>`
+    SELECT id FROM users WHERE clerk_id = ${userId} LIMIT 1
+  `;
+  if (existing) {
+    // User is already onboarded — refresh the cookie in case it was cleared.
+    setOnboardedCookie(await cookies());
+    redirect('/feed');
+  }
 
   const user = await currentUser();
   if (!user) redirect('/sign-in');

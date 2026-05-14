@@ -1,7 +1,20 @@
 'use server';
 
 import { auth, clerkClient } from '@clerk/nextjs/server';
+import { cookies } from 'next/headers';
 import sql from '@/lib/db';
+
+const ONBOARDED_COOKIE = 'haul_onboarded';
+
+export function setOnboardedCookie(cookieStore: Awaited<ReturnType<typeof cookies>>) {
+  cookieStore.set(ONBOARDED_COOKIE, '1', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 60 * 60 * 24 * 365,
+    path: '/',
+  });
+}
 
 export async function completeOnboarding(formData: FormData) {
   const { userId } = await auth();
@@ -29,6 +42,10 @@ export async function completeOnboarding(formData: FormData) {
     await client.users.updateUser(userId, {
       publicMetadata: { onboardingComplete: true },
     });
+
+    // Set a long-lived HttpOnly cookie so middleware can verify onboarding
+    // without relying on JWT claims (which require Clerk dashboard custom claim config).
+    setOnboardedCookie(await cookies());
 
     return { success: true as const };
   } catch (err: unknown) {

@@ -24,7 +24,10 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.redirect(signInUrl);
   }
 
-  const onboarded = sessionClaims?.metadata?.onboardingComplete;
+  // JWT claims require custom Clerk dashboard session token config.
+  // Use the server-set cookie as the reliable fallback.
+  const cookieOnboarded = req.cookies.get('haul_onboarded')?.value === '1';
+  const onboarded = !!(sessionClaims?.metadata?.onboardingComplete) || cookieOnboarded;
 
   // Already onboarded visiting /onboarding → skip to feed
   if (isOnboardingRoute(req) && onboarded) {
