@@ -887,18 +887,26 @@
       font-size: 22px; color: var(--text-2);
     }
     .explore-card-body { padding: 12px 14px 14px; }
+    .explore-card-title-row { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
     .explore-card-title {
       font-size: 13px; font-weight: 700; color: var(--text);
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      margin-bottom: 2px;
+      flex: 1; min-width: 0;
     }
+    .explore-card-btn-icon {
+      flex-shrink: 0; width: 26px; height: 26px; border-radius: 6px;
+      border: none; background: transparent; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-2); transition: all 0.12s;
+    }
+    .explore-card-btn-icon.delete-haul:hover { background: #fee2e2; color: #ef4444; }
     .explore-card-meta { font-size: 11px; color: var(--text-2); margin-bottom: 10px; }
-    .explore-card-actions { display: flex; gap: 8px; }
+    .explore-card-actions { display: flex; gap: 6px; flex-wrap: wrap; }
     .explore-card-btn {
-      flex: 1; padding: 8px; border-radius: 8px;
-      font-size: 12px; font-weight: 600; cursor: pointer;
+      flex: 1; padding: 7px 8px; border-radius: 8px;
+      font-size: 11px; font-weight: 600; cursor: pointer;
       border: none; font-family: inherit;
-      transition: all 0.12s ease;
+      transition: all 0.12s ease; white-space: nowrap; min-width: 0;
     }
     .explore-card-btn.view {
       background: var(--primary); color: #fff;
@@ -909,7 +917,29 @@
       border: 1px solid var(--border);
     }
     .explore-card-btn.fork:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-faint); }
+    .explore-card-btn.post-circle {
+      background: var(--surface-2); color: var(--text-2);
+      border: 1px solid var(--border);
+    }
+    .explore-card-btn.post-circle:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-faint); }
     .explore-card-btn:disabled { opacity: 0.5; cursor: default; }
+    /* Circle picker dropdown */
+    .circle-dropdown {
+      margin-top: 8px; border: 1px solid var(--border); border-radius: 10px;
+      background: var(--bg); overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    }
+    .circle-dropdown-item {
+      display: block; width: 100%; padding: 9px 12px; text-align: left;
+      font-size: 12px; font-weight: 600; color: var(--text);
+      background: none; border: none; cursor: pointer; font-family: inherit;
+      transition: background 0.1s;
+    }
+    .circle-dropdown-item:hover { background: var(--primary-faint); color: var(--primary); }
+    .circle-dropdown-item:disabled { opacity: 0.5; cursor: default; }
+    .circle-dropdown-empty {
+      padding: 10px 12px; font-size: 11px; color: var(--text-2); text-align: center;
+    }
+    .circle-dropdown-empty a { color: var(--primary); text-decoration: none; }
     .explore-empty {
       text-align: center; padding: 48px 24px;
       color: var(--text-2); font-size: 13px;

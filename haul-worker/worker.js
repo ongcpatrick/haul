@@ -59,6 +59,7 @@ export default {
     if (url.pathname === '/chat') return handleChat(body, env);
     if (url.pathname === '/share') return handleShare(body, env, url);
     if (url.pathname === '/fork') return handleFork(body, env);
+    if (url.pathname === '/delete-share') return handleDeleteShare(body, env);
     return jsonResponse({ error: 'Not found' }, 404);
   },
 };
@@ -365,6 +366,35 @@ async function handleFork({ id }, env) {
   } catch {
     return jsonResponse({ error: 'Corrupt data' }, 500);
   }
+}
+
+// ─── /delete-share ────────────────────────────────────────────────────────────
+
+async function handleDeleteShare({ id, author }, env) {
+  if (!id || !author) return jsonResponse({ error: 'id and author required' }, 400);
+  if (!env.HAUL_SHARES) return jsonResponse({ error: 'KV not configured' }, 500);
+
+  const raw = await env.HAUL_SHARES.get(id).catch(() => null);
+  if (!raw) return jsonResponse({ error: 'Not found' }, 404);
+
+  try {
+    const haul = JSON.parse(raw);
+    if (haul.author !== author) return jsonResponse({ error: 'Not yours' }, 403);
+  } catch {
+    return jsonResponse({ error: 'Corrupt data' }, 500);
+  }
+
+  // Remove from _feed list
+  const feedRaw = await env.HAUL_SHARES.get('_feed').catch(() => null);
+  if (feedRaw) {
+    try {
+      const feed = JSON.parse(feedRaw).filter((e) => e.id !== id);
+      await env.HAUL_SHARES.put('_feed', JSON.stringify(feed), { expirationTtl: 60 * 60 * 24 * 90 });
+    } catch { /* ignore */ }
+  }
+
+  await env.HAUL_SHARES.delete(id).catch(() => null);
+  return jsonResponse({ success: true });
 }
 
 // ─── /view/:id ────────────────────────────────────────────────────────────────

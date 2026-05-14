@@ -2,6 +2,18 @@ import { getCurrentDbUserId } from '@/lib/supabase-server';
 import { fail, ok, readJson, requireString } from '@/lib/api';
 import sql from '@/lib/db';
 
+async function getUserIdFromToken(req: Request): Promise<string | null> {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) return null;
+  const token = authHeader.slice(7).trim();
+  const [row] = await sql<{ user_id: string }[]>`
+    SELECT user_id FROM extension_tokens
+    WHERE token = ${token} AND expires_at > now()
+    LIMIT 1
+  `;
+  return (row?.user_id as string) ?? null;
+}
+
 interface CreateCircleBody {
   name?: string;
   description?: string | null;
@@ -37,8 +49,9 @@ export async function POST(req: Request) {
   return ok(circle);
 }
 
-export async function GET() {
-  const dbUserId = await getCurrentDbUserId();
+export async function GET(req: Request) {
+  let dbUserId: string | null = await getUserIdFromToken(req);
+  if (!dbUserId) dbUserId = await getCurrentDbUserId();
   if (!dbUserId) return fail('Unauthorized', 401);
 
   const memberships = await sql<{ circle_id: string }[]>`
