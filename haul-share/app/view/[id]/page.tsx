@@ -43,18 +43,22 @@ export async function generateMetadata(
     ? `https://${process.env.VERCEL_URL}`
     : 'https://haul-production.up.railway.app';
 
+  const author = data?.author;
+  const ogTitle = author ? `${author} is comparing ${count} item${count !== 1 ? 's' : ''}` : title;
+  const ogDesc = `See the full comparison on Haul.`;
+
   return {
     title: `${title} | Haul`,
-    description: `Compare ${count} product${count !== 1 ? 's' : ''} side by side on Haul.`,
+    description: ogDesc,
     openGraph: {
-      title: `${title} | Haul`,
-      description: `Compare ${count} product${count !== 1 ? 's' : ''} side by side.`,
+      title: ogTitle,
+      description: ogDesc,
       images: [{ url: `${base}/api/og/${id}`, width: 1200, height: 630 }],
       type: 'website',
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${title} | Haul`,
+      title: ogTitle,
       images: [`${base}/api/og/${id}`],
     },
   };
