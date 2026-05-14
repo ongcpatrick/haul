@@ -41,7 +41,7 @@ export async function generateMetadata(
   const count = data?.products?.length ?? 0;
   const base = process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
-    : 'https://haul-share.vercel.app';
+    : 'https://haul-production.up.railway.app';
 
   return {
     title: `${title} | Haul`,

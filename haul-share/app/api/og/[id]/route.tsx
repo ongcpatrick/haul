@@ -161,7 +161,7 @@ export async function GET(
 
         {/* Bottom bar */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 48px', marginTop: 'auto' }}>
-          <span style={{ fontSize: 13, color: '#8a7e72' }}>haul-share.vercel.app</span>
+          <span style={{ fontSize: 13, color: '#8a7e72' }}>haul-production.up.railway.app</span>
           <span style={{ fontSize: 13, color: '#8a7e72' }}>Tap to view full comparison →</span>
         </div>
       </div>

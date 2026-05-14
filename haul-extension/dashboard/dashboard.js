@@ -355,7 +355,7 @@ async function getShareUrl() {
     const res = await fetch(`${WORKER_BASE}/share`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ products, title: `Haul — ${products.length} item${products.length !== 1 ? 's' : ''}` }),
+      body: JSON.stringify({ products, title: `Haul: ${products.length} item${products.length !== 1 ? 's' : ''}` }),
     });
     const data = await res.json();
     if (!data.url) throw new Error('no url');
@@ -389,7 +389,7 @@ async function shareComparison() {
 function renderShareModalBody(shareUrl, products, extUsername) {
   const waText    = encodeURIComponent(`Check out my comparison on Haul: ${shareUrl}`);
   const emailSubj = encodeURIComponent('My Haul Comparison');
-  const emailBody = encodeURIComponent(`I compared some products on Haul — take a look:\n\n${shareUrl}`);
+  const emailBody = encodeURIComponent(`I compared some products on Haul. Take a look:\n\n${shareUrl}`);
   const tweetText = encodeURIComponent(`Shopping smarter with Haul: ${shareUrl}`);
   const hasNative = typeof navigator.share === 'function';
 
@@ -475,7 +475,7 @@ function renderShareModalBody(shareUrl, products, extUsername) {
     communityPostBtn.disabled = true;
     communityPostBtn.textContent = 'Posting…';
     try {
-      const title = `${author ? author + "'s" : 'My'} Haul — ${products.length} item${products.length !== 1 ? 's' : ''}`;
+      const title = `${author ? author + "'s" : 'My'} Haul: ${products.length} item${products.length !== 1 ? 's' : ''}`;
 
       // Post to Cloudflare Worker KV (Explore tab)
       const res = await fetch(`${WORKER_BASE}/share`, {
@@ -501,7 +501,7 @@ function renderShareModalBody(shareUrl, products, extUsername) {
       }
 
       if (extUsername && !feedPosted) {
-        communityPostBtn.textContent = 'Posted to Explore (feed failed — reconnect)';
+        communityPostBtn.textContent = 'Posted to Explore (feed failed, reconnect)';
         communityPostBtn.style.background = '#c0392b';
         communityPostBtn.style.color = '#fff';
       } else {
