@@ -178,6 +178,26 @@ ${list}`
 
 // ─── /chat ────────────────────────────────────────────────────────────────────
 
+async function fetchOgImage(url) {
+  try {
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Haul/1.0; +https://haulapp.workers.dev)' },
+      redirect: 'follow',
+      signal: AbortSignal.timeout(4000),
+    });
+    if (!res.ok) return null;
+    const html = await res.text();
+    const m = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
+            || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i)
+            || html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i);
+    if (!m) return null;
+    const src = m[1];
+    return src.startsWith('//') ? 'https:' + src : src;
+  } catch {
+    return null;
+  }
+}
+
 async function handleChat({ products, messages }, env) {
   if (!Array.isArray(products) || products.length === 0)
     return jsonResponse({ error: 'products array required' }, 400);
@@ -194,10 +214,10 @@ async function handleChat({ products, messages }, env) {
   const systemPrompt =
     `You are a direct shopping assistant. The user is comparing these products:\n${list}\n\n` +
     `You have real-time web search. Use it when the user asks for alternatives, similar items, or cheaper versions.\n\n` +
-    `WHEN SHOWING ALTERNATIVES: respond with ONLY this JSON block — zero text before or after it:\n` +
+    `WHEN SHOWING ALTERNATIVES: your ENTIRE response must be ONLY this JSON block with no text whatsoever:\n` +
     `<products>[{"name":"Full product name","price":"$XX.XX","priceRaw":XX.XX,"url":"https://exact-product-page-url","siteName":"amazon.com"}]</products>\n` +
-    `Rules: real clickable URLs to actual product pages (not search results), up to 4 products, omit priceRaw if unknown.\n\n` +
-    `For non-search questions: plain text reply, max 80 words, no markdown.`;
+    `Rules: direct URLs to actual product pages (not search pages), up to 4 products, omit priceRaw if unknown.\n\n` +
+    `For non-search questions: plain text, max 80 words, no markdown.`;
 
   const trimmedMessages = messages.slice(-20).map((m) => ({ role: m.role, content: String(m.content).slice(0, 500) }));
 
@@ -224,11 +244,10 @@ async function handleChat({ products, messages }, env) {
   }
 
   const data = await res.json();
-  const fullText = (data.content || [])
-    .filter((b) => b.type === 'text')
-    .map((b) => b.text)
-    .join('\n')
-    .trim();
+
+  // Use only the LAST text block — earlier ones are Claude's internal narration before searching
+  const textBlocks = (data.content || []).filter((b) => b.type === 'text');
+  const fullText = (textBlocks[textBlocks.length - 1]?.text || '').trim();
 
   const prodMatch = fullText.match(/<products>([\s\S]*?)<\/products>/);
   let suggestedProducts = [];
@@ -236,7 +255,21 @@ async function handleChat({ products, messages }, env) {
     try { suggestedProducts = JSON.parse(prodMatch[1]); } catch { /* ignore */ }
   }
 
-  const message = fullText.replace(/<products>[\s\S]*?<\/products>/, '').trim();
+  // Fetch og:image for each product in parallel so cards show real photos
+  if (suggestedProducts.length) {
+    suggestedProducts = await Promise.all(
+      suggestedProducts.map(async (p) => ({
+        ...p,
+        image: p.url ? await fetchOgImage(p.url) : null,
+      }))
+    );
+  }
+
+  // When returning product cards, suppress text — cards speak for themselves
+  const message = suggestedProducts.length
+    ? ''
+    : fullText.replace(/<products>[\s\S]*?<\/products>/, '').trim();
+
   return jsonResponse({ message, ...(suggestedProducts.length ? { suggestedProducts } : {}) });
 }
 

@@ -924,10 +924,11 @@ function appendProductCards(products) {
     card.style.animationDelay = `${i * 65}ms`;
     card.draggable = true;
 
+    const siteInitial = esc((p.siteName || p.name || '?').charAt(0).toUpperCase());
     const imgHtml = p.image
       ? `<img class="chat-product-img" src="${esc(p.image)}" loading="lazy" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
-        + `<div class="chat-product-img-placeholder" style="display:none"></div>`
-      : `<div class="chat-product-img-placeholder"></div>`;
+        + `<div class="chat-product-img-placeholder" style="display:none">${siteInitial}</div>`
+      : `<div class="chat-product-img-placeholder">${siteInitial}</div>`;
 
     card.innerHTML = `
       <div class="chat-card-drag-hint" title="Drag to comparison">⠿</div>
