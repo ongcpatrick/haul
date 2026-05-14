@@ -819,18 +819,23 @@ function closeChat() {
 
 // ── Example chips ───────────────────────────────────────────────────────────
 
-const CHIPS = ['Which is best value?', 'Find me alternatives', 'Best for a gift?', 'Any hidden costs?'];
+const CHIPS = [
+  { label: 'Which is best value?', prompt: 'Which is best value?' },
+  { label: 'Find me alternatives', prompt: 'Search the web and find me 4 alternative products similar to what I\'m comparing. Show ONLY the product cards, no text.' },
+  { label: 'Best for a gift?', prompt: 'Best for a gift?' },
+  { label: 'Any hidden costs?', prompt: 'Any hidden costs?' },
+];
 
 function renderChips() {
   chatChipsEl.innerHTML = '';
   chatChipsEl.style.display = 'flex';
-  CHIPS.forEach((text) => {
+  CHIPS.forEach(({ label, prompt }) => {
     const btn = document.createElement('button');
     btn.className = 'chat-chip';
-    btn.textContent = text;
+    btn.textContent = label;
     btn.addEventListener('click', () => {
       chatChipsEl.style.display = 'none';
-      handleUserSend(text);
+      handleUserSend(prompt, label);
     });
     chatChipsEl.appendChild(btn);
   });
@@ -992,13 +997,13 @@ function sendToWorker() {
         return;
       }
       chatMessages.push({ role: 'assistant', content: res.message });
-      appendBubble('assistant', res.message);
+      if (res.message) appendBubble('assistant', res.message);
       if (res.suggestedProducts?.length) appendProductCards(res.suggestedProducts);
     }
   );
 }
 
-function handleUserSend(overrideText) {
+function handleUserSend(overrideText, displayLabel) {
   const text = typeof overrideText === 'string' ? overrideText : chatInput.value.trim();
   if (!text || chatSendBtn.disabled) return;
   if (typeof overrideText !== 'string') {
@@ -1007,7 +1012,7 @@ function handleUserSend(overrideText) {
   }
   hideChips();
   chatMessages.push({ role: 'user', content: text });
-  appendBubble('user', text);
+  appendBubble('user', displayLabel || text);
   appendTypingIndicator();
   sendToWorker();
 }

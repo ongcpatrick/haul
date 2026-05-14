@@ -192,12 +192,12 @@ async function handleChat({ products, messages }, env) {
   }).join('\n');
 
   const systemPrompt =
-    `You are a direct, concise shopping assistant. The user is comparing these products:\n${list}\n\n` +
-    `You have real-time web search. Use it whenever the user asks for alternatives, similar items, cheaper versions, or anything not in the list. ` +
-    `When you find alternatives, append a JSON block at the very end of your reply (after your text): ` +
-    `<products>[{"name":"Full product name","price":"$XX.XX","priceRaw":XX.XX,"url":"https://...","siteName":"amazon.com"}]</products>. ` +
-    `Include up to 4 products. Omit priceRaw if price is unknown. ` +
-    `Max 80 words in your text reply. No markdown — plain text only.`;
+    `You are a direct shopping assistant. The user is comparing these products:\n${list}\n\n` +
+    `You have real-time web search. Use it when the user asks for alternatives, similar items, or cheaper versions.\n\n` +
+    `WHEN SHOWING ALTERNATIVES: respond with ONLY this JSON block — zero text before or after it:\n` +
+    `<products>[{"name":"Full product name","price":"$XX.XX","priceRaw":XX.XX,"url":"https://exact-product-page-url","siteName":"amazon.com"}]</products>\n` +
+    `Rules: real clickable URLs to actual product pages (not search results), up to 4 products, omit priceRaw if unknown.\n\n` +
+    `For non-search questions: plain text reply, max 80 words, no markdown.`;
 
   const trimmedMessages = messages.slice(-20).map((m) => ({ role: m.role, content: String(m.content).slice(0, 500) }));
 
