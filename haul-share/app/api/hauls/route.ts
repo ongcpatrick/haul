@@ -62,6 +62,25 @@ export async function POST(req: Request) {
   return ok(haul);
 }
 
+export async function DELETE(req: Request) {
+  const { userId } = await auth();
+  if (!userId) return fail('Unauthorized', 401);
+  const dbUserId = await getCurrentDbUserId();
+  if (!dbUserId) return fail('User not synced', 400);
+
+  const { searchParams } = new URL(req.url);
+  const haulId = searchParams.get('id');
+  if (!haulId) return fail('id required');
+
+  const [deleted] = await sql`
+    DELETE FROM hauls
+    WHERE id = ${haulId} AND user_id = ${dbUserId}
+    RETURNING id
+  `;
+  if (!deleted) return fail('Not found or not yours', 404);
+  return ok({ id: haulId });
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const username = searchParams.get('username');

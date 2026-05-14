@@ -2,9 +2,8 @@ import { notFound } from 'next/navigation';
 import { getCurrentDbUserId } from '@/lib/supabase-server';
 import sql from '@/lib/db';
 import type { HaulWithAuthor, User } from '@/lib/types';
-import HaulCard from '@/app/components/HaulCard';
-import EmptyState from '@/app/components/EmptyState';
 import FollowButton from './FollowButton';
+import ProfileHauls from './ProfileHauls';
 
 interface Params {
   params: Promise<{ username: string }>;
@@ -82,16 +81,12 @@ export default async function ProfilePage({ params }: Params) {
 
       <section className="mt-10">
         <h2 className="text-xl font-bold text-[var(--text)] mb-4">Public hauls</h2>
-        {cards.length === 0 ? (
-          <EmptyState
-            title="No public hauls yet"
-            description={`${user.display_name ?? user.username} hasn't shared anything publicly.`}
-          />
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {cards.map((h) => <HaulCard key={h.id} haul={h} />)}
-          </div>
-        )}
+        <ProfileHauls
+          initialHauls={cards}
+          currentUserId={viewerId}
+          profileUsername={user.username}
+          profileDisplayName={user.display_name ?? null}
+        />
       </section>
     </div>
   );

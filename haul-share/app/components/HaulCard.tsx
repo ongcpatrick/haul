@@ -13,6 +13,7 @@ interface HaulCardProps {
   haul: HaulWithAuthor;
   currentUserId?: string | null;
   onReact?: (haulId: string, emoji: ReactionKey) => Promise<void>;
+  onDelete?: (haulId: string) => void;
 }
 
 function timeAgo(iso: string): string {
@@ -27,169 +28,190 @@ function timeAgo(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
-function formatPrice(n: number): string {
-  return '$' + n.toFixed(2);
-}
+function fmt(n: number) { return '$' + n.toFixed(2); }
 
-function ReactionIcon({ kind }: { kind: ReactionKey }) {
-  const common = 'w-4 h-4';
-  if (kind === 'heart')
-    return (
-      <svg className={common} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-      </svg>
-    );
-  if (kind === 'fire')
-    return (
-      <svg className={common} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
-      </svg>
-    );
-  return (
-    <svg className={common} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-}
+const EMOJI: Record<ReactionKey, string> = { heart: '♥', fire: '🔥', eyes: '👀' };
 
-
-export default function HaulCard({ haul, currentUserId, onReact }: HaulCardProps) {
+export default function HaulCard({ haul, currentUserId, onReact, onDelete }: HaulCardProps) {
   const [counts, setCounts] = useState<Record<string, number>>(haul.reaction_counts ?? {});
+  const [myReacts, setMyReacts] = useState<Set<ReactionKey>>(new Set());
   const [busy, setBusy] = useState<ReactionKey | null>(null);
   const [commentCount, setCommentCount] = useState(haul.comment_count ?? 0);
+  const [deleting, setDeleting] = useState(false);
+
+  const isOwn = !!currentUserId && haul.author.id === currentUserId;
+
+  const prices = haul.products.map((p) => p.price).filter((p): p is number => p != null);
+  const minPrice = prices.length ? Math.min(...prices) : null;
+  const maxPrice = prices.length ? Math.max(...prices) : null;
+  const priceRange = minPrice != null
+    ? minPrice === maxPrice ? fmt(minPrice) : `${fmt(minPrice)} – ${fmt(maxPrice!)}`
+    : null;
 
   const totalSavings = haul.products.reduce((sum, p) => {
-    if (p.originalPrice != null && p.price != null && p.originalPrice > p.price) {
+    if (p.originalPrice != null && p.price != null && p.originalPrice > p.price)
       return sum + (p.originalPrice - p.price);
-    }
     return sum;
   }, 0);
 
   const thumbs = haul.products.slice(0, 3);
   const remaining = haul.products.length - thumbs.length;
+  const viewHref = haul.share_id ? `/view/${haul.share_id}` : `/u/${haul.author.username}`;
 
-  const href = haul.share_id ? `/view/${haul.share_id}` : `/u/${haul.author.username}`;
-
-  const handleReact = async (e: React.MouseEvent, key: ReactionKey) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleReact = async (key: ReactionKey) => {
     if (!currentUserId || !onReact || busy) return;
+    const isToggle = myReacts.has(key);
     setBusy(key);
-    setCounts((prev) => ({ ...prev, [key]: (prev[key] ?? 0) + 1 }));
+    setMyReacts((prev) => {
+      const next = new Set(prev);
+      isToggle ? next.delete(key) : next.add(key);
+      return next;
+    });
+    setCounts((prev) => ({ ...prev, [key]: Math.max(0, (prev[key] ?? 0) + (isToggle ? -1 : 1)) }));
+    try { await onReact(haul.id, key); } catch {
+      setMyReacts((prev) => {
+        const next = new Set(prev);
+        isToggle ? next.add(key) : next.delete(key);
+        return next;
+      });
+      setCounts((prev) => ({ ...prev, [key]: Math.max(0, (prev[key] ?? 0) + (isToggle ? 1 : -1)) }));
+    } finally { setBusy(null); }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm('Delete this haul? This cannot be undone.')) return;
+    setDeleting(true);
     try {
-      await onReact(haul.id, key);
-    } catch {
-      setCounts((prev) => ({ ...prev, [key]: Math.max(0, (prev[key] ?? 1) - 1) }));
-    } finally {
-      setBusy(null);
-    }
+      const res = await fetch(`/api/hauls?id=${haul.id}`, { method: 'DELETE' });
+      if (res.ok) onDelete?.(haul.id);
+    } finally { setDeleting(false); }
   };
 
   return (
-    <article className="bg-white border border-[var(--border)] rounded-2xl overflow-hidden shadow-card hover:shadow-lg transition-shadow">
-      <Link href={href} className="block">
-        {/* Image grid */}
-        <div className="grid grid-cols-3 gap-1 bg-[var(--bg)] p-2 h-44">
+    <article className="bg-white border border-[var(--border)] rounded-2xl overflow-hidden shadow-card">
+
+      {/* Author row */}
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--border)]">
+        <Link href={`/u/${haul.author.username}`} className="flex items-center gap-2.5 group flex-1 min-w-0">
+          {haul.author.avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={haul.author.avatar_url} alt="" className="w-9 h-9 rounded-full border border-[var(--border)] flex-shrink-0" />
+          ) : (
+            <div className="w-9 h-9 rounded-full bg-[var(--primary)] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+              {haul.author.username[0]?.toUpperCase() ?? '?'}
+            </div>
+          )}
+          <div className="min-w-0">
+            <p className="font-semibold text-sm text-[var(--text)] group-hover:text-[var(--primary)] truncate">
+              @{haul.author.username}
+            </p>
+            <p className="text-xs text-[var(--muted)]">{timeAgo(haul.created_at)}</p>
+          </div>
+        </Link>
+
+        {isOwn && (
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            aria-label="Delete haul"
+            className="p-1.5 rounded-lg text-[var(--muted)] hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="3,6 5,6 21,6" />
+              <path d="M19,6l-1,14H6L5,6" />
+              <path d="M10,11v6M14,11v6" />
+              <path d="M9,6V4h6v2" />
+            </svg>
+          </button>
+        )}
+      </div>
+
+      {/* Product image collage */}
+      <Link href={viewHref} className="block">
+        <div className={`grid gap-0.5 bg-[var(--bg)] ${thumbs.length === 1 ? 'grid-cols-1' : thumbs.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`} style={{ height: 220 }}>
           {thumbs.map((p, i) => (
-            <div
-              key={p.id}
-              className="bg-white rounded-lg overflow-hidden flex items-center justify-center relative border border-[var(--border)]"
-            >
+            <div key={p.id} className="relative overflow-hidden bg-white flex items-center justify-center">
               {p.imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={`${WORKER}/proxy-image?url=${encodeURIComponent(p.imageUrl)}`}
                   alt={p.name}
-                  className="w-full h-full object-contain p-2"
+                  className="w-full h-full object-contain p-3"
                 />
               ) : (
-                <div className="text-[var(--muted)] text-xs">No image</div>
+                <span className="text-xs text-[var(--muted)]">No image</span>
               )}
               {i === 2 && remaining > 0 && (
-                <div className="absolute inset-0 bg-[var(--text)]/60 flex items-center justify-center text-white font-bold text-lg">
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-bold text-xl">
                   +{remaining}
                 </div>
               )}
             </div>
           ))}
-          {Array.from({ length: Math.max(0, 3 - thumbs.length) }).map((_, i) => (
-            <div
-              key={`empty-${i}`}
-              className="bg-white/50 rounded-lg border border-dashed border-[var(--border)]"
-            />
-          ))}
         </div>
 
-        {/* Body */}
-        <div className="p-4">
-          <h3 className="font-bold text-[var(--text)] leading-snug line-clamp-2">
+        {/* Title + meta */}
+        <div className="px-4 pt-3 pb-2">
+          <h3 className="font-bold text-[var(--text)] text-base leading-snug line-clamp-2">
             {haul.title ?? 'Untitled haul'}
           </h3>
-          <div className="mt-1 flex items-center gap-2 text-xs text-[var(--muted)]">
-            <span>
-              {haul.products.length} item{haul.products.length === 1 ? '' : 's'}
-            </span>
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--muted)]">
+            <span>{haul.products.length} item{haul.products.length !== 1 ? 's' : ''}</span>
+            {priceRange && <span className="font-semibold text-[var(--text)]">{priceRange}</span>}
             {totalSavings > 0 && (
-              <>
-                <span aria-hidden>·</span>
-                <span className="font-semibold text-[var(--price)]">
-                  Save {formatPrice(totalSavings)}
-                </span>
-              </>
-            )}
-          </div>
-
-          <div className="mt-3 flex items-center gap-2">
-            <Link
-              href={`/u/${haul.author.username}`}
-              onClick={(e) => e.stopPropagation()}
-              className="flex items-center gap-2 group"
-            >
-              {haul.author.avatar_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={haul.author.avatar_url}
-                  alt={haul.author.username}
-                  className="w-7 h-7 rounded-full border border-[var(--border)]"
-                />
-              ) : (
-                <div className="w-7 h-7 rounded-full bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center text-xs font-semibold text-[var(--muted)]">
-                  {haul.author.username[0]?.toUpperCase() ?? '?'}
-                </div>
-              )}
-              <span className="text-xs font-semibold text-[var(--text)] group-hover:text-[var(--primary)]">
-                @{haul.author.username}
+              <span className="font-semibold text-[var(--price)] bg-[var(--price-bg,#fef3c7)] px-2 py-0.5 rounded-full">
+                Save {fmt(totalSavings)}
               </span>
-            </Link>
-            <span className="text-xs text-[var(--muted)] ml-auto">
-              {timeAgo(haul.created_at)}
-            </span>
+            )}
           </div>
         </div>
       </Link>
 
-      {/* Reaction bar */}
-      <div className="px-4 py-3 border-t border-[var(--border)] flex items-center gap-3 bg-[var(--bg)]/40">
-        {REACTIONS.map((r) => (
-          <button
-            key={r}
-            type="button"
-            onClick={(e) => handleReact(e, r)}
-            disabled={!currentUserId || busy === r}
-            className="flex items-center gap-1.5 text-xs font-semibold text-[var(--muted)] hover:text-[var(--primary)] disabled:opacity-50 transition-colors"
-            aria-label={`React with ${r}`}
+      {/* Action bar */}
+      <div className="px-4 py-2.5 flex items-center gap-4 border-t border-[var(--border)]">
+        {/* Reactions */}
+        <div className="flex items-center gap-3 flex-1">
+          {REACTIONS.map((r) => {
+            const active = myReacts.has(r);
+            return (
+              <button
+                key={r}
+                type="button"
+                onClick={() => handleReact(r)}
+                disabled={!currentUserId || busy === r}
+                className={`flex items-center gap-1 text-sm font-semibold transition-all disabled:opacity-40 ${
+                  active ? 'text-[var(--primary)] scale-110' : 'text-[var(--muted)] hover:text-[var(--primary)]'
+                }`}
+              >
+                <span>{EMOJI[r]}</span>
+                <span className="text-xs">{counts[r] ?? 0}</span>
+              </button>
+            );
+          })}
+
+          <CommentDrawer
+            haulId={haul.id}
+            initialCount={commentCount}
+            isLoggedIn={!!currentUserId}
+            onCountChange={setCommentCount}
+          />
+        </div>
+
+        {/* View + Fork */}
+        <div className="flex items-center gap-2">
+          <Link
+            href={viewHref}
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-[var(--border)] text-[var(--text)] hover:border-[var(--primary)] transition-colors"
           >
-            <ReactionIcon kind={r} />
-            <span>{counts[r] ?? 0}</span>
-          </button>
-        ))}
-        <CommentDrawer
-          haulId={haul.id}
-          initialCount={commentCount}
-          isLoggedIn={!!currentUserId}
-          onCountChange={setCommentCount}
-        />
+            View
+          </Link>
+          <Link
+            href={viewHref}
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[var(--primary)] text-white hover:bg-[var(--primary-h)] transition-colors"
+          >
+            + Fork
+          </Link>
+        </div>
       </div>
     </article>
   );

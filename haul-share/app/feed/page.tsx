@@ -17,9 +17,9 @@ export default async function FeedPage() {
   const initial = await loadFeed(dbUserId);
 
   return (
-    <div className="max-w-3xl mx-auto px-6 py-12">
-      <header className="mb-8">
-        <h1 className="text-3xl font-extrabold text-[var(--text)]">Your Feed</h1>
+    <div className="max-w-xl mx-auto px-4 py-10">
+      <header className="mb-6">
+        <h1 className="text-2xl font-extrabold text-[var(--text)]">Feed</h1>
         <p className="mt-1 text-sm text-[var(--muted)]">Latest hauls from people you follow.</p>
       </header>
       <FeedClient currentUserId={dbUserId} initialHauls={initial} />
