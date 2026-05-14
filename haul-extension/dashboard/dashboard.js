@@ -355,7 +355,7 @@ async function getShareUrl() {
     const res = await fetch(`${WORKER_BASE}/share`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ products, title: `Haul: ${products.length} item${products.length !== 1 ? 's' : ''}` }),
+      body: JSON.stringify({ products, title: `${products.length} item${products.length !== 1 ? 's' : ''} compared` }),
     });
     const data = await res.json();
     if (!data.url) throw new Error('no url');
@@ -475,7 +475,7 @@ function renderShareModalBody(shareUrl, products, extUsername) {
     communityPostBtn.disabled = true;
     communityPostBtn.textContent = 'Posting…';
     try {
-      const title = `${author ? author + "'s" : 'My'} Haul: ${products.length} item${products.length !== 1 ? 's' : ''}`;
+      const title = `${author ? author + "'s" : 'My'} picks: ${products.length} item${products.length !== 1 ? 's' : ''}`;
 
       // Post to Cloudflare Worker KV (Explore tab)
       const res = await fetch(`${WORKER_BASE}/share`, {
