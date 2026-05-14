@@ -5,6 +5,7 @@
 //   GET  /proxy-image?url=<encoded>              → proxied image bytes
 //   POST /categorize  { name, siteName }         → { category }
 //   POST /advise      { products: [...] }         → { winner_id, summary, insights }
+//   POST /chat        { products, messages }      → { message, suggestedProducts? }
 //   POST /share       { products, title? }        → { shareId, url }
 //   GET  /view/:id                               → HTML friend-view page
 
@@ -177,41 +178,6 @@ ${list}`
 
 // ─── /chat ────────────────────────────────────────────────────────────────────
 
-const SEARCH_TOOL = {
-  name: 'search_products',
-  description: 'Search the web for alternative or similar products. Use when user asks about alternatives, better deals, or wants to see more options beyond the current list.',
-  input_schema: {
-    type: 'object',
-    properties: {
-      query: { type: 'string', description: 'Shopping search query, e.g. "affordable graphic tees under $20 site:amazon.com OR site:uniqlo.com"' },
-    },
-    required: ['query'],
-  },
-};
-
-async function braveSearch(query, env) {
-  if (!env.BRAVE_SEARCH_API_KEY) return [];
-  try {
-    const url = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=5&search_lang=en`;
-    const res = await fetch(url, {
-      headers: { 'Accept': 'application/json', 'X-Subscription-Token': env.BRAVE_SEARCH_API_KEY },
-    });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return (data.web?.results || []).slice(0, 5).map((r) => ({
-      name: r.title,
-      url: r.url,
-      description: (r.description || '').slice(0, 200),
-      image: r.thumbnail?.src || null,
-      siteName: (() => { try { return new URL(r.url).hostname.replace('www.', ''); } catch { return ''; } })(),
-    }));
-  } catch {
-    return [];
-  }
-}
-
-const SEARCH_INTENT_RE = /\b(find|search|look|show|get|suggest|recommend|alternative|option|similar|other|cheaper|better|compare|more)\b/i;
-
 async function handleChat({ products, messages }, env) {
   if (!Array.isArray(products) || products.length === 0)
     return jsonResponse({ error: 'products array required' }, 400);
@@ -227,80 +193,47 @@ async function handleChat({ products, messages }, env) {
 
   const systemPrompt =
     `You are a direct, concise shopping assistant. The user is comparing these products:\n${list}\n\n` +
-    `IMPORTANT: You have real web search capability via the search_products tool. ` +
-    `ALWAYS call search_products when the user asks for alternatives, other options, similar items, ` +
-    `cheaper versions, or anything not in the list above. Never say you cannot search — you can. ` +
-    `Max 80 words per reply. Plain text only, no markdown.`;
+    `You have real-time web search. Use it whenever the user asks for alternatives, similar items, cheaper versions, or anything not in the list. ` +
+    `When you find alternatives, append a JSON block at the very end of your reply (after your text): ` +
+    `<products>[{"name":"Full product name","price":"$XX.XX","priceRaw":XX.XX,"url":"https://...","siteName":"amazon.com"}]</products>. ` +
+    `Include up to 4 products. Omit priceRaw if price is unknown. ` +
+    `Max 80 words in your text reply. No markdown — plain text only.`;
 
   const trimmedMessages = messages.slice(-20).map((m) => ({ role: m.role, content: String(m.content).slice(0, 500) }));
 
-  // Detect search intent in the latest user message — force tool use if present
-  const lastUserMsg = [...trimmedMessages].reverse().find((m) => m.role === 'user')?.content || '';
-  const forceSearch = SEARCH_INTENT_RE.test(lastUserMsg) && !!env.BRAVE_SEARCH_API_KEY;
-  const toolChoice = forceSearch
-    ? { type: 'tool', name: 'search_products' }
-    : { type: 'auto' };
-
-  // First call — Claude may request a search
-  const firstRes = await fetch(ANTHROPIC_URL, {
+  const res = await fetch(ANTHROPIC_URL, {
     method: 'POST',
-    headers: { 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-    body: JSON.stringify({ model: MODEL, max_tokens: 800, system: systemPrompt, tools: [SEARCH_TOOL], tool_choice: toolChoice, messages: trimmedMessages }),
-  });
-  if (!firstRes.ok) {
-    const err = await firstRes.json().catch(() => ({}));
-    return jsonResponse({ error: err.error?.message || `Anthropic error ${firstRes.status}` }, 502);
-  }
-  const firstData = await firstRes.json();
-
-  const toolUse = firstData.content?.find((b) => b.type === 'tool_use' && b.name === 'search_products');
-  if (!toolUse) {
-    const text = (firstData.content?.find((b) => b.type === 'text')?.text || '').trim();
-    return jsonResponse({ message: text });
-  }
-
-  // Execute Brave Search
-  const searchResults = await braveSearch(toolUse.input.query, env);
-
-  const extractPrompt = searchResults.length
-    ? searchResults.map((r, i) => `[${i + 1}] ${r.name}\nURL: ${r.url}\nSite: ${r.siteName}\nSnippet: ${r.description}`).join('\n\n')
-    : 'No results found.';
-
-  // Second call — Claude writes response + structured product block
-  const secondRes = await fetch(ANTHROPIC_URL, {
-    method: 'POST',
-    headers: { 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+    headers: {
+      'x-api-key': env.ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+      'anthropic-beta': 'web-search-2025-03-05',
+      'content-type': 'application/json',
+    },
     body: JSON.stringify({
-      model: MODEL, max_tokens: 800, system: systemPrompt,
-      messages: [
-        ...trimmedMessages,
-        { role: 'assistant', content: firstData.content },
-        {
-          role: 'user', content: [{
-            type: 'tool_result', tool_use_id: toolUse.id,
-            content: `Results for "${toolUse.input.query}":\n\n${extractPrompt}\n\nReply to the user (max 80 words). Then append a JSON block: <products>[{"name":"...","price":"$XX","priceRaw":XX,"url":"...","siteName":"..."}]</products>. Extract prices from snippets; omit priceRaw if not found. Include up to 4 products.`,
-          }],
-        },
-      ],
+      model: MODEL,
+      max_tokens: 1500,
+      system: systemPrompt,
+      tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+      messages: trimmedMessages,
     }),
   });
-  if (!secondRes.ok) {
-    const err = await secondRes.json().catch(() => ({}));
-    return jsonResponse({ error: err.error?.message || `Anthropic error ${secondRes.status}` }, 502);
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    return jsonResponse({ error: err.error?.message || `API error ${res.status}` }, 502);
   }
-  const secondData = await secondRes.json();
-  const fullText = (secondData.content?.find((b) => b.type === 'text')?.text || '').trim();
+
+  const data = await res.json();
+  const fullText = (data.content || [])
+    .filter((b) => b.type === 'text')
+    .map((b) => b.text)
+    .join('\n')
+    .trim();
 
   const prodMatch = fullText.match(/<products>([\s\S]*?)<\/products>/);
   let suggestedProducts = [];
   if (prodMatch) {
-    try {
-      const parsed = JSON.parse(prodMatch[1]);
-      suggestedProducts = parsed.map((p) => {
-        const match = searchResults.find((r) => r.url === p.url);
-        return { ...p, image: match?.image || null };
-      });
-    } catch { /* ignore */ }
+    try { suggestedProducts = JSON.parse(prodMatch[1]); } catch { /* ignore */ }
   }
 
   const message = fullText.replace(/<products>[\s\S]*?<\/products>/, '').trim();

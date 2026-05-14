@@ -842,10 +842,18 @@ function hideChips() {
 
 // ── Message rendering ───────────────────────────────────────────────────────
 
+function renderBubbleHtml(text) {
+  return text
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/\n/g, '<br>');
+}
+
 function appendBubble(role, text) {
   const el = document.createElement('div');
   el.className = `chat-bubble ${role}`;
-  el.textContent = text;
+  el.innerHTML = renderBubbleHtml(text);
   chatMessagesEl.appendChild(el);
   chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
   return el;

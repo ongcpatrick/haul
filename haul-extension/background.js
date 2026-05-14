@@ -405,9 +405,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ products, messages }),
     })
-      .then((r) => { if (!r.ok) throw new Error(`Worker error ${r.status}`); return r.json(); })
+      .then(async (r) => {
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(data.error || `Worker error ${r.status}`);
+        return data;
+      })
       .then((data) => sendResponse({ success: true, message: data.message || '', suggestedProducts: data.suggestedProducts }))
-      .catch((err) => sendResponse({ success: false, error: String(err) }));
+      .catch((err) => sendResponse({ success: false, error: String(err).replace(/^Error:\s*/, '') }));
     return true;
   }
 
