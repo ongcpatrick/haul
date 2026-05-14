@@ -410,7 +410,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (!r.ok) throw new Error(data.error || `Worker error ${r.status}`);
         return data;
       })
-      .then((data) => sendResponse({ success: true, message: data.message || '', suggestedProducts: data.suggestedProducts }))
+      .then((data) => sendResponse({ success: true, message: (data.message || '').replace(/ — /g, ', '), suggestedProducts: data.suggestedProducts }))
       .catch((err) => sendResponse({ success: false, error: String(err).replace(/^Error:\s*/, '') }));
     return true;
   }

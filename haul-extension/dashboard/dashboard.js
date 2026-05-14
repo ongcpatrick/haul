@@ -966,13 +966,18 @@ function appendProductCards(products) {
     });
 
     const safeProductUrl = safeUrl(p.url);
-    card.querySelector('.view').addEventListener('click', () => {
+    card.addEventListener('click', () => {
+      if (safeProductUrl) openAndFocus(safeProductUrl);
+    });
+    card.querySelector('.view').addEventListener('click', (ev) => {
+      ev.stopPropagation();
       if (safeProductUrl) openAndFocus(safeProductUrl);
     });
     card.querySelector('.add').addEventListener('click', (ev) => {
+      ev.stopPropagation();
       const btn = ev.currentTarget;
       btn.disabled = true;
-      btn.textContent = '✓';
+      btn.textContent = 'Added';
       card.classList.add('added');
       addSuggestedProduct(newProduct);
     });

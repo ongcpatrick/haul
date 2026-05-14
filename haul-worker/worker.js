@@ -213,11 +213,13 @@ async function handleChat({ products, messages }, env) {
 
   const systemPrompt =
     `You are a direct shopping assistant. The user is comparing these products:\n${list}\n\n` +
-    `You have real-time web search. Use it when the user asks for alternatives, similar items, or cheaper versions.\n\n` +
-    `WHEN SHOWING ALTERNATIVES: your ENTIRE response must be ONLY this JSON block with no text whatsoever:\n` +
+    `You have real-time web search. NEVER ask clarifying questions — always act immediately.\n` +
+    `When the user asks for alternatives, similar items, other websites, or cheaper options: ` +
+    `search right away using the product names and categories above as context. ` +
+    `Your ENTIRE response must be ONLY this JSON block — no text before or after:\n` +
     `<products>[{"name":"Full product name","price":"$XX.XX","priceRaw":XX.XX,"url":"https://exact-product-page-url","siteName":"amazon.com"}]</products>\n` +
-    `Rules: direct URLs to actual product pages (not search pages), up to 4 products, omit priceRaw if unknown.\n\n` +
-    `For non-search questions: plain text, max 80 words, no markdown.`;
+    `Use direct product page URLs (not search result pages). Up to 4 products. Omit priceRaw if unknown.\n\n` +
+    `For non-search questions: plain text only, max 80 words, no em dashes.`;
 
   const trimmedMessages = messages.slice(-20).map((m) => ({ role: m.role, content: String(m.content).slice(0, 500) }));
 
