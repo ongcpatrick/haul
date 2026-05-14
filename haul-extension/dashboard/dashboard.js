@@ -966,11 +966,7 @@ function appendProductCards(products) {
     });
 
     const safeProductUrl = safeUrl(p.url);
-    card.addEventListener('click', () => {
-      if (safeProductUrl) openAndFocus(safeProductUrl);
-    });
-    card.querySelector('.view').addEventListener('click', (ev) => {
-      ev.stopPropagation();
+    card.querySelector('.view').addEventListener('click', () => {
       if (safeProductUrl) openAndFocus(safeProductUrl);
     });
     card.querySelector('.add').addEventListener('click', (ev) => {
