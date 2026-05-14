@@ -62,6 +62,34 @@ export async function POST(req: Request) {
   return ok(haul);
 }
 
+export async function PATCH(req: Request) {
+  const { userId } = await auth();
+  if (!userId) return fail('Unauthorized', 401);
+  const dbUserId = await getCurrentDbUserId();
+  if (!dbUserId) return fail('User not synced', 400);
+
+  const { searchParams } = new URL(req.url);
+  const haulId = searchParams.get('id');
+  const circleId = searchParams.get('circleId');
+  if (!haulId) return fail('id required');
+  if (!circleId) return fail('circleId required');
+
+  // verify user is a member of the target circle
+  const [member] = await sql`
+    SELECT user_id FROM circle_members
+    WHERE circle_id = ${circleId} AND user_id = ${dbUserId} LIMIT 1
+  `;
+  if (!member) return fail('Not a member of that circle', 403);
+
+  const [updated] = await sql`
+    UPDATE hauls SET circle_id = ${circleId}
+    WHERE id = ${haulId} AND user_id = ${dbUserId}
+    RETURNING *
+  `;
+  if (!updated) return fail('Not found or not yours', 404);
+  return ok(updated);
+}
+
 export async function DELETE(req: Request) {
   const { userId } = await auth();
   if (!userId) return fail('Unauthorized', 401);
