@@ -44,8 +44,10 @@ export async function generateMetadata(
     : 'https://haul-production.up.railway.app';
 
   const author = data?.author;
-  const ogTitle = author ? `${author} is comparing ${count} item${count !== 1 ? 's' : ''}` : title;
-  const ogDesc = `See the full comparison on Haul.`;
+  const ogTitle = author
+    ? `${author}'s picks. Help them decide!`
+    : `Check out these picks. Which one would you get?`;
+  const ogDesc = `See the full comparison and share your thoughts.`;
 
   return {
     title: `${title} | Haul`,
