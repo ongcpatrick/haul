@@ -28,7 +28,7 @@ export default function Home() {
               Get started, it&apos;s free
             </Link>
             <a
-              href="https://chrome.google.com/webstore"
+              href="https://haul-production.up.railway.app"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center px-7 py-3 rounded-full bg-white border border-[var(--border)] hover:border-[var(--primary)] text-[var(--text)] text-sm font-bold transition-colors"

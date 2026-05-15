@@ -38,7 +38,6 @@ export async function generateMetadata(
   const { id } = await params;
   const data = await fetchShare(id);
   const title = data?.title ?? 'Haul Comparison';
-  const count = data?.products?.length ?? 0;
   const base = process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
     : 'https://haul-production.up.railway.app';
@@ -71,6 +70,16 @@ function fmt(price: number | null) {
   return '$' + price.toFixed(2);
 }
 
+function safeHttpsUrl(value: string | null): string | null {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
 export default async function ViewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const data = await fetchShare(id);
@@ -96,7 +105,7 @@ export default async function ViewPage({ params }: { params: Promise<{ id: strin
               <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>Want to build your own comparison?</p>
               <p style={{ fontSize: 13, color: '#8a7e72' }}>Haul is a free Chrome extension. Save products from any site and compare in seconds.</p>
             </div>
-            <a href="https://chrome.google.com/webstore" target="_blank" rel="noopener"
+            <a href="/" target="_blank" rel="noopener"
               style={{ padding: '10px 22px', background: '#7a9e76', color: '#fff', fontSize: 13, fontWeight: 700, borderRadius: 10, textDecoration: 'none', whiteSpace: 'nowrap' as const }}>
               Get Haul Free →
             </a>
@@ -107,6 +116,7 @@ export default async function ViewPage({ params }: { params: Promise<{ id: strin
             {products.map((p) => {
               const hasDrop = p.originalPrice != null && p.price != null && p.originalPrice > p.price;
               const savings = hasDrop ? (p.originalPrice! - p.price!).toFixed(2) : null;
+              const sourceUrl = safeHttpsUrl(p.sourceUrl);
 
               return (
                 <div key={p.id} style={{ background: '#fff', border: '1px solid #e8e2d8', borderRadius: 18, overflow: 'hidden', width: 220, boxShadow: '0 2px 16px rgba(61,53,41,0.07)', display: 'flex', flexDirection: 'column' as const }}>
@@ -135,8 +145,8 @@ export default async function ViewPage({ params }: { params: Promise<{ id: strin
                     )}
 
                     <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
-                      {p.sourceUrl && (
-                        <a href={p.sourceUrl} target="_blank" rel="noopener"
+                      {sourceUrl && (
+                        <a href={sourceUrl} target="_blank" rel="noopener"
                           style={{ flex: 1, display: 'block', textAlign: 'center', padding: '9px 10px', background: '#7a9e76', color: '#fff', fontSize: 12, fontWeight: 700, borderRadius: 10, textDecoration: 'none' }}>
                           View →
                         </a>
@@ -152,8 +162,8 @@ export default async function ViewPage({ params }: { params: Promise<{ id: strin
                           sourceUrl: p.sourceUrl,
                           siteName: p.siteName,
                           category: p.category,
-                          savedAt: Date.now(),
                         })).toString('base64')}
+                        title="Requires Haul Chrome extension"
                         style={{ flex: 1, padding: '9px 10px', background: '#e8f0e6', color: '#5c8259', fontSize: 12, fontWeight: 700, borderRadius: 10, border: '1px solid #c5d9c2', cursor: 'pointer', fontFamily: 'inherit' }}>
                         + My Haul
                       </button>
@@ -162,6 +172,29 @@ export default async function ViewPage({ params }: { params: Promise<{ id: strin
                 </div>
               );
             })}
+          </div>
+          {/* Join CTA */}
+          <div style={{ marginTop: 48, background: '#fff', border: '1px solid #e8e2d8', borderRadius: 18, padding: '28px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' as const, boxShadow: '0 2px 16px rgba(61,53,41,0.07)' }}>
+            <div>
+              <p style={{ fontSize: 15, fontWeight: 800, marginBottom: 4 }}>
+                {author ? `Follow ${author} on Haul` : 'Create your own comparison'}
+              </p>
+              <p style={{ fontSize: 13, color: '#8a7e72' }}>
+                {author
+                  ? `See ${author}'s future hauls and share your own picks.`
+                  : 'Sign up free and start comparing products from any site.'}
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' as const }}>
+              <a href="/sign-up"
+                style={{ padding: '10px 20px', background: '#7a9e76', color: '#fff', fontSize: 13, fontWeight: 700, borderRadius: 10, textDecoration: 'none', whiteSpace: 'nowrap' as const }}>
+                Sign up free →
+              </a>
+              <a href="/feed"
+                style={{ padding: '10px 20px', background: '#e8f0e6', color: '#5c8259', fontSize: 13, fontWeight: 700, borderRadius: 10, textDecoration: 'none', whiteSpace: 'nowrap' as const, border: '1px solid #c5d9c2' }}>
+                Explore hauls
+              </a>
+            </div>
           </div>
         </main>
 

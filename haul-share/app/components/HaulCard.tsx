@@ -38,6 +38,8 @@ export default function HaulCard({ haul, currentUserId, onReact, onDelete }: Hau
   const [busy, setBusy] = useState<ReactionKey | null>(null);
   const [commentCount, setCommentCount] = useState(haul.comment_count ?? 0);
   const [deleting, setDeleting] = useState(false);
+  const [forking, setForking] = useState(false);
+  const [forked, setForked] = useState(false);
 
   const isOwn = !!currentUserId && haul.author.id === currentUserId;
 
@@ -64,14 +66,16 @@ export default function HaulCard({ haul, currentUserId, onReact, onDelete }: Hau
     setBusy(key);
     setMyReacts((prev) => {
       const next = new Set(prev);
-      isToggle ? next.delete(key) : next.add(key);
+      if (isToggle) next.delete(key);
+      else next.add(key);
       return next;
     });
     setCounts((prev) => ({ ...prev, [key]: Math.max(0, (prev[key] ?? 0) + (isToggle ? -1 : 1)) }));
     try { await onReact(haul.id, key); } catch {
       setMyReacts((prev) => {
         const next = new Set(prev);
-        isToggle ? next.add(key) : next.delete(key);
+        if (isToggle) next.add(key);
+        else next.delete(key);
         return next;
       });
       setCounts((prev) => ({ ...prev, [key]: Math.max(0, (prev[key] ?? 0) + (isToggle ? 1 : -1)) }));
@@ -85,6 +89,20 @@ export default function HaulCard({ haul, currentUserId, onReact, onDelete }: Hau
       const res = await fetch(`/api/hauls?id=${haul.id}`, { method: 'DELETE' });
       if (res.ok) onDelete?.(haul.id);
     } finally { setDeleting(false); }
+  };
+
+  const handleFork = async () => {
+    if (!currentUserId) { window.location.href = '/sign-in'; return; }
+    if (forked || forking) return;
+    setForking(true);
+    try {
+      const res = await fetch('/api/hauls', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ products: haul.products, title: haul.title, isPublic: true }),
+      });
+      if (res.ok) setForked(true);
+    } finally { setForking(false); }
   };
 
   return (
@@ -205,12 +223,18 @@ export default function HaulCard({ haul, currentUserId, onReact, onDelete }: Hau
           >
             View
           </Link>
-          <Link
-            href={viewHref}
-            className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[var(--primary)] text-white hover:bg-[var(--primary-h)] transition-colors"
+          <button
+            type="button"
+            onClick={handleFork}
+            disabled={forking || forked}
+            className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60 ${
+              forked
+                ? 'bg-green-500 text-white'
+                : 'bg-[var(--primary)] text-white hover:bg-[var(--primary-h)]'
+            }`}
           >
-            + Fork
-          </Link>
+            {forked ? 'Forked!' : forking ? 'Forking…' : '+ Fork'}
+          </button>
         </div>
       </div>
     </article>

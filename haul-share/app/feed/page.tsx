@@ -14,32 +14,36 @@ export default async function FeedPage() {
   const dbUserId = await getCurrentDbUserId();
   if (!dbUserId) redirect('/onboarding');
 
-  const initial = await loadFeed(dbUserId);
+  const { initial, hasFollows } = await loadFeed(dbUserId);
 
   return (
     <div className="max-w-xl mx-auto px-4 py-10">
       <header className="mb-6">
         <h1 className="text-2xl font-extrabold text-[var(--text)]">Feed</h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">Latest hauls from people you follow.</p>
+        <p className="mt-1 text-sm text-[var(--muted)]">
+          {hasFollows ? 'Latest hauls from people you follow.' : 'Discover hauls from the community.'}
+        </p>
       </header>
-      <FeedClient currentUserId={dbUserId} initialHauls={initial} />
+      <FeedClient currentUserId={dbUserId} initialHauls={initial} hasFollows={hasFollows} />
     </div>
   );
 }
 
-async function loadFeed(dbUserId: string): Promise<HaulWithAuthor[]> {
+async function loadFeed(dbUserId: string): Promise<{ initial: HaulWithAuthor[]; hasFollows: boolean }> {
   const follows = await sql<{ addressee_id: string }[]>`
     SELECT addressee_id FROM friendships
     WHERE requester_id = ${dbUserId} AND status = 'accepted'
   `;
   const followIds = follows.map((f) => f.addressee_id);
+  const hasFollows = followIds.length > 0;
 
   const hauls = await sql`
     SELECT * FROM hauls
     WHERE (user_id = ANY(${[dbUserId, ...followIds]}::uuid[])) AND is_public = true
     ORDER BY created_at DESC LIMIT 40
   `;
-  return enrichHauls(hauls as unknown as RawHaul[]);
+  const initial = await enrichHauls(hauls as unknown as RawHaul[]);
+  return { initial, hasFollows };
 }
 
 type RawHaul = { id: string; user_id: string; products: unknown; is_public: boolean; created_at: string; [k: string]: unknown };

@@ -22,6 +22,7 @@ const WORKER_BASE = 'https://haul-ai.haulapp.workers.dev';
 const PROXY_BASE  = `${WORKER_BASE}/proxy-image?url=`;
 // UPDATE if your Railway URL differs — check Railway dashboard → haul-share service.
 const HAUL_SHARE_BASE = 'https://haul-production.up.railway.app';
+const OWN_SHARE_TOKENS_KEY = 'haul_own_share_tokens_v1';
 
 function esc(str) {
   const d = document.createElement('div');
@@ -30,12 +31,45 @@ function esc(str) {
 }
 
 function safeUrl(url) {
-  return url && (url.startsWith('https://') || url.startsWith('http://')) ? url : null;
+  return url && url.startsWith('https://') ? url : null;
 }
 
 function formatPrice(price) {
   if (price == null) return 'N/A';
   return '$' + price.toFixed(2);
+}
+
+function sendRuntimeMessage(message) {
+  return new Promise((resolve) => chrome.runtime.sendMessage(message, resolve));
+}
+
+async function ensureCloudConsent(featureName) {
+  const existing = await sendRuntimeMessage({ type: 'GET_CLOUD_CONSENT' });
+  if (existing?.allowed) return true;
+
+  const accepted = confirm(
+    `Haul will send the products in this comparison to Haul's cloud services for ${featureName}. ` +
+    'Shared links and community posts can be viewed by anyone with the link. Continue?'
+  );
+  if (!accepted) return false;
+
+  await sendRuntimeMessage({ type: 'SET_CLOUD_CONSENT', allowed: true });
+  return true;
+}
+
+function getOwnShareTokens() {
+  try {
+    return JSON.parse(localStorage.getItem(OWN_SHARE_TOKENS_KEY) || '{}');
+  } catch {
+    return {};
+  }
+}
+
+function rememberShareToken(shareId, deleteToken) {
+  if (!shareId || !deleteToken) return;
+  const tokens = getOwnShareTokens();
+  tokens[shareId] = deleteToken;
+  localStorage.setItem(OWN_SHARE_TOKENS_KEY, JSON.stringify(tokens));
 }
 
 function getCategory(product) {
@@ -359,6 +393,7 @@ async function getShareUrl() {
     });
     const data = await res.json();
     if (!data.url) throw new Error('no url');
+    rememberShareToken(data.shareId, data.deleteToken);
     cachedShareUrl = data.url;
     cachedShareProducts = key;
     return cachedShareUrl;
@@ -370,6 +405,7 @@ async function getShareUrl() {
 async function shareComparison() {
   const products = filteredProducts();
   if (products.length === 0) return;
+  if (!await ensureCloudConsent('sharing')) return;
 
   shareModalBody.innerHTML = `<div class="share-generating"><div class="claude-spinner"></div>Generating link…</div>`;
   openShareModal();
@@ -485,25 +521,41 @@ function renderShareModalBody(shareUrl, products, extUsername) {
       });
       const data = await res.json();
       if (!data.url) throw new Error('no url');
+      rememberShareToken(data.shareId, data.deleteToken);
       cachedShareUrl = data.url;
       cachedShareProducts = products.map((p) => p.id).join(',');
       exploreLoaded = false;
 
       // If connected, also post to haul-share.com feed
       let feedPosted = false;
+      let feedFailReason = null;
       if (extUsername) {
         await new Promise((resolve) => {
           chrome.runtime.sendMessage({ type: 'POST_HAUL_TO_WEBSITE', products, title }, (res) => {
             feedPosted = !!res?.success;
+            feedFailReason = res?.reason ?? null;
             resolve();
           });
         });
       }
 
       if (extUsername && !feedPosted) {
-        communityPostBtn.textContent = 'Posted to Explore (feed failed, reconnect)';
-        communityPostBtn.style.background = '#c0392b';
-        communityPostBtn.style.color = '#fff';
+        if (feedFailReason === 'token_expired') {
+          communityPostBtn.textContent = 'Posted to Explore (session expired)';
+          communityPostBtn.style.background = '#c0392b';
+          communityPostBtn.style.color = '#fff';
+          // Show a reconnect button so the user can re-authenticate without hunting
+          const reconnectBtn = document.createElement('button');
+          reconnectBtn.textContent = 'Reconnect account →';
+          reconnectBtn.style.cssText = 'display:block;width:100%;margin-top:8px;padding:8px 14px;background:#fff;color:#c0392b;font-size:12px;font-weight:700;border:1.5px solid #c0392b;border-radius:8px;cursor:pointer;font-family:inherit;';
+          reconnectBtn.onclick = () => chrome.tabs.create({ url: `${HAUL_SHARE_BASE}/feed`, active: true });
+          communityPostBtn.insertAdjacentElement('afterend', reconnectBtn);
+          extUsername = null; // treat as disconnected until re-auth
+        } else {
+          communityPostBtn.textContent = 'Posted to Explore (feed unavailable)';
+          communityPostBtn.style.background = '#c0392b';
+          communityPostBtn.style.color = '#fff';
+        }
       } else {
         communityPostBtn.textContent = extUsername ? 'Posted to your feed + Explore!' : 'Posted to Explore!';
         communityPostBtn.style.background = 'var(--primary)';
@@ -526,6 +578,7 @@ function renderShareModalBody(shareUrl, products, extUsername) {
 async function quickShare(platform) {
   const products = filteredProducts();
   if (products.length === 0) return;
+  if (!await ensureCloudConsent('sharing')) return;
   const shareUrl = await getShareUrl() || '';
   const waText    = encodeURIComponent(`Check out my haul: ${shareUrl}`);
   const emailSubj = encodeURIComponent('My Haul Comparison');
@@ -559,7 +612,8 @@ if (sharedData) {
   try {
     const parsed = JSON.parse(decodeURIComponent(atob(sharedData)));
     if (!isValidProductArray(parsed)) throw new Error('Invalid shape');
-    allProducts = parsed;
+    allProducts = globalThis.HaulProductSchema?.sanitizeProducts(parsed, { maxCount: 25 }) || [];
+    if (allProducts.length === 0) throw new Error('Invalid products');
     document.getElementById('close-btn').style.display = 'none';
   } catch {
     document.getElementById('header-sub').textContent = 'Could not load shared data';
@@ -574,7 +628,6 @@ if (sharedData) {
       allFolders = res2?.folders || [];
       renderFilters();
       renderContent();
-      if (allProducts.length >= 2) fetchWinner();
     });
   });
 }
@@ -666,6 +719,7 @@ async function loadExplore() {
 
 function renderExploreGrid(hauls, extUsername, extToken) {
   const grid = document.getElementById('explore-grid');
+  const ownShareTokens = getOwnShareTokens();
   grid.innerHTML = '';
   hauls.forEach((haul, idx) => {
     const card = document.createElement('div');
@@ -680,7 +734,8 @@ function renderExploreGrid(hauls, extUsername, extToken) {
 
     const ago = timeAgo(haul.createdAt);
     const authorLine = haul.author ? `${esc(haul.author)} · ` : '';
-    const isOwn = extUsername && haul.author === extUsername;
+    const deleteToken = ownShareTokens[haul.id];
+    const isOwn = Boolean(deleteToken);
 
     const trashBtn = isOwn
       ? `<button class="explore-card-btn-icon delete-haul" title="Delete from community" aria-label="Delete">
@@ -731,7 +786,7 @@ function renderExploreGrid(hauls, extUsername, extToken) {
           const res = await fetch(`${WORKER_BASE}/delete-share`, {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ id: haul.id, author: extUsername }),
+            body: JSON.stringify({ id: haul.id, deleteToken }),
           });
           if (res.ok) {
             card.style.opacity = '0';
@@ -860,15 +915,6 @@ async function forkHaul(shareId, btn) {
   }
 }
 
-// ── Best Pick (silent background call) ──────────────────────────────────────
-
-function fetchWinner() {
-  chrome.runtime.sendMessage({ type: 'ASK_CLAUDE', products: allProducts }, (response) => {
-    if (chrome.runtime.lastError || !response?.success) return;
-    if (response.winner_id) { winnerId = response.winner_id; renderContent(); }
-  });
-}
-
 // ── Chat panel ───────────────────────────────────────────────────────────────
 
 const chatPanel      = document.getElementById('chat-panel');
@@ -910,7 +956,7 @@ chatDragHandle.addEventListener('mousedown', (e) => {
     document.body.style.transition = '';
     localStorage.setItem('haul_chat_width', String(panelWidth));
     if (!dragged) {
-      chatPanel.classList.contains('open') ? closeChat() : openChat();
+      chatPanel.classList.contains('open') ? closeChat() : void openChat();
     }
   }
 
@@ -920,7 +966,8 @@ chatDragHandle.addEventListener('mousedown', (e) => {
 
 // ── Open / close ────────────────────────────────────────────────────────────
 
-function openChat() {
+async function openChat() {
+  if (!await ensureCloudConsent('AI assistance')) return;
   chatPanel.classList.remove('closing');
   chatPanel.classList.add('open');
   document.body.classList.add('chat-open');
@@ -1034,7 +1081,6 @@ function addSuggestedProduct(newProduct) {
   cachedShareUrl = null;
   renderFilters();
   renderContent();
-  if (allProducts.length >= 2) fetchWinner();
 }
 
 function appendProductCards(products) {
@@ -1153,7 +1199,7 @@ chatInput.addEventListener('input', () => {
 
 claudeFab.addEventListener('click', () => {
   if (allProducts.length === 0) return;
-  openChat();
+  void openChat();
 });
 
 // ── Storage sync ────────────────────────────────────────────────────────────

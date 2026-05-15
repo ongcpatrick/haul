@@ -5,9 +5,10 @@ interface EmptyStateProps {
   description?: string;
   ctaLabel?: string;
   ctaHref?: string;
+  onCtaClick?: () => void;
 }
 
-export default function EmptyState({ title, description, ctaLabel, ctaHref }: EmptyStateProps) {
+export default function EmptyState({ title, description, ctaLabel, ctaHref, onCtaClick }: EmptyStateProps) {
   return (
     <div className="bg-white border border-[var(--border)] rounded-2xl p-10 text-center">
       <svg
@@ -24,13 +25,23 @@ export default function EmptyState({ title, description, ctaLabel, ctaHref }: Em
       {description && (
         <p className="mt-2 text-sm text-[var(--muted)] max-w-md mx-auto">{description}</p>
       )}
-      {ctaLabel && ctaHref && (
-        <Link
-          href={ctaHref}
-          className="mt-5 inline-flex items-center px-5 py-2.5 rounded-full bg-[var(--primary)] hover:bg-[var(--primary-h)] text-white text-sm font-semibold transition-colors"
-        >
-          {ctaLabel}
-        </Link>
+      {ctaLabel && (onCtaClick || ctaHref) && (
+        onCtaClick ? (
+          <button
+            type="button"
+            onClick={onCtaClick}
+            className="mt-5 inline-flex items-center px-5 py-2.5 rounded-full bg-[var(--primary)] hover:bg-[var(--primary-h)] text-white text-sm font-semibold transition-colors"
+          >
+            {ctaLabel}
+          </button>
+        ) : (
+          <Link
+            href={ctaHref!}
+            className="mt-5 inline-flex items-center px-5 py-2.5 rounded-full bg-[var(--primary)] hover:bg-[var(--primary-h)] text-white text-sm font-semibold transition-colors"
+          >
+            {ctaLabel}
+          </Link>
+        )
       )}
     </div>
   );

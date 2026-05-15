@@ -14,6 +14,7 @@ export default function Nav() {
         <nav className="hidden sm:flex items-center gap-1">
           <SignedIn>
             <NavLink href="/feed">Feed</NavLink>
+            <NavLink href="/people">People</NavLink>
             <NavLink href="/circles">Circles</NavLink>
           </SignedIn>
         </nav>
@@ -34,6 +35,12 @@ export default function Nav() {
             </Link>
           </SignedOut>
           <SignedIn>
+            <Link
+              href="/u/me"
+              className="hidden sm:flex items-center text-sm font-semibold text-[var(--text)] hover:text-[var(--primary)] px-3 py-2 rounded-full hover:bg-[var(--bg)] transition-colors"
+            >
+              Profile
+            </Link>
             <UserButton
               afterSignOutUrl="/"
               appearance={{
