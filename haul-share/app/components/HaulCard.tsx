@@ -5,6 +5,7 @@ import { useState } from 'react';
 import type { HaulWithAuthor } from '@/lib/types';
 import CommentDrawer from './CommentDrawer';
 
+const WORKER = 'https://haul-ai.haulapp.workers.dev';
 const REACTIONS = ['heart'] as const;
 type ReactionKey = (typeof REACTIONS)[number];
 
@@ -237,27 +238,36 @@ interface ThumbProps {
 }
 
 function ProductThumb({ product, showMore }: ThumbProps) {
-  const [failed, setFailed] = useState(false);
-  const initial = product.name.charAt(0).toUpperCase();
+  const [stage, setStage] = useState<'direct' | 'proxy' | 'failed'>('direct');
+  const proxyUrl = product.imageUrl
+    ? `${WORKER}/proxy-image?url=${encodeURIComponent(product.imageUrl)}`
+    : null;
+
+  const handleError = () => {
+    if (stage === 'direct' && proxyUrl) setStage('proxy');
+    else setStage('failed');
+  };
+
+  const src = stage === 'direct' ? product.imageUrl : stage === 'proxy' ? proxyUrl : null;
+  const showImg = src && stage !== 'failed';
 
   return (
     <div className="relative overflow-hidden bg-white flex items-center justify-center">
-      {product.imageUrl && !failed ? (
+      {showImg ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={product.imageUrl}
+          key={stage}
+          src={src}
           alt={product.name}
           className="w-full h-full object-contain p-3"
-          crossOrigin="anonymous"
-          referrerPolicy="no-referrer"
-          onError={() => setFailed(true)}
+          onError={handleError}
         />
       ) : (
-        <div className="flex flex-col items-center justify-center gap-1 px-2 text-center">
-          <div className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center font-bold text-lg text-[var(--muted)]">
-            {initial}
+        <div className="flex flex-col items-center justify-center gap-1.5 px-3 text-center">
+          <div className="w-11 h-11 rounded-full bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center font-bold text-xl text-[var(--muted)]">
+            {product.name.charAt(0).toUpperCase()}
           </div>
-          <span className="text-[10px] text-[var(--muted)] leading-tight line-clamp-2">{product.name}</span>
+          <span className="text-[10px] text-[var(--muted)] leading-snug line-clamp-3">{product.name}</span>
         </div>
       )}
       {showMore > 0 && (
