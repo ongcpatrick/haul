@@ -28,9 +28,20 @@ export async function POST(req: Request) {
     return ok({ reacted: false });
   }
 
-  await sql`
+  const [inserted] = await sql`
     INSERT INTO reactions (haul_id, user_id, emoji)
     VALUES (${body.haulId}, ${dbUserId}, ${body.emoji})
+    RETURNING haul_id
   `;
+
+  // Notify haul owner (fire-and-forget, skip self-reactions)
+  const [haul] = await sql`SELECT user_id FROM hauls WHERE id = ${inserted.haul_id} LIMIT 1`;
+  if (haul && haul.user_id !== dbUserId) {
+    sql`
+      INSERT INTO notifications (user_id, from_user_id, type, haul_id, body)
+      VALUES (${haul.user_id}, ${dbUserId}, 'reaction', ${inserted.haul_id}, ${body.emoji})
+    `.catch(() => {});
+  }
+
   return ok({ reacted: true });
 }

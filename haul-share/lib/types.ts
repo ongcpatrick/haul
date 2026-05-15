@@ -89,3 +89,15 @@ export type ApiResponse<T> = {
   data: T | null;
   error: string | null;
 };
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  from_user_id: string | null;
+  type: 'reaction' | 'comment' | 'follow' | 'fork';
+  haul_id: string | null;
+  body: string | null;
+  read: boolean;
+  created_at: string;
+  from_user?: Pick<User, 'id' | 'username' | 'display_name' | 'avatar_url'>;
+}

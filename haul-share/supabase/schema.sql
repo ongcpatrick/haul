@@ -78,11 +78,23 @@ CREATE INDEX IF NOT EXISTS idx_comments_haul ON comments(haul_id);
 CREATE TABLE IF NOT EXISTS extension_tokens (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  token VARCHAR(64) NOT NULL,
+  token_hash CHAR(64) NOT NULL,
   username VARCHAR(30) NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  expires_at TIMESTAMPTZ NOT NULL DEFAULT (now() + INTERVAL '30 days'),
+  expires_at TIMESTAMPTZ NOT NULL DEFAULT (now() + INTERVAL '7 days'),
   UNIQUE (user_id),
-  UNIQUE (token)
+  UNIQUE (token_hash)
 );
-CREATE INDEX IF NOT EXISTS idx_extension_tokens_token ON extension_tokens(token);
+CREATE INDEX IF NOT EXISTS idx_extension_tokens_token_hash ON extension_tokens(token_hash);
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id       UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  from_user_id  UUID REFERENCES users(id) ON DELETE SET NULL,
+  type          TEXT NOT NULL CHECK (type IN ('reaction', 'comment', 'follow', 'fork')),
+  haul_id       UUID REFERENCES hauls(id) ON DELETE CASCADE,
+  body          TEXT,
+  read          BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_unread ON notifications(user_id, read, created_at DESC);

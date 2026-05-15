@@ -30,6 +30,16 @@ export async function POST(req: Request) {
     RETURNING *
   `;
   const [user] = await sql`SELECT username, avatar_url FROM users WHERE id = ${dbUserId} LIMIT 1`;
+
+  // Notify haul owner (fire-and-forget, skip self-comments)
+  const [haul] = await sql`SELECT user_id FROM hauls WHERE id = ${haulId} LIMIT 1`;
+  if (haul && haul.user_id !== dbUserId) {
+    sql`
+      INSERT INTO notifications (user_id, from_user_id, type, haul_id, body)
+      VALUES (${haul.user_id}, ${dbUserId}, 'comment', ${haulId}, ${text.slice(0, 100)})
+    `.catch(() => {});
+  }
+
   return ok({ ...comment, author: user ?? { username: 'unknown', avatar_url: null } });
 }
 

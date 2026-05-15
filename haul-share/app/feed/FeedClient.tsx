@@ -5,6 +5,7 @@ import type { HaulWithAuthor } from '@/lib/types';
 import HaulCard from '@/app/components/HaulCard';
 import EmptyState from '@/app/components/EmptyState';
 import ErrorBoundary from '@/app/components/ErrorBoundary';
+import TrendingStrip from '@/app/components/TrendingStrip';
 
 type Tab = 'following' | 'explore';
 
@@ -20,6 +21,7 @@ export default function FeedClient({ currentUserId, initialHauls, hasFollows }: 
   const [exploreHauls, setExploreHauls] = useState<HaulWithAuthor[]>([]);
   const [exploreLoaded, setExploreLoaded] = useState(false);
   const [exploreLoading, setExploreLoading] = useState(false);
+  const [trendingHauls, setTrendingHauls] = useState<HaulWithAuthor[]>([]);
   const [query, setQuery] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -27,13 +29,19 @@ export default function FeedClient({ currentUserId, initialHauls, hasFollows }: 
     if (exploreLoaded) return;
     setExploreLoading(true);
     try {
-      const res = await fetch('/api/explore?limit=24');
-      if (!res.ok) return;
-      const json = await res.json();
-      if (json.success && Array.isArray(json.data)) {
-        setExploreHauls(json.data);
-        setExploreLoaded(true);
+      const [exploreRes, trendingRes] = await Promise.all([
+        fetch('/api/explore?limit=24'),
+        fetch('/api/explore?sort=trending&limit=6'),
+      ]);
+      if (exploreRes.ok) {
+        const json = await exploreRes.json();
+        if (json.success && Array.isArray(json.data)) setExploreHauls(json.data);
       }
+      if (trendingRes.ok) {
+        const json = await trendingRes.json();
+        if (json.success && Array.isArray(json.data)) setTrendingHauls(json.data);
+      }
+      setExploreLoaded(true);
     } finally {
       setExploreLoading(false);
     }
@@ -156,17 +164,22 @@ export default function FeedClient({ currentUserId, initialHauls, hasFollows }: 
           No hauls match &ldquo;{query}&rdquo;
         </p>
       ) : (
-        <div className="flex flex-col gap-5">
-          {filtered.map((h) => (
-            <HaulCard
-              key={h.id}
-              haul={h}
-              currentUserId={currentUserId}
-              onReact={handleReact}
-              onDelete={handleDelete}
-            />
-          ))}
-        </div>
+        <>
+          {tab === 'explore' && !query && trendingHauls.length > 0 && (
+            <TrendingStrip hauls={trendingHauls} />
+          )}
+          <div className="flex flex-col gap-5">
+            {filtered.map((h) => (
+              <HaulCard
+                key={h.id}
+                haul={h}
+                currentUserId={currentUserId}
+                onReact={handleReact}
+                onDelete={handleDelete}
+              />
+            ))}
+          </div>
+        </>
       )}
     </ErrorBoundary>
   );

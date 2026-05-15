@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
+import NotificationBell from './NotificationBell';
 
 export default function Nav() {
   return (
@@ -35,6 +36,7 @@ export default function Nav() {
             </Link>
           </SignedOut>
           <SignedIn>
+            <NotificationBell />
             <Link
               href="/u/me"
               className="hidden sm:flex items-center text-sm font-semibold text-[var(--text)] hover:text-[var(--primary)] px-3 py-2 rounded-full hover:bg-[var(--bg)] transition-colors"

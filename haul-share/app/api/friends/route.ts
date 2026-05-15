@@ -30,6 +30,13 @@ export async function POST(req: Request) {
     DO UPDATE SET status = 'accepted'
     RETURNING *
   `;
+
+  // Notify the person being followed (fire-and-forget)
+  sql`
+    INSERT INTO notifications (user_id, from_user_id, type, body)
+    VALUES (${body.targetUserId}, ${dbUserId}, 'follow', 'followed you')
+  `.catch(() => {});
+
   return ok({ following: true, friendship });
 }
 
