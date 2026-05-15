@@ -90,6 +90,28 @@ export type ApiResponse<T> = {
   error: string | null;
 };
 
+export interface Conversation {
+  id: string;
+  type: 'direct' | 'group';
+  name: string | null;
+  created_by: string | null;
+  created_at: string;
+  members: Pick<User, 'id' | 'username' | 'display_name' | 'avatar_url'>[];
+  last_message: { body: string | null; haul_id: string | null; sender_username: string | null; created_at: string } | null;
+  unread_count: number;
+}
+
+export interface Message {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  body: string | null;
+  haul_id: string | null;
+  created_at: string;
+  sender: Pick<User, 'id' | 'username' | 'display_name' | 'avatar_url'>;
+  haul?: HaulWithAuthor | null;
+}
+
 export interface Notification {
   id: string;
   user_id: string;
