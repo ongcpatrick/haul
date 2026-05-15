@@ -378,6 +378,8 @@ export default function MessagesClient({ currentUserId, initialActiveId }: Props
 
 // ── New DM / Group Chat creation modal ──────────────────────────────────────
 
+type UserResult = { id: string; username: string; display_name: string | null; avatar_url: string | null };
+
 interface NewDMModalProps {
   currentUserId: string;
   onClose: () => void;
@@ -386,49 +388,77 @@ interface NewDMModalProps {
 
 function NewDMModal({ currentUserId, onClose, onCreated }: NewDMModalProps) {
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<{ id: string; username: string; display_name: string | null; avatar_url: string | null }[]>([]);
-  const [selected, setSelected] = useState<typeof results>([]);
+  const [results, setResults] = useState<UserResult[]>([]);
+  const [selected, setSelected] = useState<UserResult[]>([]);
   const [groupName, setGroupName] = useState('');
   const [creating, setCreating] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!query.trim()) { setResults([]); return; }
     const t = setTimeout(async () => {
       setSearching(true);
-      const res = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`);
-      if (res.ok) {
-        const json = await res.json();
-        if (json.success) setResults(json.data.filter((u: { id: string }) => u.id !== currentUserId));
+      try {
+        const res = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success) setResults(json.data.filter((u: UserResult) => u.id !== currentUserId));
+        }
+      } catch { /* noop */ } finally {
+        setSearching(false);
       }
-      setSearching(false);
     }, 300);
     return () => clearTimeout(t);
   }, [query, currentUserId]);
 
-  const toggle = (user: typeof results[number]) => {
-    setSelected((prev) => prev.some((u) => u.id === user.id) ? prev.filter((u) => u.id !== user.id) : [...prev, user]);
+  const openChat = async (userIds: string[], name?: string) => {
+    if (creating) return;
+    setCreating(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ userIds, name: name ?? null }),
+      });
+      const text = await res.text();
+      let json: { success: boolean; data?: { id: string }; error?: string };
+      try { json = JSON.parse(text); } catch { throw new Error('Server error'); }
+      if (!json.success || !json.data) throw new Error(json.error ?? 'Failed to create conversation');
+      onCreated(json.data.id);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Something went wrong');
+      setCreating(false);
+    }
   };
 
-  const create = async () => {
-    if (!selected.length || creating) return;
-    setCreating(true);
-    const res = await fetch('/api/messages', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        userIds: selected.map((u) => u.id),
-        name: selected.length > 1 ? (groupName.trim() || null) : null,
-      }),
-    });
-    const json = await res.json();
-    setCreating(false);
-    if (json.success) onCreated(json.data.id);
+  const toggle = (user: UserResult) => {
+    const isSelected = selected.some((u) => u.id === user.id);
+    if (isSelected) {
+      setSelected((prev) => prev.filter((u) => u.id !== user.id));
+      return;
+    }
+    const next = [...selected, user];
+    setSelected(next);
+    // 1-on-1: immediately open the chat
+    if (next.length === 1) {
+      setQuery('');
+      openChat([user.id]);
+    }
   };
+
+  const startGroup = () => openChat(selected.map((u) => u.id), groupName.trim() || undefined);
+
+  const isGroup = selected.length >= 2;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex items-center gap-3 px-4 py-4 border-b border-[var(--border)]">
           <button type="button" onClick={onClose} className="p-1 text-[var(--muted)] hover:text-[var(--text)]">
@@ -437,101 +467,116 @@ function NewDMModal({ currentUserId, onClose, onCreated }: NewDMModalProps) {
             </svg>
           </button>
           <h2 className="font-bold text-[var(--text)] flex-1 text-center">New message</h2>
-          <button
-            type="button"
-            onClick={create}
-            disabled={!selected.length || creating}
-            className="text-sm font-bold text-[var(--primary)] disabled:opacity-40"
-          >
-            {creating ? '...' : 'Next'}
-          </button>
+          <div className="w-8" />
         </div>
 
-        {/* Selected chips */}
-        {selected.length > 0 && (
-          <div className="flex flex-wrap gap-2 px-4 pt-3">
+        {/* To: row — chips + search input */}
+        <div className="px-4 pt-3 pb-2 border-b border-[var(--border)]">
+          <div className="flex flex-wrap items-center gap-1.5 min-h-[36px]">
+            <span className="text-sm font-semibold text-[var(--muted)]">To:</span>
             {selected.map((u) => (
               <button
                 key={u.id}
                 type="button"
-                onClick={() => toggle(u)}
-                className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full border border-[var(--primary)] text-[var(--primary)] bg-white"
+                onClick={() => setSelected((prev) => prev.filter((x) => x.id !== u.id))}
+                className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[var(--primary)] text-white text-xs font-semibold"
               >
                 {u.username}
-                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <svg className="w-3 h-3 opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M18 6 6 18M6 6l12 12" />
                 </svg>
               </button>
             ))}
+            <input
+              ref={inputRef}
+              type="text"
+              placeholder={selected.length === 0 ? 'Search people...' : 'Add more...'}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              autoFocus
+              className="flex-1 min-w-[100px] text-sm text-[var(--text)] placeholder:text-[var(--muted)] outline-none bg-transparent py-1"
+            />
           </div>
-        )}
+        </div>
 
-        {/* Group name (shown when 2+ selected) */}
-        {selected.length >= 2 && (
-          <div className="px-4 pt-2">
+        {/* Group name field */}
+        {isGroup && (
+          <div className="px-4 pt-2 pb-1">
             <input
               type="text"
               placeholder="Group name (optional)"
               value={groupName}
               onChange={(e) => setGroupName(e.target.value)}
-              className="w-full text-sm px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--bg)] text-[var(--text)] outline-none focus:border-[var(--primary)]"
+              className="w-full text-sm px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-[var(--text)] outline-none focus:border-[var(--primary)]"
             />
           </div>
         )}
 
-        {/* Search */}
-        <div className="px-4 pt-3">
-          <div className="flex items-center gap-2 border-b border-[var(--border)] pb-2">
-            <span className="text-sm font-semibold text-[var(--text)]">To:</span>
-            <input
-              type="text"
-              placeholder="Search..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              autoFocus
-              className="flex-1 text-sm text-[var(--text)] placeholder:text-[var(--muted)] outline-none bg-transparent"
-            />
-          </div>
-        </div>
+        {/* Error */}
+        {error && <p className="mx-4 mt-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
 
-        {/* Results */}
-        <div className="max-h-64 overflow-y-auto">
-          {searching ? (
+        {/* Search results */}
+        <div className="max-h-60 overflow-y-auto">
+          {creating && selected.length === 1 ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="w-6 h-6 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : searching ? (
             <div className="flex justify-center py-6">
               <div className="w-5 h-5 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
             </div>
-          ) : results.map((u) => {
-            const isSelected = selected.some((s) => s.id === u.id);
-            return (
-              <button
-                key={u.id}
-                type="button"
-                onClick={() => toggle(u)}
-                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[var(--bg)] transition-colors"
-              >
-                {u.avatar_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={u.avatar_url} alt="" className="w-9 h-9 rounded-full border border-[var(--border)] object-cover" />
-                ) : (
-                  <div className="w-9 h-9 rounded-full bg-[var(--primary)] flex items-center justify-center text-white font-bold text-sm">
-                    {u.username[0]?.toUpperCase()}
-                  </div>
-                )}
-                <div className="flex-1 text-left">
-                  <p className="text-sm font-semibold text-[var(--text)]">{u.display_name ?? u.username}</p>
-                  <p className="text-xs text-[var(--muted)]">@{u.username}</p>
-                </div>
-                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? 'bg-[var(--primary)] border-[var(--primary)]' : 'border-[var(--border)]'}`}>
-                  {isSelected && (
-                    <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                      <path d="M20 6 9 17l-5-5" />
-                    </svg>
+          ) : query.trim() && results.length === 0 && !searching ? (
+            <p className="text-center text-sm text-[var(--muted)] py-6">No people found</p>
+          ) : (
+            results.map((u) => {
+              const isSelected = selected.some((s) => s.id === u.id);
+              return (
+                <button
+                  key={u.id}
+                  type="button"
+                  onClick={() => toggle(u)}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg)] transition-colors"
+                >
+                  {u.avatar_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={u.avatar_url} alt="" className="w-10 h-10 rounded-full border border-[var(--border)] object-cover flex-shrink-0" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-[var(--primary)] flex items-center justify-center text-white font-bold flex-shrink-0">
+                      {u.username[0]?.toUpperCase()}
+                    </div>
                   )}
-                </div>
-              </button>
-            );
-          })}
+                  <div className="flex-1 text-left min-w-0">
+                    <p className="text-sm font-semibold text-[var(--text)] truncate">{u.display_name ?? u.username}</p>
+                    <p className="text-xs text-[var(--muted)]">@{u.username}</p>
+                  </div>
+                  {isGroup && (
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${isSelected ? 'bg-[var(--primary)] border-[var(--primary)]' : 'border-[var(--border)]'}`}>
+                      {isSelected && (
+                        <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                          <path d="M20 6 9 17l-5-5" />
+                        </svg>
+                      )}
+                    </div>
+                  )}
+                </button>
+              );
+            })
+          )}
         </div>
+
+        {/* Start group button */}
+        {isGroup && (
+          <div className="px-4 pb-4 pt-2">
+            <button
+              type="button"
+              onClick={startGroup}
+              disabled={creating}
+              className="w-full py-3 rounded-2xl bg-[var(--primary)] text-white font-bold text-sm disabled:opacity-60 hover:bg-[var(--primary-h)] transition-colors"
+            >
+              {creating ? 'Creating...' : `Start group chat (${selected.length} people)`}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
