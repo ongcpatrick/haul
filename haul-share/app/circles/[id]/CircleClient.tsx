@@ -43,6 +43,12 @@ export default function CircleClient({ circle, members, initialHauls, currentUse
     } catch { /* noop */ }
   };
 
+  const openPanel = (): void => {
+    window.postMessage({ type: 'HAUL_OPEN_PANEL', source: 'haul-web' }, '*');
+    // Also show the modal as fallback if extension is not installed
+    setShowModal(true);
+  };
+
   const compareInExtension = (): void => {
     const allProductIds = hauls.flatMap((h) => (Array.isArray(h.products) ? h.products : []).map((p) => p.id));
     window.location.href = `haul://compare?ids=${allProductIds.join(',')}`;
@@ -98,7 +104,7 @@ export default function CircleClient({ circle, members, initialHauls, currentUse
           <div className="mt-4 flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={() => setShowModal(true)}
+              onClick={openPanel}
               className="flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--primary)] hover:bg-[var(--primary-h)] text-white text-sm font-semibold"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -129,7 +135,7 @@ export default function CircleClient({ circle, members, initialHauls, currentUse
               <p className="mt-1 text-sm text-[var(--muted)] max-w-xs">Be the first — post one of your hauls so the group can weigh in.</p>
               <button
                 type="button"
-                onClick={() => setShowModal(true)}
+                onClick={openPanel}
                 className="mt-6 flex items-center gap-2 px-6 py-3 rounded-full bg-[var(--primary)] hover:bg-[var(--primary-h)] text-white font-semibold text-sm"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">

@@ -18,6 +18,12 @@
     .catch(() => {});
 })();
 
+window.addEventListener('message', (event) => {
+  'use strict';
+  if (event.source !== window || event.data?.type !== 'HAUL_OPEN_PANEL') return;
+  chrome.runtime.sendMessage({ type: 'OPEN_SIDE_PANEL' });
+});
+
 document.addEventListener('click', (event) => {
   'use strict';
 
