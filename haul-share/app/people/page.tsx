@@ -61,6 +61,7 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
             {connected === 'facebook' && 'Facebook connected — we\'ve suggested your Facebook friends below.'}
             {connected === 'twitter' && 'X (Twitter) connected — your handle is now on your profile.'}
             {connected === 'instagram' && 'Instagram connected — your IG handle is visible on your profile.'}
+            {connected === 'apple' && 'Apple ID connected — your Apple account is linked to your Haul profile.'}
           </p>
         </div>
       )}

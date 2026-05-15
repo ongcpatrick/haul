@@ -52,7 +52,7 @@ export interface Circle {
 export interface SocialConnection {
   id: string;
   user_id: string;
-  platform: 'facebook' | 'twitter' | 'instagram';
+  platform: 'facebook' | 'twitter' | 'instagram' | 'apple';
   platform_user_id: string;
   platform_username: string | null;
   connected_at: string;

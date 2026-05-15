@@ -2,7 +2,7 @@
 CREATE TABLE IF NOT EXISTS social_connections (
   id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id             UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  platform            TEXT NOT NULL CHECK (platform IN ('facebook', 'twitter', 'instagram')),
+  platform            TEXT NOT NULL CHECK (platform IN ('facebook', 'twitter', 'instagram', 'apple')),
   platform_user_id    TEXT NOT NULL,
   platform_username   TEXT,
   encrypted_token     TEXT,
