@@ -3,6 +3,8 @@ import { getCurrentDbUserId } from '@/lib/supabase-server';
 import { fail, ok, readJson } from '@/lib/api';
 import sql from '@/lib/db';
 import type { Product } from '@/lib/types';
+import { getUserIdFromExtensionToken } from '@/lib/extension-auth';
+import { cleanTitle, sanitizeProducts } from '@/lib/product-validation';
 
 interface CreateHaulBody {
   shareId?: string | null;
@@ -12,21 +14,9 @@ interface CreateHaulBody {
   circleId?: string | null;
 }
 
-async function getUserIdFromToken(req: Request): Promise<string | null> {
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) return null;
-  const token = authHeader.slice(7).trim();
-  const [row] = await sql<{ user_id: string }[]>`
-    SELECT user_id FROM extension_tokens
-    WHERE token = ${token} AND expires_at > now()
-    LIMIT 1
-  `;
-  return (row?.user_id as string) ?? null;
-}
-
 export async function POST(req: Request) {
   // Accept either a Bearer extension token or a Clerk browser session.
-  let dbUserId: string | null = await getUserIdFromToken(req);
+  let dbUserId: string | null = await getUserIdFromExtensionToken(req);
 
   if (!dbUserId) {
     const { userId } = await auth();
@@ -37,6 +27,9 @@ export async function POST(req: Request) {
 
   const body = await readJson<CreateHaulBody>(req);
   if (!body || !Array.isArray(body.products)) return fail('Invalid body');
+  const products = sanitizeProducts(body.products);
+  if (!products) return fail('Invalid products');
+  const title = cleanTitle(body.title);
 
   if (body.circleId) {
     const [member] = await sql`
@@ -51,8 +44,8 @@ export async function POST(req: Request) {
     VALUES (
       ${dbUserId},
       ${body.shareId ?? null},
-      ${body.title ?? null},
-      ${JSON.stringify(body.products)}::jsonb,
+      ${title},
+      ${JSON.stringify(products)}::jsonb,
       ${body.isPublic ?? true},
       ${body.circleId ?? null}
     )

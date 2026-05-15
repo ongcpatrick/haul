@@ -65,7 +65,8 @@ python3 scripts/generate_icons.py
 | Target.com | ✅ Supported |
 | Best Buy | ✅ Supported |
 | Zara.com | ✅ Supported |
-| Any site | ⚡ Generic fallback (may have partial data) |
+| Other supported retail domains | ⚡ Generic fallback (may have partial data) |
+| Any site | 🔒 Optional access only; users must grant broader site access |
 
 ---
 
@@ -122,12 +123,13 @@ haul-extension/
 
 ## Privacy Policy
 
-Haul does not collect, transmit, or store any personal data on external servers.
+Haul stores saved products locally by default and uses cloud services only for user-facing cloud features.
 
-- All saved products are stored locally in your browser using `chrome.storage.local`
-- No account is required
-- No data leaves your browser
-- Haul only reads product information from pages you explicitly visit while the extension is active
+- AI assistance sends the products in your comparison and recent chat messages to the Haul Cloudflare Worker and Anthropic.
+- Sharing and Explore send selected product comparisons to the Haul Cloudflare Worker so share pages can be generated.
+- Account posting sends selected product comparisons to the Haul web app hosted on Railway.
+- Haul asks for consent before AI and sharing features send comparison data to cloud services.
+- Haul no longer requests required access to every website; broad site access is optional for unsupported shops.
 
 Full privacy policy: [github.com/ongcpatrick/haul/blob/main/PRIVACY.md]
 

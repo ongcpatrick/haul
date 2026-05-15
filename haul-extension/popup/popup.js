@@ -1,7 +1,7 @@
 // Haul popup — v0.4 premium UI
 
 function safeUrl(url) {
-  return url && (url.startsWith('https://') || url.startsWith('http://')) ? url : null;
+  return url && url.startsWith('https://') ? url : null;
 }
 
 function formatPrice(price) {

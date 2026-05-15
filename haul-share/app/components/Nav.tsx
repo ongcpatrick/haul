@@ -37,16 +37,6 @@ export default function Nav() {
             </Link>
           </SignedOut>
           <SignedIn>
-            {/* Create haul button */}
-            <Link
-              href="/create"
-              aria-label="Create haul"
-              className="hidden sm:flex items-center justify-center w-9 h-9 rounded-full border-2 border-[var(--primary)] text-[var(--primary)] hover:bg-[var(--primary)] hover:text-white transition-colors"
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-            </Link>
             <NotificationBell />
             <Link
               href="/u/me"

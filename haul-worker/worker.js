@@ -1,10 +1,20 @@
+import {
+  enforceRateLimit,
+  getClientIp,
+  hashSecret,
+  isAllowedProxyUrl,
+  sanitizeHttpsUrl,
+  sanitizeMessages,
+  sanitizeOptionalText,
+  sanitizePrice,
+  sanitizeProducts,
+} from './security.mjs';
+
 // Haul AI Worker — Cloudflare Worker proxy between the extension and Anthropic.
 // The ANTHROPIC_API_KEY is stored as a Wrangler secret (never in extension code).
 //
 // Endpoints:
 //   GET  /proxy-image?url=<encoded>              → proxied image bytes
-//   POST /categorize  { name, siteName }         → { category }
-//   POST /advise      { products: [...] }         → { winner_id, summary, insights }
 //   POST /chat        { products, messages }      → { message, suggestedProducts? }
 //   POST /share       { products, title? }        → { shareId, url }
 //   GET  /view/:id                               → HTML friend-view page
@@ -13,9 +23,9 @@ const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 const MODEL = 'claude-haiku-4-5-20251001';
 
 const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': 'https://haul-production.up.railway.app',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
 export default {
@@ -51,11 +61,19 @@ export default {
       return jsonResponse({ error: 'Method not allowed' }, 405);
     }
 
+    try {
+      await enforceEndpointRateLimit(request, env, url.pathname);
+    } catch (error) {
+      return jsonResponse(
+        { error: error.message || 'Rate limit exceeded' },
+        error.status || 429,
+        error.retryAfter ? { 'Retry-After': String(error.retryAfter) } : {}
+      );
+    }
+
     const body = await request.json().catch(() => null);
     if (!body) return jsonResponse({ error: 'Invalid JSON' }, 400);
 
-    if (url.pathname === '/categorize') return handleCategorize(body, env);
-    if (url.pathname === '/advise') return handleAdvise(body, env);
     if (url.pathname === '/chat') return handleChat(body, env);
     if (url.pathname === '/share') return handleShare(body, env, url);
     if (url.pathname === '/fork') return handleFork(body, env);
@@ -64,19 +82,39 @@ export default {
   },
 };
 
+async function enforceEndpointRateLimit(request, env, pathname) {
+  const ip = getClientIp(request);
+  const policies = {
+    '/chat': { limit: 20, windowSeconds: 600 },
+    '/share': { limit: 30, windowSeconds: 600 },
+    '/fork': { limit: 60, windowSeconds: 600 },
+    '/delete-share': { limit: 30, windowSeconds: 600 },
+  };
+  const policy = policies[pathname] || { limit: 60, windowSeconds: 600 };
+  await enforceRateLimit(env, `${pathname}:${ip}`, policy);
+}
+
 // ─── Image proxy ──────────────────────────────────────────────────────────────
 
 async function handleProxyImage(url) {
   const target = url.searchParams.get('url');
-  if (!target || !/^https?:\/\//.test(target)) {
+  if (!target || !isAllowedProxyUrl(target)) {
     return new Response('Bad url', { status: 400, headers: CORS_HEADERS });
   }
   try {
     const res = await fetch(target, {
       headers: { 'Referer': new URL(target).origin, 'User-Agent': 'Mozilla/5.0' },
+      signal: AbortSignal.timeout(5000),
     });
     if (!res.ok) return new Response('Not found', { status: 404, headers: CORS_HEADERS });
     const contentType = res.headers.get('content-type') || 'image/jpeg';
+    const contentLength = Number(res.headers.get('content-length') || 0);
+    if (!contentType.startsWith('image/')) {
+      return new Response('Unsupported media type', { status: 415, headers: CORS_HEADERS });
+    }
+    if (contentLength > 5 * 1024 * 1024) {
+      return new Response('Image too large', { status: 413, headers: CORS_HEADERS });
+    }
     return new Response(res.body, {
       status: 200,
       headers: { ...CORS_HEADERS, 'content-type': contentType, 'cache-control': 'public, max-age=86400' },
@@ -86,102 +124,13 @@ async function handleProxyImage(url) {
   }
 }
 
-// ─── Claude helper ────────────────────────────────────────────────────────────
-
-async function callClaude(env, maxTokens, content) {
-  const res = await fetch(ANTHROPIC_URL, {
-    method: 'POST',
-    headers: {
-      'x-api-key': env.ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01',
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: maxTokens,
-      messages: [{ role: 'user', content }],
-    }),
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error?.message || `Claude API error ${res.status}`);
-  }
-
-  const data = await res.json();
-  return (data.content?.[0]?.text || '').trim();
-}
-
-// ─── /categorize ──────────────────────────────────────────────────────────────
-
-const VALID_CATEGORIES = [
-  'Electronics', 'Clothing', 'Footwear', 'Home',
-  'Beauty', 'Sports', 'Toys', 'Books', 'Food', 'Other',
-];
-
-async function handleCategorize({ name, siteName }, env) {
-  if (!name) return jsonResponse({ error: 'name required' }, 400);
-
-  const text = await callClaude(
-    env,
-    20,
-    `Categorize this product. Reply with ONLY one word from: ${VALID_CATEGORIES.join(', ')}.\nProduct: "${String(name).slice(0, 120)}", Site: "${siteName || ''}"`
-  ).catch(() => 'Other');
-
-  return jsonResponse({ category: VALID_CATEGORIES.includes(text) ? text : 'Other' });
-}
-
-// ─── /advise ──────────────────────────────────────────────────────────────────
-
-async function handleAdvise({ products }, env) {
-  if (!Array.isArray(products) || products.length === 0) {
-    return jsonResponse({ error: 'products array required' }, 400);
-  }
-
-  const list = products.map((p) => {
-    const price = p.price != null ? `$${Number(p.price).toFixed(2)}` : 'unknown';
-    const sale =
-      p.originalPrice && p.price && p.originalPrice > p.price
-        ? ` (was $${Number(p.originalPrice).toFixed(2)}, ${Math.round((1 - p.price / p.originalPrice) * 100)}% off)`
-        : '';
-    return `ID:${p.id} | ${String(p.name).slice(0, 80)} | ${price}${sale} | ${p.siteName || ''} | ${p.category || '?'}`;
-  }).join('\n');
-
-  const text = await callClaude(
-    env,
-    400,
-    `You are a direct shopping advisor. Reply ONLY with valid JSON — no markdown, no extra text:
-{"winner_id":"exact product ID of the best buy","summary":"2-3 direct sentences: name the winner, explain why it wins, call out anything overpriced","insights":["one-line observation","one-line observation","one-line observation"]}
-
-Products:
-${list}`
-  );
-
-  let parsed;
-  try {
-    const cleaned = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
-    parsed = JSON.parse(cleaned);
-  } catch {
-    const match = text.match(/\{[\s\S]*\}/);
-    if (!match) return jsonResponse({ error: 'Claude returned unparseable response' }, 502);
-    try {
-      parsed = JSON.parse(match[0]);
-    } catch {
-      return jsonResponse({ error: 'Claude returned unparseable response' }, 502);
-    }
-  }
-
-  const validIds = new Set(products.map((p) => p.id));
-  if (!validIds.has(parsed.winner_id)) parsed.winner_id = null;
-
-  return jsonResponse(parsed);
-}
-
 // ─── /chat ────────────────────────────────────────────────────────────────────
 
 async function fetchOgImage(url) {
+  const safeUrl = sanitizeHttpsUrl(url);
+  if (!safeUrl) return null;
   try {
-    const res = await fetch(url, {
+    const res = await fetch(safeUrl, {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Haul/1.0; +https://haulapp.workers.dev)' },
       redirect: 'follow',
       signal: AbortSignal.timeout(4000),
@@ -193,19 +142,26 @@ async function fetchOgImage(url) {
             || html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i);
     if (!m) return null;
     const src = m[1];
-    return src.startsWith('//') ? 'https:' + src : src;
+    return sanitizeHttpsUrl(src.startsWith('//') ? `https:${src}` : src);
   } catch {
     return null;
   }
 }
 
 async function handleChat({ products, messages }, env) {
-  if (!Array.isArray(products) || products.length === 0)
-    return jsonResponse({ error: 'products array required' }, 400);
-  if (!Array.isArray(messages) || messages.length === 0)
-    return jsonResponse({ error: 'messages array required' }, 400);
+  let safeProducts;
+  let safeMessages;
+  try {
+    safeProducts = sanitizeProducts(products, { maxCount: 25 });
+    safeMessages = sanitizeMessages(messages, { maxCount: 20, maxLength: 500 });
+  } catch (error) {
+    return jsonResponse({ error: error.message || 'Invalid payload' }, 400);
+  }
+  if (!env.ANTHROPIC_API_KEY) {
+    return jsonResponse({ error: 'ANTHROPIC_API_KEY not configured' }, 500);
+  }
 
-  const list = products.map((p) => {
+  const list = safeProducts.map((p) => {
     const price = p.price != null ? `$${Number(p.price).toFixed(2)}` : 'unknown';
     const sale = p.originalPrice && p.price && p.originalPrice > p.price
       ? ` (was $${Number(p.originalPrice).toFixed(2)}, ${Math.round((1 - p.price / p.originalPrice) * 100)}% off)` : '';
@@ -222,8 +178,6 @@ async function handleChat({ products, messages }, env) {
     `Use direct product page URLs (not search result pages). Up to 4 products. Omit priceRaw if unknown.\n\n` +
     `For non-search questions: plain text only, max 80 words, no em dashes.`;
 
-  const trimmedMessages = messages.slice(-20).map((m) => ({ role: m.role, content: String(m.content).slice(0, 500) }));
-
   const res = await fetch(ANTHROPIC_URL, {
     method: 'POST',
     headers: {
@@ -237,7 +191,7 @@ async function handleChat({ products, messages }, env) {
       max_tokens: 1500,
       system: systemPrompt,
       tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-      messages: trimmedMessages,
+      messages: safeMessages,
     }),
   });
 
@@ -257,6 +211,7 @@ async function handleChat({ products, messages }, env) {
   if (prodMatch) {
     try { suggestedProducts = JSON.parse(prodMatch[1]); } catch { /* ignore */ }
   }
+  suggestedProducts = sanitizeSuggestedProducts(suggestedProducts);
 
   // Fetch og:image for each product in parallel so cards show real photos
   if (suggestedProducts.length) {
@@ -274,6 +229,22 @@ async function handleChat({ products, messages }, env) {
     : fullText.replace(/<products>[\s\S]*?<\/products>/, '').trim();
 
   return jsonResponse({ message, ...(suggestedProducts.length ? { suggestedProducts } : {}) });
+}
+
+function sanitizeSuggestedProducts(products) {
+  if (!Array.isArray(products)) return [];
+  return products.slice(0, 4).map((product) => {
+    const name = sanitizeOptionalText(product?.name, 240);
+    const url = sanitizeHttpsUrl(product?.url);
+    if (!name || !url) return null;
+    return {
+      name,
+      price: sanitizeOptionalText(product?.price, 40),
+      priceRaw: sanitizePrice(product?.priceRaw),
+      url,
+      siteName: sanitizeOptionalText(product?.siteName, 80) || new URL(url).hostname.replace(/^www\./, ''),
+    };
+  }).filter(Boolean);
 }
 
 // ─── /api/:id ─────────────────────────────────────────────────────────────────
@@ -296,21 +267,34 @@ function randomId() {
   return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
 }
 
+function randomSecret(bytes = 32) {
+  const values = new Uint8Array(bytes);
+  crypto.getRandomValues(values);
+  return Array.from(values, (value) => value.toString(16).padStart(2, '0')).join('');
+}
+
 async function handleShare({ products, title, author, isPublic }, env) {
-  if (!Array.isArray(products) || products.length === 0) {
-    return jsonResponse({ error: 'products array required' }, 400);
-  }
   if (!env.HAUL_SHARES) {
     return jsonResponse({ error: 'KV not configured' }, 500);
   }
+  let safeProducts;
+  try {
+    safeProducts = sanitizeProducts(products, { maxCount: 25 });
+  } catch (error) {
+    return jsonResponse({ error: error.message || 'products array required' }, 400);
+  }
 
   const shareId = randomId();
-  const safeAuthor = author ? String(author).slice(0, 40) : null;
+  const deleteToken = randomSecret();
+  const deleteTokenHash = await hashSecret(deleteToken);
+  const safeTitle = sanitizeOptionalText(title, 120);
+  const safeAuthor = sanitizeOptionalText(author, 40);
   const payload = JSON.stringify({
-    products,
-    title: title || null,
+    products: safeProducts,
+    title: safeTitle,
     author: safeAuthor,
     isPublic: Boolean(isPublic),
+    deleteTokenHash,
     createdAt: Date.now(),
   });
   await env.HAUL_SHARES.put(shareId, payload, { expirationTtl: 60 * 60 * 24 * 30 });
@@ -318,16 +302,16 @@ async function handleShare({ products, title, author, isPublic }, env) {
   if (isPublic) {
     await addToFeed(env, {
       id: shareId,
-      title: title || 'Haul Comparison',
+      title: safeTitle || 'Haul Comparison',
       author: safeAuthor,
-      productCount: products.length,
-      imageUrls: products.slice(0, 3).map((p) => p.imageUrl).filter(Boolean),
+      productCount: safeProducts.length,
+      imageUrls: safeProducts.slice(0, 3).map((p) => p.imageUrl).filter(Boolean),
       createdAt: Date.now(),
     });
   }
 
   const haulShareBase = env.HAUL_SHARE_URL || 'https://haul-production.up.railway.app';
-  return jsonResponse({ shareId, url: `${haulShareBase}/view/${shareId}` });
+  return jsonResponse({ shareId, deleteToken, url: `${haulShareBase}/view/${shareId}` });
 }
 
 // ─── /feed ────────────────────────────────────────────────────────────────────
@@ -356,13 +340,14 @@ async function addToFeed(env, entry) {
 // ─── /fork ────────────────────────────────────────────────────────────────────
 
 async function handleFork({ id }, env) {
-  if (!id) return jsonResponse({ error: 'id required' }, 400);
+  const safeId = sanitizeOptionalText(id, 32);
+  if (!safeId) return jsonResponse({ error: 'id required' }, 400);
   if (!env.HAUL_SHARES) return jsonResponse({ error: 'KV not configured' }, 500);
-  const raw = await env.HAUL_SHARES.get(id).catch(() => null);
+  const raw = await env.HAUL_SHARES.get(safeId).catch(() => null);
   if (!raw) return jsonResponse({ error: 'Not found' }, 404);
   try {
     const { products } = JSON.parse(raw);
-    return jsonResponse({ products: products || [] });
+    return jsonResponse({ products: sanitizeProducts(products || [], { maxCount: 25 }) });
   } catch {
     return jsonResponse({ error: 'Corrupt data' }, 500);
   }
@@ -370,16 +355,20 @@ async function handleFork({ id }, env) {
 
 // ─── /delete-share ────────────────────────────────────────────────────────────
 
-async function handleDeleteShare({ id, author }, env) {
-  if (!id || !author) return jsonResponse({ error: 'id and author required' }, 400);
+async function handleDeleteShare({ id, deleteToken }, env) {
+  const safeId = sanitizeOptionalText(id, 32);
+  if (!safeId || !deleteToken) return jsonResponse({ error: 'id and deleteToken required' }, 400);
   if (!env.HAUL_SHARES) return jsonResponse({ error: 'KV not configured' }, 500);
 
-  const raw = await env.HAUL_SHARES.get(id).catch(() => null);
+  const raw = await env.HAUL_SHARES.get(safeId).catch(() => null);
   if (!raw) return jsonResponse({ error: 'Not found' }, 404);
 
   try {
     const haul = JSON.parse(raw);
-    if (haul.author !== author) return jsonResponse({ error: 'Not yours' }, 403);
+    const providedHash = await hashSecret(deleteToken);
+    if (!haul.deleteTokenHash || providedHash !== haul.deleteTokenHash) {
+      return jsonResponse({ error: 'Not yours' }, 403);
+    }
   } catch {
     return jsonResponse({ error: 'Corrupt data' }, 500);
   }
@@ -388,12 +377,12 @@ async function handleDeleteShare({ id, author }, env) {
   const feedRaw = await env.HAUL_SHARES.get('_feed').catch(() => null);
   if (feedRaw) {
     try {
-      const feed = JSON.parse(feedRaw).filter((e) => e.id !== id);
+      const feed = JSON.parse(feedRaw).filter((e) => e.id !== safeId);
       await env.HAUL_SHARES.put('_feed', JSON.stringify(feed), { expirationTtl: 60 * 60 * 24 * 90 });
     } catch { /* ignore */ }
   }
 
-  await env.HAUL_SHARES.delete(id).catch(() => null);
+  await env.HAUL_SHARES.delete(safeId).catch(() => null);
   return jsonResponse({ success: true });
 }
 
@@ -517,9 +506,9 @@ function esc(str) {
 
 // ─── Util ─────────────────────────────────────────────────────────────────────
 
-function jsonResponse(data, status = 200) {
+function jsonResponse(data, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { ...CORS_HEADERS, 'content-type': 'application/json' },
+    headers: { ...CORS_HEADERS, ...extraHeaders, 'content-type': 'application/json' },
   });
 }

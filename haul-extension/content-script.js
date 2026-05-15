@@ -170,8 +170,13 @@
           reject(new Error(chrome.runtime.lastError.message));
           return;
         }
+        const safeProduct = globalThis.HaulProductSchema?.sanitizeProduct(product);
+        if (!safeProduct) {
+          reject(new Error('Invalid product'));
+          return;
+        }
         const existing = result[STORAGE_KEY] || [];
-        const updated = [product, ...existing];
+        const updated = [safeProduct, ...existing];
         chrome.storage.local.set({ [STORAGE_KEY]: updated }, () => {
           if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
           else resolve(updated.length);
@@ -255,53 +260,3 @@
   });
   observer.observe(document.body, { childList: true, subtree: true });
 })();
-
-// ── haul-share.com: auto-connect extension token ──────────────────────────────
-// When user visits haul-share, silently fetch an extension token using their
-// existing Clerk session and store it in the extension for API calls.
-(function autoConnectToken() {
-  const HAUL_SHARE_HOSTS = ['haul-production.up.railway.app'];
-  if (!HAUL_SHARE_HOSTS.some((h) => window.location.hostname === h)) return;
-  fetch('/api/extension/token', { credentials: 'include' })
-    .then((r) => (r.ok ? r.json() : null))
-    .then((data) => {
-      if (data?.data?.token && data?.data?.username) {
-        chrome.runtime.sendMessage({
-          type: 'SET_EXT_TOKEN',
-          token: data.data.token,
-          username: data.data.username,
-        });
-      }
-    })
-    .catch(() => {});
-})();
-
-// ── haul-share.com: "Add to My Haul" handler ─────────────────────────────────
-// The view page renders buttons with data-haul-import="<base64 JSON>".
-// This content script (runs on all URLs) handles those clicks.
-
-const HAUL_SHARE_IMPORT_HOSTS = ['haul-production.up.railway.app'];
-if (HAUL_SHARE_IMPORT_HOSTS.some((h) => window.location.hostname === h)) {
-  document.addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-haul-import]');
-    if (!btn) return;
-    const raw = btn.dataset.haulImport;
-    if (!raw) return;
-    try {
-      const product = JSON.parse(atob(raw));
-      btn.disabled = true;
-      const original = btn.textContent;
-      btn.textContent = 'Saving…';
-      chrome.runtime.sendMessage({ type: 'IMPORT_PRODUCTS', products: [product] }, (res) => {
-        if (chrome.runtime.lastError || !res?.success) {
-          btn.disabled = false;
-          btn.textContent = original;
-          return;
-        }
-        btn.textContent = 'Saved!';
-        btn.style.background = '#7a9e76';
-        btn.style.color = '#fff';
-      });
-    } catch { /* ignore malformed data */ }
-  });
-}

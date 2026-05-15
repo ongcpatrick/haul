@@ -42,22 +42,23 @@ export default function HaulCard({ haul, currentUserId, onReact, onDelete }: Hau
   const [forked, setForked] = useState(false);
 
   const isOwn = !!currentUserId && haul.author.id === currentUserId;
+  const safeProducts = Array.isArray(haul.products) ? haul.products : [];
 
-  const prices = haul.products.map((p) => p.price).filter((p): p is number => p != null);
+  const prices = safeProducts.map((p) => p.price).filter((p): p is number => p != null);
   const minPrice = prices.length ? Math.min(...prices) : null;
   const maxPrice = prices.length ? Math.max(...prices) : null;
   const priceRange = minPrice != null
     ? minPrice === maxPrice ? fmt(minPrice) : `${fmt(minPrice)} – ${fmt(maxPrice!)}`
     : null;
 
-  const totalSavings = haul.products.reduce((sum, p) => {
+  const totalSavings = safeProducts.reduce((sum, p) => {
     if (p.originalPrice != null && p.price != null && p.originalPrice > p.price)
       return sum + (p.originalPrice - p.price);
     return sum;
   }, 0);
 
-  const thumbs = haul.products.slice(0, 3);
-  const remaining = haul.products.length - thumbs.length;
+  const thumbs = safeProducts.slice(0, 3);
+  const remaining = safeProducts.length - thumbs.length;
   const viewHref = haul.share_id ? `/view/${haul.share_id}` : `/u/${haul.author.username}`;
 
   const handleReact = async (key: ReactionKey) => {
@@ -174,7 +175,7 @@ export default function HaulCard({ haul, currentUserId, onReact, onDelete }: Hau
             {haul.title ?? 'Untitled haul'}
           </h3>
           <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--muted)]">
-            <span>{haul.products.length} item{haul.products.length !== 1 ? 's' : ''}</span>
+            <span>{safeProducts.length} item{safeProducts.length !== 1 ? 's' : ''}</span>
             {priceRange && <span className="font-semibold text-[var(--text)]">{priceRange}</span>}
             {totalSavings > 0 && (
               <span className="font-semibold text-[var(--price)] bg-[var(--price-bg,#fef3c7)] px-2 py-0.5 rounded-full">

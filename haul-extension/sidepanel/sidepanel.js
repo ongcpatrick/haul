@@ -14,7 +14,7 @@ function esc(str) {
 }
 
 function safeUrl(url) {
-  return url && (url.startsWith('https://') || url.startsWith('http://')) ? url : null;
+  return url && url.startsWith('https://') ? url : null;
 }
 
 function formatPrice(price) {

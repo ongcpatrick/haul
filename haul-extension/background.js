@@ -1,10 +1,12 @@
 // Haul background service worker.
 // Storage is inlined here to avoid importScripts failures in MV3 service workers.
+importScripts('lib/product-schema.js');
 
 const STORAGE_KEY = 'haul_products';
 const FOLDERS_KEY = 'haul_folders';
 const EXT_TOKEN_KEY = 'haul_ext_token';
 const EXT_USERNAME_KEY = 'haul_ext_username';
+const CLOUD_CONSENT_KEY = 'haul_cloud_consent_v1';
 
 // ─── Haul Worker config ───────────────────────────────────────────────────────
 const HAUL_WORKER_URL = 'https://haul-ai.haulapp.workers.dev';
@@ -12,11 +14,8 @@ const HAUL_WORKER_URL = 'https://haul-ai.haulapp.workers.dev';
 // ─── Haul Share config ────────────────────────────────────────────────────────
 // UPDATE to your actual Railway URL (check Railway dashboard → your haul-share service).
 const HAUL_SHARE_BASE = 'https://haul-production.up.railway.app';
-
-const VALID_CATEGORIES = [
-  'Electronics', 'Clothing', 'Footwear', 'Home', 'Beauty',
-  'Sports', 'Toys', 'Books', 'Food', 'Other',
-];
+const HAUL_SHARE_HOST = new URL(HAUL_SHARE_BASE).hostname;
+const EXTENSION_ORIGIN = chrome.runtime.getURL('').slice(0, -1);
 
 // ─── Storage ──────────────────────────────────────────────────────────────────
 
@@ -57,18 +56,6 @@ function clearAll() {
     chrome.storage.local.set({ [STORAGE_KEY]: [] }, () => {
       if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
       else resolve();
-    });
-  });
-}
-
-function patchProduct(id, fields) {
-  return getProducts().then((products) => {
-    const updated = products.map((p) => p.id === id ? { ...p, ...fields } : p);
-    return new Promise((resolve, reject) => {
-      chrome.storage.local.set({ [STORAGE_KEY]: updated }, () => {
-        if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
-        else resolve(updated);
-      });
     });
   });
 }
@@ -156,105 +143,56 @@ function setExtToken(token, username) {
   });
 }
 
-async function refreshTokenViaTab() {
+function clearExtToken() {
   return new Promise((resolve) => {
-    chrome.tabs.create({ url: `${HAUL_SHARE_BASE}/feed`, active: false }, (tab) => {
-      // Give the content script time to run and send SET_EXT_TOKEN, then close the tab.
-      setTimeout(() => {
-        chrome.tabs.remove(tab.id, () => {});
-        resolve();
-      }, 4000);
-    });
+    chrome.storage.local.remove([EXT_TOKEN_KEY, EXT_USERNAME_KEY], resolve);
   });
+}
+
+function getSenderUrl(sender) {
+  return sender?.url || sender?.tab?.url || '';
+}
+
+function senderIsHaulShare(sender) {
+  try {
+    return new URL(getSenderUrl(sender)).hostname === HAUL_SHARE_HOST;
+  } catch {
+    return false;
+  }
+}
+
+function senderIsExtensionPage(sender) {
+  try {
+    return new URL(getSenderUrl(sender)).origin === EXTENSION_ORIGIN;
+  } catch {
+    return false;
+  }
+}
+
+function sanitizeProductsForCloud(products) {
+  return globalThis.HaulProductSchema.sanitizeProducts(products, { maxCount: 25 });
 }
 
 async function postHaulToWebsite(products, title) {
   const { token } = await getExtToken();
   if (!token) return { success: false, reason: 'not_connected' };
   try {
+    const safeProducts = sanitizeProductsForCloud(products);
+    const safeTitle = globalThis.HaulProductSchema.cleanText(title || 'My Haul', 120) || 'My Haul';
     let res = await fetch(`${HAUL_SHARE_BASE}/api/hauls`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify({ products, title, isPublic: true }),
+      body: JSON.stringify({ products: safeProducts, title: safeTitle, isPublic: true }),
     });
     if (res.status === 401) {
-      // Token expired — silently refresh via background tab then retry once.
-      await refreshTokenViaTab();
-      const { token: newToken } = await getExtToken();
-      if (!newToken) return { success: false, reason: 'token_expired' };
-      res = await fetch(`${HAUL_SHARE_BASE}/api/hauls`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${newToken}` },
-        body: JSON.stringify({ products, title, isPublic: true }),
-      });
+      await clearExtToken();
+      return { success: false, reason: 'token_expired' };
     }
     if (!res.ok) return { success: false, reason: `server_error_${res.status}` };
     const data = await res.json();
     return { success: true, data };
   } catch {
     return { success: false, reason: 'network_error' };
-  }
-}
-
-// ─── Worker health check ──────────────────────────────────────────────────────
-
-function workerReady() {
-  return !HAUL_WORKER_URL.includes('YOUR_SUBDOMAIN');
-}
-
-// ─── AI via Haul Worker ───────────────────────────────────────────────────────
-
-const categorizingIds = new Set();
-
-async function categorizeProduct(product) {
-  if (!workerReady()) return null;
-  if (categorizingIds.has(product.id)) return null;
-  categorizingIds.add(product.id);
-
-  try {
-    const res = await fetch(`${HAUL_WORKER_URL}/categorize`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ name: product.name, siteName: product.siteName }),
-    });
-    if (!res.ok) return null;
-    const { category } = await res.json();
-    return VALID_CATEGORIES.includes(category) ? category : null;
-  } catch {
-    return null;
-  } finally {
-    categorizingIds.delete(product.id);
-  }
-}
-
-async function callClaudeAdvise(products) {
-  if (!workerReady()) {
-    throw new Error('Deploy the Haul Worker first — see haul-worker/wrangler.toml for instructions.');
-  }
-
-  const res = await fetch(`${HAUL_WORKER_URL}/advise`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ products }),
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || `Worker error ${res.status}`);
-  }
-
-  return res.json();
-}
-
-async function categorizePendingProducts() {
-  if (!workerReady()) return;
-  const products = await getProducts();
-  const pending = products.filter((p) => !p.category && !categorizingIds.has(p.id));
-  for (const p of pending) {
-    const category = await categorizeProduct(p);
-    if (category) {
-      await patchProduct(p.id, { category }).catch(() => {});
-    }
   }
 }
 
@@ -277,22 +215,12 @@ function updateBadge(count) {
 chrome.storage.onChanged.addListener((changes) => {
   if (!changes[STORAGE_KEY]) return;
   const newList = changes[STORAGE_KEY].newValue || [];
-  const oldList = changes[STORAGE_KEY].oldValue || [];
   updateBadge(newList.length);
-
-  const oldIds = new Set(oldList.map((p) => p.id));
-  const added = newList.filter((p) => !oldIds.has(p.id) && !p.category);
-  for (const p of added) {
-    categorizeProduct(p).then((cat) => {
-      if (cat) patchProduct(p.id, { category: cat }).catch(() => {});
-    });
-  }
 });
 
-// On startup: update badge + categorize any uncategorized products.
+// On startup: update badge.
 getProducts().then((products) => {
   updateBadge(products.length);
-  categorizePendingProducts();
 });
 
 // ─── Action click → open side panel ──────────────────────────────────────────
@@ -307,8 +235,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (!message || typeof message.type !== 'string') return false;
 
   if (message.type === 'SAVE_PRODUCT') {
-    const product = message.product;
-    if (!product || typeof product !== 'object' || typeof product.id !== 'string') {
+    const product = globalThis.HaulProductSchema.sanitizeProduct(message.product);
+    if (!product) {
       sendResponse({ success: false, error: 'Invalid product' });
       return false;
     }
@@ -357,21 +285,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return false;
   }
 
-  if (message.type === 'ASK_CLAUDE') {
-    const products = message.products;
-    if (!Array.isArray(products) || products.length === 0) {
-      sendResponse({ success: false, error: 'No products to analyze.' });
-      return false;
-    }
-    callClaudeAdvise(products)
-      .then((result) => sendResponse({ success: true, ...result }))
-      .catch((err) => sendResponse({ success: false, error: String(err) }));
-    return true;
-  }
-
   if (message.type === 'IMPORT_PRODUCTS') {
-    const incoming = message.products;
-    if (!Array.isArray(incoming) || incoming.length === 0) {
+    const incoming = globalThis.HaulProductSchema.sanitizeProducts(message.products, { maxCount: 25 });
+    if (incoming.length === 0) {
       sendResponse({ success: false, error: 'No products to import.' });
       return false;
     }
@@ -395,15 +311,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === 'ASK_CLAUDE_CHAT') {
-    const { products, messages } = message;
-    if (!Array.isArray(products) || !Array.isArray(messages)) {
+    let products;
+    if (!Array.isArray(message.messages)) {
       sendResponse({ success: false, error: 'Invalid payload.' });
+      return false;
+    }
+    try {
+      products = sanitizeProductsForCloud(message.products);
+    } catch (err) {
+      sendResponse({ success: false, error: err.message || 'Invalid products.' });
       return false;
     }
     fetch(`${HAUL_WORKER_URL}/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ products, messages }),
+      body: JSON.stringify({ products, messages: message.messages }),
     })
       .then(async (r) => {
         const data = await r.json().catch(() => ({}));
@@ -458,13 +380,40 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.type === 'SET_EXT_TOKEN') {
     const { token, username } = message;
-    if (!token || !username) { sendResponse({ success: false }); return false; }
-    setExtToken(token, username).then(() => sendResponse({ success: true, username }));
+    const safeUsername = globalThis.HaulProductSchema.cleanIdentifier(username, 30);
+    if (!senderIsHaulShare(sender) || !/^[a-f0-9]{64}$/i.test(token) || !safeUsername) {
+      sendResponse({ success: false });
+      return false;
+    }
+    setExtToken(token, safeUsername).then(() => sendResponse({ success: true, username: safeUsername }));
     return true;
   }
 
   if (message.type === 'GET_EXT_TOKEN') {
+    if (!senderIsExtensionPage(sender)) {
+      sendResponse({ token: null, username: null });
+      return false;
+    }
     getExtToken().then(({ token, username }) => sendResponse({ token, username }));
+    return true;
+  }
+
+  if (message.type === 'CLEAR_EXT_TOKEN') {
+    clearExtToken().then(() => sendResponse({ success: true }));
+    return true;
+  }
+
+  if (message.type === 'GET_CLOUD_CONSENT') {
+    chrome.storage.local.get([CLOUD_CONSENT_KEY], (result) => {
+      sendResponse({ allowed: result[CLOUD_CONSENT_KEY] === true });
+    });
+    return true;
+  }
+
+  if (message.type === 'SET_CLOUD_CONSENT') {
+    chrome.storage.local.set({ [CLOUD_CONSENT_KEY]: Boolean(message.allowed) }, () => {
+      sendResponse({ success: !chrome.runtime.lastError });
+    });
     return true;
   }
 

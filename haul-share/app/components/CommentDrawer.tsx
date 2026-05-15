@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 
 interface Comment {
@@ -36,13 +37,16 @@ export default function CommentDrawer({ haulId, initialCount, isLoggedIn, onCoun
 
   useEffect(() => {
     if (!open) return;
-    setLoading(true);
+    let cancelled = false;
     fetch(`/api/comments?haulId=${haulId}`)
       .then((r) => r.json())
       .then((d) => {
-        if (d.success) setComments(Array.isArray(d.data) ? d.data : []);
+        if (!cancelled && d.success) setComments(Array.isArray(d.data) ? d.data : []);
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
   }, [open, haulId]);
 
   useEffect(() => {
@@ -74,11 +78,18 @@ export default function CommentDrawer({ haulId, initialCount, isLoggedIn, onCoun
     }
   };
 
+  const openDrawer = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setLoading(true);
+    setOpen(true);
+  };
+
   return (
     <>
       <button
         type="button"
-        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(true); }}
+        onClick={openDrawer}
         className="ml-auto flex items-center gap-1.5 text-xs text-[var(--muted)] hover:text-[var(--primary)] transition-colors"
         aria-label="View comments"
       >
@@ -161,9 +172,9 @@ export default function CommentDrawer({ haulId, initialCount, isLoggedIn, onCoun
               </form>
             ) : (
               <div className="px-5 py-4 border-t border-[var(--border)] text-center">
-                <a href="/sign-in" className="text-sm text-[var(--primary)] font-semibold hover:underline">
+                <Link href="/sign-in" className="text-sm text-[var(--primary)] font-semibold hover:underline">
                   Sign in to comment
-                </a>
+                </Link>
               </div>
             )}
           </div>

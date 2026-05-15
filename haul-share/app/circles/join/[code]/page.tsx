@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { auth } from '@clerk/nextjs/server';
 import { getCurrentDbUserId } from '@/lib/supabase-server';
 import sql from '@/lib/db';
@@ -28,7 +29,7 @@ export default async function CircleJoinPage({ params }: Props) {
         <div className="text-center max-w-sm">
           <h1 className="text-2xl font-bold mb-2">Invalid invite link</h1>
           <p className="text-gray-500 mb-6">This invite link is invalid or has expired.</p>
-          <a href="/circles" className="text-sm text-indigo-600 hover:underline">Browse your circles</a>
+          <Link href="/circles" className="text-sm text-indigo-600 hover:underline">Browse your circles</Link>
         </div>
       </main>
     );
