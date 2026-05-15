@@ -5,7 +5,6 @@ import { useState } from 'react';
 import type { HaulWithAuthor } from '@/lib/types';
 import CommentDrawer from './CommentDrawer';
 
-const WORKER = 'https://haul-ai.haulapp.workers.dev';
 const REACTIONS = ['heart'] as const;
 type ReactionKey = (typeof REACTIONS)[number];
 
@@ -147,27 +146,17 @@ export default function HaulCard({ haul, currentUserId, onReact, onDelete }: Hau
 
       {/* Product image collage */}
       <Link href={viewHref} className="block">
-        <div className={`grid gap-0.5 bg-[var(--bg)] ${thumbs.length === 1 ? 'grid-cols-1' : thumbs.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`} style={{ height: 220 }}>
-          {thumbs.map((p, i) => (
-            <div key={p.id} className="relative overflow-hidden bg-white flex items-center justify-center">
-              {p.imageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={`${WORKER}/proxy-image?url=${encodeURIComponent(p.imageUrl)}`}
-                  alt={p.name}
-                  className="w-full h-full object-contain p-3"
-                />
-              ) : (
-                <span className="text-xs text-[var(--muted)]">No image</span>
-              )}
-              {i === 2 && remaining > 0 && (
-                <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-bold text-xl">
-                  +{remaining}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+        {thumbs.length === 0 ? (
+          <div className="bg-[var(--bg)] flex items-center justify-center" style={{ height: 180 }}>
+            <span className="text-sm text-[var(--muted)]">No preview</span>
+          </div>
+        ) : (
+          <div className={`grid gap-0.5 bg-[var(--bg)] ${thumbs.length === 1 ? 'grid-cols-1' : thumbs.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`} style={{ height: 220 }}>
+            {thumbs.map((p, i) => (
+              <ProductThumb key={p.id} product={p} showMore={i === 2 ? remaining : 0} />
+            ))}
+          </div>
+        )}
 
         {/* Title + meta */}
         <div className="px-4 pt-3 pb-2">
@@ -239,5 +228,43 @@ export default function HaulCard({ haul, currentUserId, onReact, onDelete }: Hau
         </div>
       </div>
     </article>
+  );
+}
+
+interface ThumbProps {
+  product: { id: string; name: string; imageUrl: string | null; siteName: string };
+  showMore: number;
+}
+
+function ProductThumb({ product, showMore }: ThumbProps) {
+  const [failed, setFailed] = useState(false);
+  const initial = product.name.charAt(0).toUpperCase();
+
+  return (
+    <div className="relative overflow-hidden bg-white flex items-center justify-center">
+      {product.imageUrl && !failed ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={product.imageUrl}
+          alt={product.name}
+          className="w-full h-full object-contain p-3"
+          crossOrigin="anonymous"
+          referrerPolicy="no-referrer"
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <div className="flex flex-col items-center justify-center gap-1 px-2 text-center">
+          <div className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center font-bold text-lg text-[var(--muted)]">
+            {initial}
+          </div>
+          <span className="text-[10px] text-[var(--muted)] leading-tight line-clamp-2">{product.name}</span>
+        </div>
+      )}
+      {showMore > 0 && (
+        <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-bold text-xl">
+          +{showMore}
+        </div>
+      )}
+    </div>
   );
 }

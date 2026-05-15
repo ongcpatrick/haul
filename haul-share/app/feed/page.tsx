@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { auth } from '@clerk/nextjs/server';
 import { getCurrentDbUserId } from '@/lib/supabase-server';
 import sql from '@/lib/db';
-import type { HaulWithAuthor, User } from '@/lib/types';
+import type { HaulWithAuthor, Product, User } from '@/lib/types';
 import FeedClient from './FeedClient';
 
 export const dynamic = 'force-dynamic';
@@ -48,6 +48,17 @@ async function loadFeed(dbUserId: string): Promise<{ initial: HaulWithAuthor[]; 
 
 type RawHaul = { id: string; user_id: string; products: unknown; is_public: boolean; created_at: string; [k: string]: unknown };
 
+function parseProducts(raw: unknown): Product[] {
+  if (Array.isArray(raw)) return raw as Product[];
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed as Product[] : [];
+    } catch { return []; }
+  }
+  return [];
+}
+
 export async function enrichHauls(hauls: RawHaul[]): Promise<HaulWithAuthor[]> {
   if (hauls.length === 0) return [];
 
@@ -77,7 +88,7 @@ export async function enrichHauls(hauls: RawHaul[]): Promise<HaulWithAuthor[]> {
 
   return hauls.map((h) => ({
     ...(h as unknown as HaulWithAuthor),
-    products: Array.isArray(h.products) ? h.products : [],
+    products: parseProducts(h.products),
     author: userMap.get(h.user_id) ?? { id: h.user_id, username: 'unknown', display_name: null, avatar_url: null },
     reaction_counts: reactionCounts.get(h.id) ?? {},
     comment_count: commentCounts.get(h.id) ?? 0,
