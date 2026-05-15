@@ -43,7 +43,19 @@ export interface Circle {
   description: string | null;
   created_by: string;
   invite_code: string;
+  is_private: boolean;
+  cover_color: string;
+  member_count: number;
   created_at: string;
+}
+
+export interface SocialConnection {
+  id: string;
+  user_id: string;
+  platform: 'facebook' | 'twitter' | 'instagram';
+  platform_user_id: string;
+  platform_username: string | null;
+  connected_at: string;
 }
 
 export interface CircleMember {

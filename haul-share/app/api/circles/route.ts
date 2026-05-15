@@ -6,6 +6,8 @@ import { getUserIdFromExtensionToken } from '@/lib/extension-auth';
 interface CreateCircleBody {
   name?: string;
   description?: string | null;
+  isPrivate?: boolean;
+  coverColor?: string;
 }
 
 export async function POST(req: Request) {
@@ -23,9 +25,11 @@ export async function POST(req: Request) {
   }
   if (name.length > 60) return fail('Name too long');
 
+  const coverColor = /^#[0-9a-fA-F]{6}$/.test(body.coverColor ?? '') ? body.coverColor! : '#6366f1';
+
   const [circle] = await sql`
-    INSERT INTO circles (name, description, created_by)
-    VALUES (${name}, ${body.description ?? null}, ${dbUserId})
+    INSERT INTO circles (name, description, created_by, is_private, cover_color)
+    VALUES (${name}, ${body.description ?? null}, ${dbUserId}, ${body.isPrivate ?? true}, ${coverColor})
     RETURNING *
   `;
   if (!circle) return fail('Failed to create circle', 500);

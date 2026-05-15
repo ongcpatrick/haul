@@ -16,8 +16,9 @@ export default function Nav() {
           <SignedIn>
             <NavLink href="/feed">Feed</NavLink>
             <NavLink href="/people">People</NavLink>
-            <NavLink href="/circles">Circles</NavLink>
+            <NavLink href="/circles">Groups</NavLink>
             <NavLink href="/messages">Messages</NavLink>
+            <NavLink href="/connect">Connect</NavLink>
           </SignedIn>
         </nav>
 

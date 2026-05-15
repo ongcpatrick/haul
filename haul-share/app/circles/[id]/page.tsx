@@ -4,6 +4,7 @@ import { getCurrentDbUserId } from '@/lib/supabase-server';
 import sql from '@/lib/db';
 import type { Circle, CircleMember, HaulWithAuthor, User } from '@/lib/types';
 import CircleClient from './CircleClient';
+import GroupGate from './GroupGate';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,13 +27,39 @@ export default async function CirclePage({ params }: Params) {
     SELECT circle_id, user_id, role, joined_at FROM circle_members WHERE circle_id = ${id}
   `;
   const isMember = memberRows.some((m) => m.user_id === dbUserId);
-  if (!isMember) redirect('/circles');
+
+  // Non-member gate: show join CTA instead of content
+  if (!isMember) {
+    // Check if they already have a pending request
+    const [existingRequest] = await sql`
+      SELECT status FROM circle_requests WHERE circle_id = ${id} AND user_id = ${dbUserId}
+    `.catch(() => [null]);
+
+    const memberIds = memberRows.slice(0, 5).map((m) => m.user_id);
+    const previewUsers = memberIds.length
+      ? await sql`SELECT id, username, avatar_url FROM users WHERE id = ANY(${memberIds}::uuid[])`
+      : [];
+
+    return (
+      <GroupGate
+        circle={circle as unknown as Circle & { is_private: boolean; cover_color: string; member_count: number }}
+        memberCount={memberRows.length}
+        previewMembers={previewUsers as unknown as Pick<User, 'id' | 'username' | 'avatar_url'>[]}
+        pendingRequest={existingRequest?.status === 'pending'}
+        currentUserId={dbUserId}
+      />
+    );
+  }
 
   const memberIds = memberRows.map((m) => m.user_id);
 
   const [users, hauls] = await Promise.all([
     sql`SELECT id, username, display_name, avatar_url FROM users WHERE id = ANY(${memberIds}::uuid[])`,
-    sql`SELECT * FROM hauls WHERE circle_id = ${id} ORDER BY created_at DESC LIMIT 60`,
+    sql`
+      SELECT * FROM hauls
+      WHERE circle_id = ${id}
+      ORDER BY created_at DESC LIMIT 60
+    `,
   ]);
 
   const userMap = new Map<string, Pick<User, 'id' | 'username' | 'display_name' | 'avatar_url'>>();
@@ -73,6 +100,7 @@ export default async function CirclePage({ params }: Params) {
 
   const enrichedHauls: HaulWithAuthor[] = hauls.map((h) => ({
     ...(h as unknown as HaulWithAuthor),
+    products: Array.isArray(h.products) ? h.products : [],
     author: userMap.get(h.user_id as string) ?? { id: h.user_id as string, username: 'unknown', display_name: null, avatar_url: null },
     reaction_counts: reactionCounts.get(h.id as string) ?? {},
     comment_count: commentCounts.get(h.id as string) ?? 0,

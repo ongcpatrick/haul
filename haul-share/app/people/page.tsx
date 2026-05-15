@@ -4,17 +4,27 @@ import Link from 'next/link';
 import { getCurrentDbUserId } from '@/lib/supabase-server';
 import sql from '@/lib/db';
 import FollowButtonWrapper from './FollowButtonWrapper';
+import PeopleSocialSuggestions from './PeopleSocialSuggestions';
 
 export const dynamic = 'force-dynamic';
 
-export default async function PeoplePage() {
+const SOURCE_BADGE: Record<string, { label: string; color: string }> = {
+  facebook: { label: 'Facebook friend', color: '#1877F2' },
+  twitter: { label: 'On X', color: '#000' },
+  instagram: { label: 'On Instagram', color: '#E1306C' },
+  mutual: { label: 'Mutual friend', color: '#6366f1' },
+};
+
+export default async function PeoplePage({ searchParams }: { searchParams: Promise<{ connected?: string }> }) {
   const { userId } = await auth();
   if (!userId) redirect('/sign-in?redirect_url=/people');
 
   const dbUserId = await getCurrentDbUserId();
   if (!dbUserId) redirect('/onboarding');
 
-  const [people, followingRows] = await Promise.all([
+  const { connected } = await searchParams;
+
+  const [people, followingRows, socialConnections] = await Promise.all([
     sql<{ id: string; username: string; display_name: string | null; avatar_url: string | null; haul_count: string }[]>`
       SELECT u.id, u.username, u.display_name, u.avatar_url,
              COUNT(h.id) AS haul_count
@@ -29,38 +39,105 @@ export default async function PeoplePage() {
       SELECT addressee_id FROM friendships
       WHERE requester_id = ${dbUserId} AND status = 'accepted'
     `,
+    sql<{ platform: string }[]>`
+      SELECT platform FROM social_connections WHERE user_id = ${dbUserId}
+    `.catch(() => []),
   ]);
 
   const followingIds = new Set(followingRows.map((r) => r.addressee_id));
+  const connectedPlatforms = socialConnections.map((c) => c.platform);
+  const hasAnySocialConnection = connectedPlatforms.length > 0;
 
   return (
-    <div className="max-w-3xl mx-auto px-6 py-12">
-      <header className="mb-8">
-        <h1 className="text-3xl font-extrabold text-[var(--text)]">Discover People</h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">Follow people to see their hauls in your feed.</p>
+    <div className="max-w-3xl mx-auto px-6 py-10">
+
+      {/* Connected success banner */}
+      {connected && (
+        <div className="mb-6 flex items-center gap-3 bg-green-50 border border-green-200 rounded-2xl px-5 py-3.5">
+          <svg className="w-5 h-5 text-green-600 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M20 6 9 17l-5-5" />
+          </svg>
+          <p className="text-sm font-semibold text-green-800">
+            {connected === 'facebook' && 'Facebook connected — we\'ve suggested your Facebook friends below.'}
+            {connected === 'twitter' && 'X (Twitter) connected — your handle is now on your profile.'}
+            {connected === 'instagram' && 'Instagram connected — your IG handle is visible on your profile.'}
+          </p>
+        </div>
+      )}
+
+      {/* Connect banner if no social connections yet */}
+      {!hasAnySocialConnection && (
+        <div className="mb-8 bg-gradient-to-br from-[var(--primary)] to-purple-600 rounded-3xl p-6 text-white">
+          <h2 className="text-xl font-extrabold mb-1">Find your friends on Haul</h2>
+          <p className="text-sm opacity-85 mb-4">Connect Facebook, X, or Instagram to automatically discover people you know.</p>
+          <Link
+            href="/connect"
+            className="inline-flex items-center gap-2 bg-white text-[var(--primary)] font-bold text-sm px-5 py-2.5 rounded-full hover:opacity-90 transition-opacity"
+          >
+            Connect social accounts
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+          </Link>
+        </div>
+      )}
+
+      {/* Social-powered suggestions (client component — fetches /api/friends/discover) */}
+      {hasAnySocialConnection && (
+        <section className="mb-10">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-extrabold text-[var(--text)]">From your social networks</h2>
+            <Link href="/connect" className="text-xs font-semibold text-[var(--primary)] hover:underline">
+              Manage accounts
+            </Link>
+          </div>
+          <PeopleSocialSuggestions
+            currentUserId={dbUserId}
+            sourceBadge={SOURCE_BADGE}
+            alreadyFollowingIds={[...followingIds]}
+          />
+        </section>
+      )}
+
+      {/* All users */}
+      <header className="flex items-center justify-between mb-5">
+        <div>
+          <h1 className="text-2xl font-extrabold text-[var(--text)]">
+            {hasAnySocialConnection ? 'Everyone on Haul' : 'Discover People'}
+          </h1>
+          <p className="text-sm text-[var(--muted)] mt-0.5">Follow people to see their hauls in your feed.</p>
+        </div>
+        {hasAnySocialConnection && (
+          <Link href="/connect" className="text-xs font-semibold text-[var(--primary)] border border-[var(--primary)] px-3 py-1.5 rounded-full hover:bg-[var(--primary)] hover:text-white transition-colors">
+            + Connect more
+          </Link>
+        )}
       </header>
 
       {people.length === 0 ? (
-        <p className="text-[var(--muted)] text-sm">No other users yet. Invite friends!</p>
+        <div className="text-center py-16">
+          <p className="text-[var(--muted)] text-sm mb-3">No other users yet.</p>
+          <Link href="/connect" className="text-sm font-semibold text-[var(--primary)] hover:underline">
+            Invite friends to join
+          </Link>
+        </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {people.map((person) => (
             <div
               key={person.id}
-              className="flex items-center gap-4 bg-white border border-[var(--border)] rounded-2xl p-4"
+              className="flex items-center gap-4 bg-white border border-[var(--border)] rounded-2xl p-4 hover:shadow-sm transition-shadow"
             >
               {person.avatar_url ? (
-                <img src={person.avatar_url} alt="" className="w-12 h-12 rounded-full object-cover flex-shrink-0" />
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={person.avatar_url} alt="" className="w-12 h-12 rounded-full object-cover flex-shrink-0 border border-[var(--border)]" />
               ) : (
                 <div className="w-12 h-12 rounded-full bg-[var(--primary)] flex-shrink-0 flex items-center justify-center text-white font-bold text-lg">
                   {(person.display_name ?? person.username).charAt(0).toUpperCase()}
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <Link
-                  href={`/u/${person.username}`}
-                  className="font-semibold text-[var(--text)] hover:underline truncate block"
-                >
+                <Link href={`/u/${person.username}`} className="font-semibold text-[var(--text)] hover:text-[var(--primary)] truncate block transition-colors">
                   {person.display_name ?? person.username}
                 </Link>
                 <p className="text-xs text-[var(--muted)]">
