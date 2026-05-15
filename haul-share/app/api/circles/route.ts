@@ -27,7 +27,7 @@ export async function POST(req: Request) {
 
   const coverColor = /^#[0-9a-fA-F]{6}$/.test(body.coverColor ?? '') ? body.coverColor! : '#6366f1';
 
-  let circle: Record<string, unknown>;
+  let circle: Record<string, unknown> & { id: string };
   try {
     const [row] = await sql`
       INSERT INTO circles (name, description, created_by, is_private, cover_color)
@@ -35,7 +35,7 @@ export async function POST(req: Request) {
       RETURNING *
     `;
     if (!row) return fail('Failed to create circle', 500);
-    circle = row as Record<string, unknown>;
+    circle = row as Record<string, unknown> & { id: string };
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'Database error';
     return fail(msg, 500);
