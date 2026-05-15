@@ -27,17 +27,28 @@ export async function POST(req: Request) {
 
   const coverColor = /^#[0-9a-fA-F]{6}$/.test(body.coverColor ?? '') ? body.coverColor! : '#6366f1';
 
-  const [circle] = await sql`
-    INSERT INTO circles (name, description, created_by, is_private, cover_color)
-    VALUES (${name}, ${body.description ?? null}, ${dbUserId}, ${body.isPrivate ?? true}, ${coverColor})
-    RETURNING *
-  `;
-  if (!circle) return fail('Failed to create circle', 500);
+  let circle: Record<string, unknown>;
+  try {
+    const [row] = await sql`
+      INSERT INTO circles (name, description, created_by, is_private, cover_color)
+      VALUES (${name}, ${body.description ?? null}, ${dbUserId}, ${body.isPrivate ?? true}, ${coverColor})
+      RETURNING *
+    `;
+    if (!row) return fail('Failed to create circle', 500);
+    circle = row as Record<string, unknown>;
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : 'Database error';
+    return fail(msg, 500);
+  }
 
-  await sql`
-    INSERT INTO circle_members (circle_id, user_id, role)
-    VALUES (${circle.id}, ${dbUserId}, 'owner')
-  `;
+  try {
+    await sql`
+      INSERT INTO circle_members (circle_id, user_id, role)
+      VALUES (${circle.id}, ${dbUserId}, 'owner')
+    `;
+  } catch {
+    // membership insert failed — still return the circle so user isn't blocked
+  }
 
   return ok(circle);
 }

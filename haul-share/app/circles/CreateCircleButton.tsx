@@ -33,7 +33,9 @@ export default function CreateCircleButton() {
           coverColor: color,
         }),
       });
-      const body = (await res.json()) as { success: boolean; data?: { id: string }; error?: string };
+      const text = await res.text();
+      let body: { success: boolean; data?: { id: string }; error?: string };
+      try { body = JSON.parse(text); } catch { throw new Error(text || `Server error (${res.status})`); }
       if (!res.ok || !body.success || !body.data) throw new Error(body.error ?? 'Failed to create');
       router.push(`/circles/${body.data.id}`);
     } catch (e: unknown) {

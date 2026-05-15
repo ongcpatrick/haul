@@ -17,6 +17,8 @@ CREATE TABLE IF NOT EXISTS circles (
   description TEXT,
   created_by UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   invite_code TEXT UNIQUE NOT NULL DEFAULT substr(md5(random()::text || clock_timestamp()::text), 1, 12),
+  is_private BOOLEAN NOT NULL DEFAULT TRUE,
+  cover_color TEXT NOT NULL DEFAULT '#6366f1',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -126,3 +128,7 @@ CREATE TABLE IF NOT EXISTS messages (
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_messages_conv_time ON messages(conversation_id, created_at ASC);
+
+-- Migrations: add columns to existing tables if upgrading from an older schema
+ALTER TABLE circles ADD COLUMN IF NOT EXISTS is_private BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE circles ADD COLUMN IF NOT EXISTS cover_color TEXT NOT NULL DEFAULT '#6366f1';

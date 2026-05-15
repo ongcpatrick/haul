@@ -38,17 +38,21 @@ export default async function NotificationsPage() {
   const dbUserId = await getCurrentDbUserId();
   if (!dbUserId) redirect('/onboarding');
 
-  const rows = await sql<RawNotif[]>`
-    SELECT n.*, u.username AS from_username, u.display_name AS from_display_name, u.avatar_url AS from_avatar_url
-    FROM notifications n
-    LEFT JOIN users u ON u.id = n.from_user_id
-    WHERE n.user_id = ${dbUserId}
-    ORDER BY n.created_at DESC
-    LIMIT 40
-  `;
-
-  // Mark all as read
-  await sql`UPDATE notifications SET read = true WHERE user_id = ${dbUserId} AND read = false`;
+  let rows: RawNotif[] = [];
+  try {
+    rows = await sql<RawNotif[]>`
+      SELECT n.*, u.username AS from_username, u.display_name AS from_display_name, u.avatar_url AS from_avatar_url
+      FROM notifications n
+      LEFT JOIN users u ON u.id = n.from_user_id
+      WHERE n.user_id = ${dbUserId}
+      ORDER BY n.created_at DESC
+      LIMIT 40
+    `;
+    // Mark all as read (fire-and-forget, ignore if table missing)
+    sql`UPDATE notifications SET read = true WHERE user_id = ${dbUserId} AND read = false`.catch(() => {});
+  } catch {
+    // Table may not exist yet in production — show empty state
+  }
 
   const notifications: (Notification & { from_username?: string })[] = rows.map((n) => ({
     id: n.id,
