@@ -3,8 +3,8 @@ import { auth } from '@clerk/nextjs/server';
 import Link from 'next/link';
 import { getCurrentDbUserId } from '@/lib/supabase-server';
 import sql from '@/lib/db';
-import FollowButtonWrapper from './FollowButtonWrapper';
 import PeopleSocialSuggestions from './PeopleSocialSuggestions';
+import PeopleList from './PeopleList';
 
 export const dynamic = 'force-dynamic';
 
@@ -68,12 +68,18 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
 
       {/* Connect banner if no social connections yet */}
       {!hasAnySocialConnection && (
-        <div className="mb-8 bg-gradient-to-br from-[var(--primary)] to-purple-600 rounded-3xl p-6 text-white">
-          <h2 className="text-xl font-extrabold mb-1">Find your friends on Haul</h2>
-          <p className="text-sm opacity-85 mb-4">Connect Facebook, X, or Instagram to automatically discover people you know.</p>
+        <div
+          className="mb-8 rounded-3xl p-6"
+          style={{ background: 'linear-gradient(135deg, var(--primary) 0%, #9333ea 100%)', color: '#fff' }}
+        >
+          <h2 className="text-xl font-extrabold mb-1" style={{ color: '#fff' }}>Find your friends on Haul</h2>
+          <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.88)' }}>
+            Connect Facebook, X, or Instagram to automatically discover people you know.
+          </p>
           <Link
             href="/connect"
-            className="inline-flex items-center gap-2 bg-white text-[var(--primary)] font-bold text-sm px-5 py-2.5 rounded-full hover:opacity-90 transition-opacity"
+            className="inline-flex items-center gap-2 bg-white font-bold text-sm px-5 py-2.5 rounded-full hover:opacity-90 transition-opacity"
+            style={{ color: 'var(--primary)' }}
           >
             Connect social accounts
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -115,45 +121,11 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
         )}
       </header>
 
-      {people.length === 0 ? (
-        <div className="text-center py-16">
-          <p className="text-[var(--muted)] text-sm mb-3">No other users yet.</p>
-          <Link href="/connect" className="text-sm font-semibold text-[var(--primary)] hover:underline">
-            Invite friends to join
-          </Link>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {people.map((person) => (
-            <div
-              key={person.id}
-              className="flex items-center gap-4 bg-white border border-[var(--border)] rounded-2xl p-4 hover:shadow-sm transition-shadow"
-            >
-              {person.avatar_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={person.avatar_url} alt="" className="w-12 h-12 rounded-full object-cover flex-shrink-0 border border-[var(--border)]" />
-              ) : (
-                <div className="w-12 h-12 rounded-full bg-[var(--primary)] flex-shrink-0 flex items-center justify-center text-white font-bold text-lg">
-                  {(person.display_name ?? person.username).charAt(0).toUpperCase()}
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <Link href={`/u/${person.username}`} className="font-semibold text-[var(--text)] hover:text-[var(--primary)] truncate block transition-colors">
-                  {person.display_name ?? person.username}
-                </Link>
-                <p className="text-xs text-[var(--muted)]">
-                  @{person.username} &middot; {person.haul_count} haul{person.haul_count === '1' ? '' : 's'}
-                </p>
-              </div>
-              <FollowButtonWrapper
-                targetUserId={person.id}
-                currentUserId={dbUserId}
-                initiallyFollowing={followingIds.has(person.id)}
-              />
-            </div>
-          ))}
-        </div>
-      )}
+      <PeopleList
+        people={people}
+        currentUserId={dbUserId}
+        followingIds={[...followingIds]}
+      />
     </div>
   );
 }

@@ -90,7 +90,7 @@ export default function FeedClient({ currentUserId, initialHauls, hasFollows }: 
     return activeHauls.filter((h) => {
       if (h.title?.toLowerCase().includes(q)) return true;
       if (h.author.username.toLowerCase().includes(q)) return true;
-      return h.products.some((p) => p.name?.toLowerCase().includes(q));
+      return Array.isArray(h.products) && h.products.some((p) => p.name?.toLowerCase().includes(q));
     });
   }, [activeHauls, query]);
 

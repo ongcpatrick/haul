@@ -22,5 +22,10 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     sql`SELECT * FROM hauls WHERE circle_id = ${id} ORDER BY created_at DESC LIMIT 30`,
   ]);
 
-  return ok({ circle, members, users, hauls });
+  const normalizedHauls = hauls.map((h) => ({
+    ...h,
+    products: Array.isArray(h.products) ? h.products : [],
+  }));
+
+  return ok({ circle, members, users, hauls: normalizedHauls });
 }

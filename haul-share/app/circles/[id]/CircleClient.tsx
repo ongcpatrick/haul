@@ -44,7 +44,7 @@ export default function CircleClient({ circle, members, initialHauls, currentUse
   };
 
   const compareInExtension = (): void => {
-    const allProductIds = hauls.flatMap((h) => h.products.map((p) => p.id));
+    const allProductIds = hauls.flatMap((h) => (Array.isArray(h.products) ? h.products : []).map((p) => p.id));
     window.location.href = `haul://compare?ids=${allProductIds.join(',')}`;
   };
 

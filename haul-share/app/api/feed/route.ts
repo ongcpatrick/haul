@@ -1,6 +1,7 @@
 import { getCurrentDbUserId } from '@/lib/supabase-server';
 import { fail, ok } from '@/lib/api';
 import sql from '@/lib/db';
+import { enrichHauls } from '@/app/feed/page';
 
 export async function GET(req: Request) {
   const dbUserId = await getCurrentDbUserId();
@@ -15,24 +16,23 @@ export async function GET(req: Request) {
     WHERE requester_id = ${dbUserId} AND status = 'accepted'
   `;
   const followIds = followRows.map((f) => f.addressee_id);
-  if (followIds.length === 0) return ok([]);
+  const allIds = [dbUserId, ...followIds];
 
   const hauls = before
     ? await sql`
         SELECT * FROM hauls
-        WHERE user_id = ANY(${followIds}::uuid[])
+        WHERE user_id = ANY(${allIds}::uuid[])
           AND is_public = true
           AND created_at < ${before}
-        ORDER BY created_at DESC
-        LIMIT ${limit}
+        ORDER BY created_at DESC LIMIT ${limit}
       `
     : await sql`
         SELECT * FROM hauls
-        WHERE user_id = ANY(${followIds}::uuid[])
+        WHERE user_id = ANY(${allIds}::uuid[])
           AND is_public = true
-        ORDER BY created_at DESC
-        LIMIT ${limit}
+        ORDER BY created_at DESC LIMIT ${limit}
       `;
 
-  return ok(hauls);
+  const enriched = await enrichHauls(hauls as unknown as Parameters<typeof enrichHauls>[0]);
+  return ok(enriched);
 }

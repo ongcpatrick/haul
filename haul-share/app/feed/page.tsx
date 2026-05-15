@@ -77,6 +77,7 @@ export async function enrichHauls(hauls: RawHaul[]): Promise<HaulWithAuthor[]> {
 
   return hauls.map((h) => ({
     ...(h as unknown as HaulWithAuthor),
+    products: Array.isArray(h.products) ? h.products : [],
     author: userMap.get(h.user_id) ?? { id: h.user_id, username: 'unknown', display_name: null, avatar_url: null },
     reaction_counts: reactionCounts.get(h.id) ?? {},
     comment_count: commentCounts.get(h.id) ?? 0,

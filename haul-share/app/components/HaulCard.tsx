@@ -6,7 +6,7 @@ import type { HaulWithAuthor } from '@/lib/types';
 import CommentDrawer from './CommentDrawer';
 
 const WORKER = 'https://haul-ai.haulapp.workers.dev';
-const REACTIONS = ['heart', 'fire', 'eyes'] as const;
+const REACTIONS = ['heart'] as const;
 type ReactionKey = (typeof REACTIONS)[number];
 
 interface HaulCardProps {
@@ -30,7 +30,7 @@ function timeAgo(iso: string): string {
 
 function fmt(n: number) { return '$' + n.toFixed(2); }
 
-const EMOJI: Record<ReactionKey, string> = { heart: '♥', fire: '🔥', eyes: '👀' };
+const EMOJI: Record<ReactionKey, string> = { heart: '♥' };
 
 export default function HaulCard({ haul, currentUserId, onReact, onDelete }: HaulCardProps) {
   const [counts, setCounts] = useState<Record<string, number>>(haul.reaction_counts ?? {});

@@ -52,11 +52,15 @@ export default function MessagesClient({ currentUserId, initialActiveId }: Props
   const activeConv = conversations.find((c) => c.id === activeId) ?? null;
 
   const loadConversations = useCallback(async () => {
-    const res = await fetch('/api/messages');
-    if (!res.ok) return;
-    const json = await res.json();
-    if (json.success) setConversations(json.data);
-    setLoadingConvs(false);
+    try {
+      const res = await fetch('/api/messages');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success) setConversations(json.data);
+      }
+    } catch { /* noop */ } finally {
+      setLoadingConvs(false);
+    }
   }, []);
 
   const loadMessages = useCallback(async (id: string) => {
@@ -451,7 +455,7 @@ function NewDMModal({ currentUserId, onClose, onCreated }: NewDMModalProps) {
                 key={u.id}
                 type="button"
                 onClick={() => toggle(u)}
-                className="flex items-center gap-1.5 px-2.5 py-1 bg-[var(--primary)] bg-opacity-10 text-[var(--primary)] text-xs font-semibold rounded-full"
+                className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full border border-[var(--primary)] text-[var(--primary)] bg-white"
               >
                 {u.username}
                 <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">

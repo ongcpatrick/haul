@@ -40,7 +40,7 @@ export default async function ProfilePage({ params }: Params) {
   const maxReactions = parseInt(topReactedRow[0]?.reaction_count ?? '0', 10);
 
   const totalSavings = hauls.reduce((sum, h) => {
-    const products = h.products as { price?: number; originalPrice?: number }[];
+    const products = Array.isArray(h.products) ? h.products as { price?: number; originalPrice?: number }[] : [];
     return (
       sum +
       products.reduce((s, p) => {
