@@ -69,6 +69,7 @@ function HaulDrawer({
   const [deleting, setDeleting] = useState(false);
   const safeProducts = Array.isArray(haul.products) ? haul.products : [];
   const viewHref = haul.share_id ? `/view/${haul.share_id}` : null;
+  const isEmpty = safeProducts.length === 0;
 
   const handleHeart = async () => {
     if (!currentUserId) return;
@@ -125,8 +126,14 @@ function HaulDrawer({
 
         {/* Products scroll */}
         <div className="flex-1 overflow-y-auto">
-          {safeProducts.length === 0 ? (
-            <div className="flex items-center justify-center py-16 text-sm text-[var(--muted)]">No products yet.</div>
+          {isEmpty ? (
+            <div className="flex flex-col items-center justify-center py-16 gap-3">
+              <svg className="w-10 h-10 opacity-20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0"/>
+              </svg>
+              <p className="text-sm text-[var(--muted)]">No products saved in this haul.</p>
+              {isSelf && <p className="text-xs text-[var(--muted)] max-w-xs text-center">Open the Haul extension, add items, then save again to populate this haul.</p>}
+            </div>
           ) : (
             <div className="divide-y divide-[var(--border)]">
               {safeProducts.map((p: { id: string; name: string; imageUrl: string | null; price?: number | null; siteName: string; url?: string }) => (

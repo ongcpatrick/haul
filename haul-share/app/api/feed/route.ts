@@ -16,7 +16,7 @@ export async function GET(req: Request) {
     WHERE requester_id = ${dbUserId} AND status = 'accepted'
   `;
   const followIds = followRows.map((f) => f.addressee_id);
-  const allIds = [dbUserId, ...followIds];
+  const allIds = followIds;
 
   const hauls = before
     ? await sql`

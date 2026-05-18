@@ -58,9 +58,31 @@ export default async function ProfilePage({ params }: Params) {
     );
   }, 0);
 
+  const haulIds = hauls.map((h) => h.id as string);
+  const [reactions, haulComments] = haulIds.length > 0
+    ? await Promise.all([
+        sql`SELECT haul_id, emoji FROM reactions WHERE haul_id = ANY(${haulIds}::uuid[])`,
+        sql`SELECT haul_id FROM comments WHERE haul_id = ANY(${haulIds}::uuid[])`,
+      ])
+    : [[], []];
+
+  const reactionCounts = new Map<string, Record<string, number>>();
+  for (const r of reactions) {
+    const cur = reactionCounts.get(r.haul_id as string) ?? {};
+    cur[r.emoji as string] = (cur[r.emoji as string] ?? 0) + 1;
+    reactionCounts.set(r.haul_id as string, cur);
+  }
+  const commentCounts = new Map<string, number>();
+  for (const c of haulComments) {
+    commentCounts.set(c.haul_id as string, (commentCounts.get(c.haul_id as string) ?? 0) + 1);
+  }
+
   const cards: HaulWithAuthor[] = hauls.map((h) => ({
     ...(h as unknown as HaulWithAuthor),
+    products: Array.isArray(h.products) ? h.products : [],
     author: { id: user.id, username: user.username, display_name: user.display_name, avatar_url: user.avatar_url },
+    reaction_counts: reactionCounts.get(h.id as string) ?? {},
+    comment_count: commentCounts.get(h.id as string) ?? 0,
   }));
 
   const isSelf = viewerId === user.id;

@@ -1,4 +1,5 @@
 import { ok } from '@/lib/api';
+import { getCurrentDbUserId } from '@/lib/supabase-server';
 import sql from '@/lib/db';
 import type { HaulWithAuthor, User } from '@/lib/types';
 
@@ -44,6 +45,10 @@ export async function GET(req: Request) {
   const limit = Math.min(Number(searchParams.get('limit') ?? 24), 50);
   const before = searchParams.get('before');
 
+  const currentUserId = await getCurrentDbUserId();
+  const exclude = currentUserId ? sql`AND h.user_id != ${currentUserId}::uuid` : sql``;
+  const excludeFlat = currentUserId ? sql`AND user_id != ${currentUserId}::uuid` : sql``;
+
   if (sort === 'trending') {
     const hauls = await sql`
       SELECT h.*,
@@ -52,7 +57,7 @@ export async function GET(req: Request) {
       FROM hauls h
       LEFT JOIN reactions r ON r.haul_id = h.id AND r.created_at > NOW() - INTERVAL '7 days'
       LEFT JOIN comments c ON c.haul_id = h.id AND c.created_at > NOW() - INTERVAL '7 days'
-      WHERE h.is_public = true AND h.created_at > NOW() - INTERVAL '30 days'
+      WHERE h.is_public = true AND h.created_at > NOW() - INTERVAL '30 days' ${exclude}
       GROUP BY h.id
       ORDER BY trend_score DESC
       LIMIT ${limit}
@@ -62,8 +67,8 @@ export async function GET(req: Request) {
   }
 
   const hauls = before
-    ? await sql`SELECT * FROM hauls WHERE is_public = true AND created_at < ${before} ORDER BY created_at DESC LIMIT ${limit}`
-    : await sql`SELECT * FROM hauls WHERE is_public = true ORDER BY created_at DESC LIMIT ${limit}`;
+    ? await sql`SELECT * FROM hauls WHERE is_public = true ${excludeFlat} AND created_at < ${before} ORDER BY created_at DESC LIMIT ${limit}`
+    : await sql`SELECT * FROM hauls WHERE is_public = true ${excludeFlat} ORDER BY created_at DESC LIMIT ${limit}`;
 
   const result = await enrichHauls(hauls as unknown as Record<string, unknown>[]);
   return ok(result);
