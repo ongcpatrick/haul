@@ -5,6 +5,7 @@ export interface User {
   display_name: string | null;
   avatar_url: string | null;
   bio: string | null;
+  fashion_styles: string[];
   created_at: string;
 }
 

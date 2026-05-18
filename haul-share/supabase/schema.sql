@@ -8,8 +8,10 @@ CREATE TABLE IF NOT EXISTS users (
   display_name TEXT,
   avatar_url TEXT,
   bio TEXT,
+  fashion_styles TEXT[] DEFAULT '{}',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+-- Migration: ALTER TABLE users ADD COLUMN IF NOT EXISTS fashion_styles TEXT[] DEFAULT '{}';
 
 CREATE TABLE IF NOT EXISTS circles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -121,8 +121,15 @@ export default async function ProfilePage({ params }: Params) {
 
           {user.bio && <p className="text-sm text-[var(--text)] leading-relaxed max-w-sm">{user.bio}</p>}
 
-          {badges.length > 0 && (
+          {/* Style vibe tags */}
+          {Array.isArray(user.fashion_styles) && user.fashion_styles.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-3">
+              {user.fashion_styles.map((s) => <StyleTag key={s} label={s} />)}
+            </div>
+          )}
+
+          {badges.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-2">
               {badges.map((b) => <BadgeChip key={b.label} {...b} />)}
             </div>
           )}
@@ -141,6 +148,24 @@ export default async function ProfilePage({ params }: Params) {
         isSelf={isSelf}
       />
     </div>
+  );
+}
+
+const STYLE_COLORS: Record<string, string> = {
+  streetwear: '#e2e8f0', minimalist: '#f1f5f9', luxury: '#fef3c7',
+  vintage: '#fce7f3', y2k: '#ede9fe', boho: '#d1fae5',
+  athleisure: '#e0f2fe', preppy: '#dbeafe', indie: '#f3e8ff',
+  'smart casual': '#f4f4f5',
+};
+
+function StyleTag({ label }: { label: string }) {
+  return (
+    <span
+      className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium tracking-wide capitalize"
+      style={{ background: STYLE_COLORS[label] ?? '#f4f4f5', color: 'var(--text)' }}
+    >
+      {label}
+    </span>
   );
 }
 
