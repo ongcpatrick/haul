@@ -1,7 +1,8 @@
 import Link from 'next/link';
-import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
+import { SignedIn, SignedOut } from '@clerk/nextjs';
 import { auth } from '@clerk/nextjs/server';
 import NotificationBell from './NotificationBell';
+import NavUserButton from './NavUserButton';
 import sql from '@/lib/db';
 
 async function getCurrentUsername(): Promise<string | null> {
@@ -56,23 +57,7 @@ export default async function Nav() {
           </SignedOut>
           <SignedIn>
             <NotificationBell />
-            {username && (
-              <Link
-                href={`/u/${username}`}
-                className="w-8 h-8 rounded-full ring-1 ring-[var(--border)] overflow-hidden flex items-center justify-center text-xs font-bold transition-opacity hover:opacity-70"
-                style={{ background: 'var(--primary)', color: '#fff' }}
-                aria-label="My profile"
-              >
-                {username[0]?.toUpperCase()}
-              </Link>
-            )}
-            <UserButton
-              appearance={{
-                elements: {
-                  avatarBox: 'h-8 w-8 ring-1 ring-[var(--border)]',
-                },
-              }}
-            />
+            <NavUserButton username={username} />
           </SignedIn>
         </div>
       </div>
