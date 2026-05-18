@@ -129,7 +129,7 @@ function HaulDrawer({
             <div className="flex items-center justify-center py-16 text-sm text-[var(--muted)]">No products yet.</div>
           ) : (
             <div className="divide-y divide-[var(--border)]">
-              {safeProducts.map((p: { id: string; name: string; imageUrl: string | null; price?: number; siteName: string; url?: string }) => (
+              {safeProducts.map((p: { id: string; name: string; imageUrl: string | null; price?: number | null; siteName: string; url?: string }) => (
                 <a
                   key={p.id}
                   href={p.url ?? '#'}
