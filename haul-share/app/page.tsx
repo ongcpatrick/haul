@@ -3,103 +3,83 @@ import { SignedIn, SignedOut } from '@clerk/nextjs';
 
 export default function Home() {
   return (
-    <div style={{ background: 'var(--bg)', overflow: 'hidden' }}>
+    <div style={{ background: 'var(--bg)' }}>
 
-      {/* ── Hero ─────────────────────────────────────────────────────── */}
-      <section className="relative max-w-6xl mx-auto px-6 pt-16 pb-20 text-center">
+      {/* ── Editorial split hero ─────────────────────────────────────── */}
+      <section className="relative overflow-hidden" style={{ minHeight: '92vh' }}>
 
-        {/* Floating dress — far left */}
-        <div className="absolute hidden lg:block" style={{ left: -30, top: 10, opacity: 0.14, transform: 'rotate(-6deg)' }}>
-          <DressIllustration />
+        {/* Right: editorial photo collage — covers full right portion */}
+        <div className="absolute inset-y-0 right-0 hidden lg:block" style={{ width: '46%' }}>
+          <EditorialCollage />
         </div>
 
-        {/* Floating stiletto — far right */}
-        <div className="absolute hidden lg:block" style={{ right: -20, top: 60, opacity: 0.13, transform: 'rotate(10deg)' }}>
-          <StilettoIllustration />
-        </div>
+        {/* Left: content */}
+        <div className="relative max-w-6xl mx-auto px-6 flex items-center" style={{ minHeight: '92vh' }}>
+          <div style={{ maxWidth: 500 }}>
 
-        {/* Floating quilted bag — lower left */}
-        <div className="absolute hidden lg:block" style={{ left: 50, bottom: 20, opacity: 0.11, transform: 'rotate(8deg)' }}>
-          <BagIllustration />
-        </div>
+            <p className="text-[11px] font-medium tracking-[0.22em] uppercase mb-8"
+              style={{ color: 'var(--muted)' }}>
+              Style, curated with friends
+            </p>
 
-        {/* Floating perfume — upper right */}
-        <div className="absolute hidden lg:block" style={{ right: 70, top: 20, opacity: 0.12, transform: 'rotate(-8deg)' }}>
-          <PerfumeIllustration />
-        </div>
+            <h1 style={{ lineHeight: 1.06, letterSpacing: '-0.03em', marginBottom: '1.5rem' }}>
+              <span className="block" style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 'clamp(3.4rem, 5.5vw, 5.5rem)',
+                fontWeight: 700,
+                fontStyle: 'italic',
+                color: 'var(--text)',
+              }}>
+                Dress better,
+              </span>
+              <span className="block" style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 'clamp(3.4rem, 5.5vw, 5.5rem)',
+                fontWeight: 600,
+                fontStyle: 'italic',
+                color: 'var(--primary)',
+              }}>
+                together.
+              </span>
+            </h1>
 
-        {/* Floating rose — lower right */}
-        <div className="absolute hidden lg:block" style={{ right: 40, bottom: 30, opacity: 0.10, transform: 'rotate(5deg)' }}>
-          <RoseIllustration />
-        </div>
+            <p style={{ color: 'var(--muted)', fontSize: '1rem', lineHeight: 1.7, maxWidth: 400, marginBottom: '2.5rem' }}>
+              Save pieces from anywhere, compare them side by side, and get honest opinions from people whose taste you actually trust.
+            </p>
 
-        {/* Scattered stars */}
-        <StarDot style={{ position: 'absolute', left: 130, top: 55 }} />
-        <StarDot style={{ position: 'absolute', right: 170, top: 75 }} size={10} />
-        <StarDot style={{ position: 'absolute', left: 210, bottom: 45 }} size={8} />
-        <StarDot style={{ position: 'absolute', right: 230, bottom: 35 }} size={12} />
+            <div className="flex flex-wrap gap-3">
+              <SignedOut>
+                <Link href="/sign-up"
+                  className="inline-flex items-center px-8 py-3 rounded-full text-white text-sm font-semibold tracking-wide transition-opacity hover:opacity-80"
+                  style={{ background: 'var(--text)' }}>
+                  Join free
+                </Link>
+                <a href="https://chromewebstore.google.com" target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-8 py-3 rounded-full text-sm font-semibold tracking-wide border transition-colors hover:border-[var(--text)]"
+                  style={{ borderColor: 'var(--border)', color: 'var(--text)' }}>
+                  <ChromeIcon />
+                  Add to Chrome
+                </a>
+              </SignedOut>
+              <SignedIn>
+                <Link href="/feed"
+                  className="inline-flex items-center px-8 py-3 rounded-full text-white text-sm font-semibold tracking-wide transition-opacity hover:opacity-80"
+                  style={{ background: 'var(--text)' }}>
+                  Open feed
+                </Link>
+                <Link href="/circles"
+                  className="inline-flex items-center px-8 py-3 rounded-full text-sm font-semibold tracking-wide border transition-colors hover:border-[var(--text)]"
+                  style={{ borderColor: 'var(--border)', color: 'var(--text)' }}>
+                  Browse groups
+                </Link>
+              </SignedIn>
+            </div>
 
-        {/* Tag line */}
-        <p className="relative inline-block text-[11px] font-medium tracking-[0.22em] uppercase mb-6"
-          style={{ color: 'var(--muted)' }}>
-          Style, curated with friends
-        </p>
-
-        {/* Headline */}
-        <h1 className="relative" style={{ lineHeight: 1.08, letterSpacing: '-0.03em' }}>
-          <span className="block" style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: 'clamp(3.2rem, 8vw, 6.5rem)',
-            fontWeight: 700,
-            fontStyle: 'italic',
-            color: 'var(--text)',
-          }}>
-            Dress better,
-          </span>
-          <span className="block" style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: 'clamp(3.2rem, 8vw, 6.5rem)',
-            fontWeight: 600,
-            fontStyle: 'italic',
-            color: 'var(--primary)',
-          }}>
-            together.
-          </span>
-        </h1>
-
-        {/* Sub */}
-        <p className="relative mt-6 mx-auto max-w-md text-base leading-relaxed" style={{ color: 'var(--muted)', fontSize: '0.95rem' }}>
-          Save pieces from anywhere, compare them side by side, and get honest opinions from people whose taste you actually trust.
-        </p>
-
-        {/* CTAs */}
-        <div className="relative mt-10 flex flex-wrap items-center justify-center gap-3">
-          <SignedOut>
-            <Link href="/sign-up" className="inline-flex items-center px-8 py-3 rounded-full text-white text-sm font-semibold tracking-wide transition-opacity hover:opacity-80"
-              style={{ background: 'var(--text)' }}>
-              Join free
-            </Link>
-            <a href="https://chromewebstore.google.com" target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-8 py-3 rounded-full text-sm font-semibold tracking-wide transition-colors hover:border-[var(--text)]"
-              style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text)' }}>
-              <ChromeIcon />
-              Add to Chrome
-            </a>
-          </SignedOut>
-          <SignedIn>
-            <Link href="/feed" className="inline-flex items-center px-8 py-3 rounded-full text-white text-sm font-semibold tracking-wide transition-opacity hover:opacity-80"
-              style={{ background: 'var(--text)' }}>
-              Open feed
-            </Link>
-            <Link href="/circles" className="inline-flex items-center px-8 py-3 rounded-full text-sm font-semibold tracking-wide transition-colors hover:border-[var(--text)]"
-              style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text)' }}>
-              Browse groups
-            </Link>
-          </SignedIn>
+          </div>
         </div>
       </section>
 
-      {/* ── Editorial divider ────────────────────────────────────────── */}
+      {/* ── How it works divider ─────────────────────────────────────── */}
       <div className="max-w-5xl mx-auto px-6 flex items-center gap-6 mb-16">
         <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
         <span className="text-[10px] tracking-[0.25em] uppercase flex-shrink-0" style={{ color: 'var(--muted)' }}>
@@ -127,7 +107,7 @@ export default function Home() {
         />
       </section>
 
-      {/* ── Bottom editorial pull-quote ──────────────────────────────── */}
+      {/* ── Pull-quote ───────────────────────────────────────────────── */}
       <section className="border-t pb-24 pt-20 text-center px-6" style={{ borderColor: 'var(--border)' }}>
         <p style={{
           fontFamily: 'var(--font-display)',
@@ -144,6 +124,124 @@ export default function Home() {
         </p>
         <p className="mt-4 text-sm tracking-widest uppercase" style={{ color: 'var(--muted)' }}>Haul</p>
       </section>
+
+    </div>
+  );
+}
+
+// ── Editorial photo collage ───────────────────────────────────────────────────
+
+const PHOTOS = [
+  // Woman in dark coat holding shopping bags — very editorial
+  'photo-1483985988355-763728e1935b',
+  // Model in yellow matching coordinated outfit
+  'photo-1515886657613-9f3515b0c78f',
+  // Clothing rack with neutral-toned garments hung on a branch
+  'photo-1490481651871-ab68de25d43d',
+  // Boutique clothing racks, warm tones
+  'photo-1445205170230-053b83016050',
+  // Woman green bralette, yellow wall — colorful editorial
+  'photo-1469334031218-e382a71b716b',
+];
+
+function unsplash(id: string, w = 800) {
+  return `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=82`;
+}
+
+function EditorialCollage() {
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
+
+      {/* Warm editorial background wash */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: 'linear-gradient(160deg, #f7f0e8 0%, #ede0cc 100%)',
+      }} />
+
+      {/* Photo 1 — large, top-left, slight counter-clockwise tilt */}
+      <div style={{
+        position: 'absolute',
+        top: '3%',
+        left: '4%',
+        width: '65%',
+        height: '48%',
+        borderRadius: 20,
+        overflow: 'hidden',
+        boxShadow: '0 28px 72px rgba(0,0,0,0.18)',
+        transform: 'rotate(-3deg)',
+        zIndex: 3,
+      }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={unsplash(PHOTOS[0])} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      </div>
+
+      {/* Photo 2 — medium, top-right, clockwise tilt */}
+      <div style={{
+        position: 'absolute',
+        top: '8%',
+        right: '2%',
+        width: '52%',
+        height: '40%',
+        borderRadius: 20,
+        overflow: 'hidden',
+        boxShadow: '0 20px 56px rgba(0,0,0,0.14)',
+        transform: 'rotate(2.5deg)',
+        zIndex: 2,
+      }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={unsplash(PHOTOS[4])} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      </div>
+
+      {/* Photo 3 — large, middle-left, slight tilt */}
+      <div style={{
+        position: 'absolute',
+        top: '36%',
+        left: '6%',
+        width: '70%',
+        height: '38%',
+        borderRadius: 20,
+        overflow: 'hidden',
+        boxShadow: '0 24px 64px rgba(0,0,0,0.15)',
+        transform: 'rotate(1.5deg)',
+        zIndex: 4,
+      }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={unsplash(PHOTOS[1])} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      </div>
+
+      {/* Photo 4 — bottom-right, counter-clockwise */}
+      <div style={{
+        position: 'absolute',
+        bottom: '3%',
+        right: '4%',
+        width: '58%',
+        height: '36%',
+        borderRadius: 20,
+        overflow: 'hidden',
+        boxShadow: '0 20px 52px rgba(0,0,0,0.12)',
+        transform: 'rotate(-2deg)',
+        zIndex: 3,
+      }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={unsplash(PHOTOS[2])} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      </div>
+
+      {/* Photo 5 — small accent, bottom-left */}
+      <div style={{
+        position: 'absolute',
+        bottom: '5%',
+        left: '2%',
+        width: '38%',
+        height: '28%',
+        borderRadius: 20,
+        overflow: 'hidden',
+        boxShadow: '0 16px 44px rgba(0,0,0,0.10)',
+        transform: 'rotate(2deg)',
+        zIndex: 2,
+      }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={unsplash(PHOTOS[3], 500)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      </div>
 
     </div>
   );
@@ -167,15 +265,7 @@ function FeatureCard({ illustration, title, body }: { illustration: React.ReactN
   );
 }
 
-// ── Decoration helpers ────────────────────────────────────────────────────────
-
-function StarDot({ style, size = 14 }: { style?: React.CSSProperties; size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" style={{ ...style, color: 'var(--muted)', opacity: 0.25 }}>
-      <path d="M12 2L13.5 9.5L21 12L13.5 14.5L12 22L10.5 14.5L3 12L10.5 9.5Z" fill="currentColor" />
-    </svg>
-  );
-}
+// ── Icons ─────────────────────────────────────────────────────────────────────
 
 function ChromeIcon() {
   return (
@@ -183,126 +273,6 @@ function ChromeIcon() {
       <circle cx="12" cy="12" r="10" />
       <circle cx="12" cy="12" r="4" />
       <path d="M12 8 L21 8M6.5 19.5 L11 12M17.5 19.5 L13 12" />
-    </svg>
-  );
-}
-
-// ── Hero floating illustrations — feminine editorial ──────────────────────────
-
-function DressIllustration() {
-  return (
-    <svg width="90" height="180" viewBox="0 0 90 180" fill="none" stroke="currentColor"
-      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text)' }}>
-      {/* Spaghetti straps */}
-      <line x1="34" y1="4" x2="32" y2="22" />
-      <line x1="56" y1="4" x2="58" y2="22" />
-      {/* Neckline — gentle scoop */}
-      <path d="M32 22 Q45 32 58 22" />
-      {/* Bodice sides */}
-      <line x1="32" y1="22" x2="30" y2="64" />
-      <line x1="58" y1="22" x2="60" y2="64" />
-      {/* Waist seam */}
-      <line x1="30" y1="64" x2="60" y2="64" />
-      {/* A-line skirt */}
-      <line x1="30" y1="64" x2="8" y2="172" />
-      <line x1="60" y1="64" x2="82" y2="172" />
-      {/* Hem */}
-      <line x1="8" y1="172" x2="82" y2="172" />
-    </svg>
-  );
-}
-
-function StilettoIllustration() {
-  return (
-    <svg width="200" height="110" viewBox="0 0 100 55" fill="none" stroke="currentColor"
-      strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text)' }}>
-      {/* Shoe upper — from pointed toe curving back */}
-      <path d="M4 42 Q6 34 18 28 Q34 22 56 23 Q70 24 78 32" />
-      {/* Back of shoe */}
-      <line x1="78" y1="32" x2="82" y2="32" />
-      {/* Heel — thin stiletto blade */}
-      <line x1="82" y1="32" x2="88" y2="6" />
-      <line x1="91" y1="6" x2="85" y2="32" />
-      {/* Sole — bottom of shoe */}
-      <path d="M4 46 Q45 50 83 46" />
-      {/* Toe tip */}
-      <path d="M4 42 Q2 43 4 46" />
-      {/* Heel base */}
-      <line x1="85" y1="46" x2="91" y2="46" />
-      {/* Vamp line — decorative cut */}
-      <path d="M28 30 Q44 26 62 30" strokeOpacity="0.5" />
-    </svg>
-  );
-}
-
-function BagIllustration() {
-  return (
-    <svg width="160" height="150" viewBox="0 0 80 75" fill="none" stroke="currentColor"
-      strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text)' }}>
-      {/* Handle — arched */}
-      <path d="M26 20 Q26 6 40 5 Q54 6 54 20" />
-      {/* Bag body */}
-      <rect x="10" y="20" width="60" height="48" rx="3" />
-      {/* Flap fold */}
-      <path d="M10 20 L10 38 Q40 46 70 38 L70 20" />
-      {/* Flap bottom edge */}
-      <path d="M10 38 Q40 47 70 38" />
-      {/* Lock */}
-      <rect x="34" y="34" width="12" height="8" rx="2" />
-      {/* Lock shackle */}
-      <path d="M37 34 Q37 30 40 30 Q43 30 43 34" />
-    </svg>
-  );
-}
-
-function PerfumeIllustration() {
-  return (
-    <svg width="100" height="170" viewBox="0 0 50 85" fill="none" stroke="currentColor"
-      strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text)' }}>
-      {/* Spray button */}
-      <rect x="23" y="2" width="8" height="4" rx="1" />
-      {/* Nozzle arm */}
-      <line x1="31" y1="4" x2="38" y2="4" />
-      <line x1="38" y1="4" x2="38" y2="9" />
-      {/* Cap */}
-      <rect x="17" y="6" width="16" height="8" rx="2" />
-      {/* Neck */}
-      <rect x="19" y="14" width="12" height="8" />
-      {/* Shoulder taper */}
-      <line x1="19" y1="22" x2="10" y2="28" />
-      <line x1="31" y1="22" x2="40" y2="28" />
-      {/* Body */}
-      <rect x="10" y="28" width="30" height="52" rx="3" />
-      {/* Label */}
-      <rect x="15" y="40" width="20" height="18" rx="1" strokeOpacity="0.5" />
-      {/* Label lines */}
-      <line x1="19" y1="47" x2="31" y2="47" strokeOpacity="0.4" />
-      <line x1="19" y1="52" x2="31" y2="52" strokeOpacity="0.4" />
-    </svg>
-  );
-}
-
-function RoseIllustration() {
-  return (
-    <svg width="100" height="160" viewBox="0 0 50 80" fill="none" stroke="currentColor"
-      strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text)' }}>
-      {/* Stem */}
-      <line x1="25" y1="78" x2="25" y2="44" />
-      {/* Leaf left */}
-      <path d="M25 62 Q16 58 14 64 Q16 70 25 66" />
-      {/* Leaf right */}
-      <path d="M25 54 Q34 50 36 56 Q34 62 25 58" />
-      {/* Sepal / bud base */}
-      <path d="M19 44 Q17 40 19 36" />
-      <path d="M31 44 Q33 40 31 36" />
-      {/* Outer petals */}
-      <path d="M19 36 Q10 28 14 18 Q18 10 25 18" />
-      <path d="M31 36 Q40 28 36 18 Q32 10 25 18" />
-      {/* Inner petals */}
-      <path d="M25 18 Q17 14 18 8 Q22 4 25 10" />
-      <path d="M25 18 Q33 14 32 8 Q28 4 25 10" />
-      {/* Center bud */}
-      <path d="M25 10 Q22 8 23 6 Q25 5 27 6 Q28 8 25 10" />
     </svg>
   );
 }
