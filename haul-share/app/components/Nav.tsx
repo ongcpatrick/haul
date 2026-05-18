@@ -1,8 +1,25 @@
 import Link from 'next/link';
 import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
+import { auth } from '@clerk/nextjs/server';
 import NotificationBell from './NotificationBell';
+import sql from '@/lib/db';
 
-export default function Nav() {
+async function getCurrentUsername(): Promise<string | null> {
+  try {
+    const { userId } = await auth();
+    if (!userId) return null;
+    const [row] = await sql<[{ username: string }]>`
+      SELECT username FROM users WHERE clerk_id = ${userId} LIMIT 1
+    `;
+    return row?.username ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export default async function Nav() {
+  const username = await getCurrentUsername();
+
   return (
     <header className="sticky top-0 z-40 bg-[var(--bg)]/95 backdrop-blur border-b border-[var(--border)]">
       <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
@@ -39,8 +56,17 @@ export default function Nav() {
           </SignedOut>
           <SignedIn>
             <NotificationBell />
+            {username && (
+              <Link
+                href={`/u/${username}`}
+                className="w-8 h-8 rounded-full ring-1 ring-[var(--border)] overflow-hidden flex items-center justify-center text-xs font-bold transition-opacity hover:opacity-70"
+                style={{ background: 'var(--primary)', color: '#fff' }}
+                aria-label="My profile"
+              >
+                {username[0]?.toUpperCase()}
+              </Link>
+            )}
             <UserButton
-              afterSignOutUrl="/"
               appearance={{
                 elements: {
                   avatarBox: 'h-8 w-8 ring-1 ring-[var(--border)]',

@@ -62,7 +62,7 @@ export default function HaulCard({ haul, currentUserId, onReact, onDelete }: Hau
     <article className="group bg-white overflow-hidden" style={{ borderRadius: 16, border: '1px solid var(--border)' }}>
 
       {/* Image collage — editorial layout */}
-      <Link href={viewHref} className="block relative" style={{ height: 300 }}>
+      <Link href={viewHref} className="block relative overflow-hidden" style={{ height: 260, borderRadius: '16px 16px 0 0' }}>
         <ImageCollage products={safeProducts} />
 
         {/* Author overlay — bottom of image */}
@@ -171,8 +171,8 @@ function ImageCollage({ products }: { products: HaulWithAuthor['products'] }) {
 
   if (thumbs.length === 2) {
     return (
-      <div className="w-full h-full grid grid-cols-2" style={{ gap: 1, background: 'var(--border)' }}>
-        {thumbs.map((p) => <ProductThumb key={p.id} product={p} />)}
+      <div className="w-full h-full grid grid-cols-2 overflow-hidden" style={{ gap: 1, background: 'var(--border)' }}>
+        {thumbs.map((p) => <div key={p.id} className="overflow-hidden h-full"><ProductThumb product={p} /></div>)}
       </div>
     );
   }
@@ -180,13 +180,13 @@ function ImageCollage({ products }: { products: HaulWithAuthor['products'] }) {
   // 3+ — editorial split: large left (60%), stacked right (40%)
   const remaining = products.length - 3;
   return (
-    <div className="w-full h-full flex" style={{ gap: 1, background: 'var(--border)' }}>
-      <div className="h-full" style={{ flex: '0 0 60%' }}>
+    <div className="w-full h-full flex overflow-hidden" style={{ gap: 1, background: 'var(--border)' }}>
+      <div className="h-full overflow-hidden" style={{ flex: '0 0 60%' }}>
         <ProductThumb product={thumbs[0]} />
       </div>
-      <div className="h-full flex flex-col" style={{ flex: '0 0 calc(40% - 1px)', gap: 1 }}>
-        <div className="flex-1"><ProductThumb product={thumbs[1]} /></div>
-        <div className="flex-1 relative"><ProductThumb product={thumbs[2]} />
+      <div className="h-full flex flex-col overflow-hidden" style={{ flex: '0 0 calc(40% - 1px)', gap: 1 }}>
+        <div className="flex-1 overflow-hidden"><ProductThumb product={thumbs[1]} /></div>
+        <div className="flex-1 overflow-hidden relative"><ProductThumb product={thumbs[2]} />
           {remaining > 0 && (
             <div className="absolute inset-0 flex items-center justify-center text-white font-semibold text-sm"
               style={{ background: 'rgba(0,0,0,0.45)' }}>

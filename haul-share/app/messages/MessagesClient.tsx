@@ -339,33 +339,45 @@ export default function MessagesClient({ currentUserId, initialActiveId }: Props
 
                       <div className={`max-w-[70%] ${isMe ? 'items-end' : 'items-start'} flex flex-col gap-0.5`}>
                         {/* Haul card */}
-                        {msg.haul_id && (
-                          <Link
-                            href={msg.haul_share_id ? `/view/${msg.haul_share_id}` : '/feed'}
-                            className={`block bg-white border border-[var(--border)] rounded-2xl overflow-hidden hover:shadow-md transition-shadow ${isMe ? 'rounded-br-sm' : 'rounded-bl-sm'}`}
-                            style={{ width: 200 }}
-                          >
-                            <div className="h-28 bg-[var(--bg)] flex items-center justify-center overflow-hidden">
-                              {msg.haul_image_url ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img
-                                  src={`${WORKER}/proxy-image?url=${encodeURIComponent(msg.haul_image_url)}`}
-                                  alt=""
-                                  className="w-full h-full object-contain"
-                                  style={{ padding: '10%' }}
-                                />
-                              ) : (
-                                <svg className="w-10 h-10 text-[var(--muted)] opacity-30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
-                                  <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0" />
-                                </svg>
-                              )}
-                            </div>
-                            <div className="px-3 py-2.5">
-                              <p className="text-xs font-semibold text-[var(--text)] truncate">{msg.haul_title ?? 'Untitled haul'}</p>
-                              <p className="text-[10px] text-[var(--primary)] mt-0.5">View haul →</p>
-                            </div>
-                          </Link>
-                        )}
+                        {msg.haul_id && (() => {
+                          const haulHref = msg.haul_share_id
+                            ? `/view/${msg.haul_share_id}`
+                            : null;
+                          return (
+                            <a
+                              href={haulHref ?? '#'}
+                              onClick={haulHref ? undefined : (e) => e.preventDefault()}
+                              target={haulHref ? '_self' : undefined}
+                              className={`block bg-white border border-[var(--border)] rounded-2xl overflow-hidden transition-all hover:shadow-lg hover:-translate-y-0.5 ${isMe ? 'rounded-br-sm' : 'rounded-bl-sm'}`}
+                              style={{ width: 210, textDecoration: 'none' }}
+                            >
+                              <div className="h-32 bg-[var(--surface)] flex items-center justify-center overflow-hidden relative">
+                                {msg.haul_image_url ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img
+                                    src={`${WORKER}/proxy-image?url=${encodeURIComponent(msg.haul_image_url)}`}
+                                    alt=""
+                                    className="w-full h-full object-contain"
+                                    style={{ padding: '10%' }}
+                                  />
+                                ) : (
+                                  <svg className="w-12 h-12 text-[var(--muted)] opacity-20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
+                                    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0" />
+                                  </svg>
+                                )}
+                              </div>
+                              <div className="px-3 pt-2.5 pb-3">
+                                <p className="text-xs font-bold text-[var(--text)] truncate leading-snug">{msg.haul_title ?? 'Haul'}</p>
+                                {haulHref && (
+                                  <div className="mt-2 flex items-center gap-1 bg-[var(--primary)] text-white text-[10px] font-bold px-2.5 py-1.5 rounded-full w-fit tracking-wide">
+                                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                    View haul
+                                  </div>
+                                )}
+                              </div>
+                            </a>
+                          );
+                        })()}
 
                         {/* Text bubble */}
                         {msg.body && (

@@ -20,13 +20,19 @@ export default async function ProfilePage({ params }: Params) {
   `;
   if (!user) notFound();
 
+  const viewerIdEarly = await getCurrentDbUserId();
+  const isSelfEarly = viewerIdEarly === user.id;
+
   const [hauls, friendCountRow, viewerId, topReactedRow] = await Promise.all([
-    sql`SELECT * FROM hauls WHERE user_id = ${user.id} AND is_public = true ORDER BY created_at DESC LIMIT 60`,
+    // Show all hauls to yourself, only public to others
+    isSelfEarly
+      ? sql`SELECT * FROM hauls WHERE user_id = ${user.id} ORDER BY created_at DESC LIMIT 120`
+      : sql`SELECT * FROM hauls WHERE user_id = ${user.id} AND is_public = true ORDER BY created_at DESC LIMIT 60`,
     sql<[{ count: string }]>`
       SELECT COUNT(*) AS count FROM friendships
       WHERE (requester_id = ${user.id} OR addressee_id = ${user.id}) AND status = 'accepted'
     `,
-    getCurrentDbUserId(),
+    Promise.resolve(viewerIdEarly),
     sql<[{ reaction_count: string }]>`
       SELECT COUNT(r.id) AS reaction_count
       FROM hauls h
@@ -72,57 +78,77 @@ export default async function ProfilePage({ params }: Params) {
   if (maxReactions >= 5)
     badges.push({ icon: '★', label: 'Trendsetter', title: 'A haul with 5+ reactions' });
 
+  const publicCount = hauls.filter((h) => h.is_public).length;
+
   return (
-    <div className="max-w-4xl mx-auto px-6 py-12">
-      <header className="flex flex-col sm:flex-row items-start sm:items-center gap-6 pb-10 border-b border-[var(--border)]">
-        {user.avatar_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={user.avatar_url} alt={user.username} className="w-24 h-24 rounded-full border-2 border-[var(--border)]" />
-        ) : (
-          <div className="w-24 h-24 rounded-full bg-[var(--surface)] border-2 border-[var(--border)] flex items-center justify-center text-3xl font-bold text-[var(--muted)]">
-            {user.username[0]?.toUpperCase()}
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10">
+
+      {/* Instagram-style header */}
+      <header className="flex items-start gap-8 mb-10">
+        {/* Avatar */}
+        <div className="flex-shrink-0">
+          {user.avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={user.avatar_url} alt={user.username}
+              className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover"
+              style={{ border: '3px solid var(--border)' }} />
+          ) : (
+            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full flex items-center justify-center text-4xl font-bold"
+              style={{ background: 'var(--surface)', border: '3px solid var(--border)', color: 'var(--muted)' }}>
+              {user.username[0]?.toUpperCase()}
+            </div>
+          )}
+        </div>
+
+        {/* Info */}
+        <div className="flex-1 min-w-0 pt-1">
+          <div className="flex flex-wrap items-center gap-3 mb-3">
+            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 700, color: 'var(--text)', lineHeight: 1.2 }}>
+              {user.display_name ?? user.username}
+            </h1>
+            {!isSelf && viewerId && (
+              <FollowButton targetUserId={user.id} initialFollowing={initialFollowing} />
+            )}
           </div>
-        )}
-        <div className="flex-1">
-          <h1 className="text-3xl font-extrabold text-[var(--text)]">{user.display_name ?? user.username}</h1>
-          <p className="text-sm text-[var(--muted)] mt-1">@{user.username}</p>
+          <p className="text-sm text-[var(--muted)] mb-3">@{user.username}</p>
+
+          {/* Stats row */}
+          <div className="flex gap-6 mb-3">
+            <StatInline label="hauls" value={publicCount} />
+            <StatInline label="friends" value={friendCount} />
+            {totalSavings > 0 && <StatInline label="saved" value={`$${totalSavings.toFixed(0)}`} />}
+          </div>
+
+          {user.bio && <p className="text-sm text-[var(--text)] leading-relaxed max-w-sm">{user.bio}</p>}
+
           {badges.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-3">
+            <div className="flex flex-wrap gap-1.5 mt-3">
               {badges.map((b) => <BadgeChip key={b.label} {...b} />)}
             </div>
           )}
-          {user.bio && <p className="mt-3 text-sm text-[var(--text)] leading-relaxed max-w-prose">{user.bio}</p>}
-          <p className="mt-3 text-xs text-[var(--muted)]">
-            Joined {new Date(user.created_at).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
-          </p>
         </div>
-        {!isSelf && viewerId && <FollowButton targetUserId={user.id} initialFollowing={initialFollowing} />}
       </header>
 
-      <section className="grid grid-cols-3 gap-3 mt-8">
-        <Stat label="Hauls" value={hauls.length.toString()} />
-        <Stat label="Friends" value={friendCount.toString()} />
-        <Stat label="Savings found" value={`$${totalSavings.toFixed(0)}`} />
-      </section>
+      {/* Divider */}
+      <div style={{ borderTop: '1px solid var(--border)', marginBottom: '1.5rem' }} />
 
-      <section className="mt-10">
-        <h2 className="text-xl font-bold text-[var(--text)] mb-4">Public hauls</h2>
-        <ProfileHauls
-          initialHauls={cards}
-          currentUserId={viewerId}
-          profileUsername={user.username}
-          profileDisplayName={user.display_name ?? null}
-        />
-      </section>
+      {/* Haul grid */}
+      <ProfileHauls
+        initialHauls={cards}
+        currentUserId={viewerId}
+        profileUsername={user.username}
+        profileDisplayName={user.display_name ?? null}
+        isSelf={isSelf}
+      />
     </div>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function StatInline({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="bg-white border border-[var(--border)] rounded-2xl p-5 text-center">
-      <div className="text-2xl font-extrabold text-[var(--text)]">{value}</div>
-      <div className="mt-1 text-xs uppercase tracking-wider text-[var(--muted)] font-semibold">{label}</div>
+    <div className="text-center">
+      <span className="text-base font-extrabold text-[var(--text)]">{value}</span>
+      <span className="text-sm text-[var(--muted)] ml-1">{label}</span>
     </div>
   );
 }

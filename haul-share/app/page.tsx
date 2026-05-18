@@ -189,167 +189,192 @@ function ChromeIcon() {
 
 // ── Hero floating illustrations — feminine editorial ──────────────────────────
 
+{/* ── Fashion plate illustrations ────────────────────────────────────── */}
+
 function DressIllustration() {
+  /* Sleek column gown — halter neck, draped skirt, side slit */
   return (
-    <svg width="160" height="260" viewBox="0 0 80 130" fill="none" stroke="currentColor"
-      strokeWidth="0.65" strokeLinecap="round" strokeLinejoin="round"
-      style={{ color: 'var(--text)' }}>
-      {/* Spaghetti straps */}
-      <path d="M32 6 L28 28" />
-      <path d="M48 6 L52 28" />
-      {/* Sweetheart neckline */}
-      <path d="M28 28 Q30 36 36 39 Q40 41 40 41 Q40 41 44 39 Q50 36 52 28" />
-      {/* Bodice sides — gently fitted */}
-      <path d="M28 28 L25 60" />
-      <path d="M52 28 L55 60" />
-      {/* Waist seam */}
-      <path d="M25 60 Q40 57 55 60" />
-      {/* Skirt — full A-line flare */}
-      <path d="M25 60 Q14 82 6 118" />
-      <path d="M55 60 Q66 82 74 118" />
-      {/* Hem — gently curved */}
-      <path d="M6 118 Q40 127 74 118" />
+    <svg width="160" height="300" viewBox="0 0 80 150" fill="none" stroke="currentColor"
+      strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text)' }}>
+      {/* Halter neck straps */}
+      <path strokeWidth="0.9" d="M36 4 C34 8 32 14 30 22" />
+      <path strokeWidth="0.9" d="M44 4 C46 8 48 14 50 22" />
+      {/* Neckline V */}
+      <path strokeWidth="1" d="M30 22 C33 30 38 34 40 36 C42 34 47 30 50 22" />
+      {/* Bodice left + right seam */}
+      <path strokeWidth="1" d="M30 22 C28 30 27 40 27 52" />
+      <path strokeWidth="1" d="M50 22 C52 30 53 40 53 52" />
+      {/* Waist seam line */}
+      <path strokeWidth="0.8" d="M27 52 C33 50 47 50 53 52" />
+      {/* Skirt — column with slight flare from knee */}
+      <path strokeWidth="1" d="M27 52 C26 72 25 92 24 120 C22 132 18 140 14 146" />
+      <path strokeWidth="1" d="M53 52 C54 72 55 92 56 120 C58 132 62 140 66 146" />
+      {/* Hem */}
+      <path strokeWidth="0.9" d="M14 146 C30 150 50 150 66 146" />
+      {/* Side slit — left front opens from knee */}
+      <path strokeWidth="0.7" d="M24 106 C28 108 32 110 36 118 C37 124 37 136 37 146" strokeOpacity="0.6" />
+      {/* Bodice ruching lines */}
+      <path strokeWidth="0.4" d="M35 26 C34 34 34 44 35 50" strokeOpacity="0.45" />
+      <path strokeWidth="0.4" d="M40 24 C40 34 40 44 40 51" strokeOpacity="0.45" />
+      <path strokeWidth="0.4" d="M45 26 C46 34 46 44 45 50" strokeOpacity="0.45" />
       {/* Skirt drape folds */}
-      <path d="M34 63 Q27 85 22 112" strokeOpacity="0.38" />
-      <path d="M40 62 Q40 85 40 114" strokeOpacity="0.38" />
-      <path d="M46 63 Q53 85 58 112" strokeOpacity="0.38" />
-      {/* Bodice ruching */}
-      <path d="M33 32 Q31 46 32 56" strokeOpacity="0.45" />
-      <path d="M40 30 Q40 46 40 57" strokeOpacity="0.45" />
-      <path d="M47 32 Q49 46 48 56" strokeOpacity="0.45" />
-      {/* Waist bow — left */}
-      <path d="M32 60 Q28 55 25 60 Q28 65 32 60" />
-      {/* Waist bow — right */}
-      <path d="M48 60 Q52 55 55 60 Q52 65 48 60" />
-      {/* Bow center knot */}
-      <path d="M32 60 Q40 58 48 60" />
-      {/* Strap shoulder detail */}
-      <path d="M32 6 Q28 2 26 4" />
-      <path d="M48 6 Q52 2 54 4" />
+      <path strokeWidth="0.4" d="M32 56 C30 78 29 104 28 130" strokeOpacity="0.35" />
+      <path strokeWidth="0.4" d="M40 55 C40 80 40 108 40 138" strokeOpacity="0.35" />
+      <path strokeWidth="0.4" d="M48 56 C50 78 51 104 52 130" strokeOpacity="0.35" />
+      {/* Hip highlight curve */}
+      <path strokeWidth="0.5" d="M27 68 C30 66 50 66 53 68" strokeOpacity="0.3" />
+      {/* Halter tie at neck */}
+      <path strokeWidth="0.6" d="M36 4 C38 2 40 1.5 42 2 C43 2.5 44 4 44 4" />
+      <path strokeWidth="0.6" d="M40 2 L40 0" />
     </svg>
   );
 }
 
 function StilettoIllustration() {
+  /* Elegant pointed-toe pump with kitten strap — side profile */
   return (
-    <svg width="180" height="120" viewBox="0 0 90 60" fill="none" stroke="currentColor"
-      strokeWidth="0.68" strokeLinecap="round" strokeLinejoin="round"
-      style={{ color: 'var(--text)' }}>
-      {/* Shoe sole — thin elegant platform */}
-      <path d="M5 46 Q7 40 18 32 Q30 22 46 21 Q60 22 70 38 L76 38 L78 46 Q52 50 5 49 Q2 48 5 46 Z" />
-      {/* Vamp (upper of shoe, covering foot) */}
-      <path d="M5 46 Q8 38 20 30 Q32 20 48 21 Q62 22 70 38" />
-      {/* Pointed toe detail */}
-      <path d="M5 46 Q2 44 3 41 Q6 38 10 40" />
+    <svg width="200" height="110" viewBox="0 0 100 55" fill="none" stroke="currentColor"
+      strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text)' }}>
+      {/* Sole outline — thin, elegant */}
+      <path strokeWidth="1" d="M4 44 C5 42 8 38 14 33 C22 27 34 22 50 21 C63 21 74 27 80 36 L84 36 L86 44 C60 48 6 48 4 44 Z" />
+      {/* Upper vamp / toe box */}
+      <path strokeWidth="0.85" d="M4 44 C7 38 16 30 28 24 C38 20 50 20 60 25 C70 30 78 37 80 36" />
+      {/* Pointed toe fine detail */}
+      <path strokeWidth="0.6" d="M4 44 C2 42 2 39 4 37 C7 35 11 37 13 40" strokeOpacity="0.7" />
+      {/* Throat / vamp cut line */}
+      <path strokeWidth="0.7" d="M28 31 C36 26 52 24 64 30" strokeOpacity="0.6" />
       {/* Ankle strap */}
-      <path d="M22 32 Q32 25 44 27 Q52 29 56 36" />
-      {/* Strap buckle */}
-      <rect x="42" y="26" width="5" height="3.5" rx="0.8" />
-      <path d="M44.5 26 L44.5 29.5" strokeOpacity="0.7" />
-      {/* Stiletto heel — very thin spike */}
-      <path d="M70 38 L77 6 L80 6 L76 38" />
-      {/* Heel base on ground */}
-      <path d="M76 46 Q77 46 80 46" />
-      {/* Second shoe (3/4 view, behind) */}
-      <g opacity="0.35" transform="translate(6 7) scale(0.85)">
-        <path d="M5 46 Q7 40 18 32 Q30 22 46 21 Q60 22 70 38 L76 38 L78 46 Q52 50 5 49 Q2 48 5 46 Z" />
-        <path d="M70 38 L77 6 L80 6 L76 38" />
-      </g>
+      <path strokeWidth="0.85" d="M30 30 C36 24 50 22 58 28 C62 31 64 34 62 38" />
+      <path strokeWidth="0.85" d="M30 30 C28 34 28 38 30 42" />
+      {/* Buckle */}
+      <rect strokeWidth="0.7" x="55" y="24" width="6" height="4" rx="1" />
+      <path strokeWidth="0.5" d="M58 24 L58 28" strokeOpacity="0.8" />
+      {/* Stiletto heel — blade thin */}
+      <path strokeWidth="1" d="M80 36 L88 4 L91 4 L84 36" />
+      {/* Heel tip */}
+      <path strokeWidth="0.8" d="M84 44 L91 44" />
+      {/* Inner shoe lining highlight */}
+      <path strokeWidth="0.4" d="M14 38 C24 32 42 27 58 29" strokeOpacity="0.3" />
+      {/* Sole bottom edge */}
+      <path strokeWidth="0.5" d="M4 46 C40 50 82 46 86 46" strokeOpacity="0.4" />
     </svg>
   );
 }
 
 function BagIllustration() {
+  /* Structured Kelly-style flap bag with lock, stitching, and handle */
   return (
-    <svg width="140" height="130" viewBox="0 0 70 65" fill="none" stroke="currentColor"
-      strokeWidth="0.68" strokeLinecap="round" strokeLinejoin="round"
-      style={{ color: 'var(--text)' }}>
-      {/* Chain strap — looped links */}
-      <path d="M11 24 Q8 14 18 8 Q30 3 40 5 Q54 8 60 18 Q64 22 60 24" />
-      {/* Bag body with rounded corners */}
-      <rect x="11" y="24" width="49" height="38" rx="5" />
-      {/* Flap with gentle curve at bottom */}
-      <path d="M11 24 L11 40 Q35.5 47 60 40 L60 24" />
-      {/* Turn-lock clasp */}
-      <ellipse cx="35.5" cy="41" rx="4.5" ry="3.5" />
-      <path d="M31 41 L33 41" strokeOpacity="0.6" />
-      <path d="M38 41 L40 41" strokeOpacity="0.6" />
-      <path d="M35.5 37.5 L35.5 39.5" strokeOpacity="0.6" />
-      <path d="M35.5 42.5 L35.5 44.5" strokeOpacity="0.6" />
-      {/* Quilting on body below flap (y 44 to y 60) */}
-      <path d="M11 60 L30 44" strokeOpacity="0.3" />
-      <path d="M19 62 L40 44" strokeOpacity="0.3" />
-      <path d="M29 62 L50 44" strokeOpacity="0.3" />
-      <path d="M39 62 L60 44" strokeOpacity="0.3" />
-      <path d="M50 62 L60 52" strokeOpacity="0.3" />
-      <path d="M60 60 L41 44" strokeOpacity="0.3" />
-      <path d="M52 62 L31 44" strokeOpacity="0.3" />
-      <path d="M42 62 L21 44" strokeOpacity="0.3" />
-      <path d="M32 62 L11 44" strokeOpacity="0.3" />
-      <path d="M21 62 L11 54" strokeOpacity="0.3" />
+    <svg width="160" height="150" viewBox="0 0 80 75" fill="none" stroke="currentColor"
+      strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text)' }}>
+      {/* Handle — arched double strap */}
+      <path strokeWidth="1" d="M26 18 C24 10 24 5 40 4 C56 5 56 10 54 18" />
+      <path strokeWidth="0.6" d="M28 18 C26 11 26 7 40 6 C54 7 54 11 52 18" strokeOpacity="0.5" />
+      {/* Gusset left */}
+      <path strokeWidth="0.8" d="M10 20 L10 62 C10 64 11 65 13 65" />
+      {/* Gusset right */}
+      <path strokeWidth="0.8" d="M70 20 L70 62 C70 64 69 65 67 65" />
+      {/* Bag body */}
+      <rect strokeWidth="1" x="10" y="20" width="60" height="45" rx="3" />
+      {/* Flap — curved bottom edge, covers top 40% of body */}
+      <path strokeWidth="1" d="M10 20 L10 38 C10 42 14 44 18 44 C28 46 52 46 62 44 C66 44 70 42 70 38 L70 20" />
+      {/* Flap curve line */}
+      <path strokeWidth="1" d="M10 38 C14 44 22 46 40 47 C58 46 66 44 70 38" />
+      {/* Lock clasp */}
+      <rect strokeWidth="0.9" x="34" y="42" width="12" height="8" rx="1.5" />
+      <path strokeWidth="0.8" d="M37 42 C37 39 39 37 40 37 C41 37 43 39 43 42" />
+      <circle strokeWidth="0.7" cx="40" cy="46" r="1.5" />
+      {/* Stitching — flap edge */}
+      <path strokeWidth="0.35" d="M12 22 C14 36 16 40 18 43" strokeOpacity="0.4" strokeDasharray="1.5 2" />
+      <path strokeWidth="0.35" d="M68 22 C66 36 64 40 62 43" strokeOpacity="0.4" strokeDasharray="1.5 2" />
+      <path strokeWidth="0.35" d="M12 20 L68 20" strokeOpacity="0.4" strokeDasharray="1.5 2" />
+      {/* Stitching — body perimeter */}
+      <path strokeWidth="0.35" d="M12 48 L12 63" strokeOpacity="0.3" strokeDasharray="1.5 2" />
+      <path strokeWidth="0.35" d="M68 48 L68 63" strokeOpacity="0.3" strokeDasharray="1.5 2" />
+      <path strokeWidth="0.35" d="M12 63 L68 63" strokeOpacity="0.3" strokeDasharray="1.5 2" />
+      {/* Handle attachment rings */}
+      <rect strokeWidth="0.7" x="24" y="17" width="4" height="4" rx="1" />
+      <rect strokeWidth="0.7" x="52" y="17" width="4" height="4" rx="1" />
+      {/* Horizontal grain texture lines on body */}
+      <path strokeWidth="0.3" d="M10 53 L70 53" strokeOpacity="0.2" />
+      <path strokeWidth="0.3" d="M10 58 L70 58" strokeOpacity="0.2" />
     </svg>
   );
 }
 
 function PerfumeIllustration() {
+  /* Tall rectangular bottle — J'adore / Chanel No.5 inspired */
   return (
-    <svg width="100" height="150" viewBox="0 0 50 75" fill="none" stroke="currentColor"
-      strokeWidth="0.65" strokeLinecap="round" strokeLinejoin="round"
-      style={{ color: 'var(--text)' }}>
-      {/* Bottle body */}
-      <path d="M12 36 Q9 36 9 40 L9 68 Q9 73 14 73 L36 73 Q41 73 41 68 L41 40 Q41 36 38 36" />
-      {/* Shoulder curve — elegant taper */}
-      <path d="M12 36 Q12 28 25 26 Q38 28 38 36" />
-      {/* Neck (narrowing) */}
-      <path d="M19 26 L19 17 L31 17 L31 26" />
-      {/* Cap body */}
-      <path d="M16 10 L16 17 L34 17 L34 10" />
-      {/* Cap top — gently domed */}
-      <path d="M16 10 Q16 6 25 6 Q34 6 34 10" />
-      {/* Spray nozzle stem */}
-      <path d="M25 6 L25 2" />
-      <path d="M22 2 L28 2" />
-      <circle cx="25" cy="2" r="0.8" fill="currentColor" />
-      {/* Facet lines — horizontal */}
-      <path d="M9 48 L41 48" strokeOpacity="0.35" />
-      <path d="M9 60 L41 60" strokeOpacity="0.35" />
-      {/* Label rectangle */}
-      <rect x="14" y="51" width="22" height="13" rx="1.5" strokeOpacity="0.3" />
-      {/* Vertical shoulder highlight */}
-      <path d="M17 36 Q16 52 17 68" strokeOpacity="0.25" />
-      {/* Decorative neck ring */}
-      <path d="M19 22 L31 22" strokeOpacity="0.5" />
+    <svg width="100" height="170" viewBox="0 0 50 85" fill="none" stroke="currentColor"
+      strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text)' }}>
+      {/* Spray pump head */}
+      <path strokeWidth="0.7" d="M28 3 L34 3 L34 6 L28 6 Z" />
+      <path strokeWidth="0.6" d="M31 3 L31 1 L35 1" />
+      <path strokeWidth="0.5" d="M35 1 C37 1 38 2 38 3" strokeOpacity="0.6" />
+      {/* Neck tube */}
+      <path strokeWidth="0.8" d="M21 6 L21 16 L29 16 L29 6" />
+      {/* Neck-to-shoulder transition */}
+      <path strokeWidth="0.85" d="M21 16 C18 18 13 20 12 24" />
+      <path strokeWidth="0.85" d="M29 16 C32 18 37 20 38 24" />
+      {/* Shoulder ring / collar */}
+      <path strokeWidth="0.7" d="M12 24 C12 22 15 21 25 21 C35 21 38 22 38 24" />
+      {/* Main bottle body — slightly tapered */}
+      <path strokeWidth="1" d="M12 24 L10 78 C10 82 12 84 25 84 C38 84 40 82 40 78 L38 24" />
+      {/* Bottle shoulder taper inner */}
+      <path strokeWidth="0.5" d="M13 26 L11 78" strokeOpacity="0.2" />
+      <path strokeWidth="0.5" d="M37 26 L39 78" strokeOpacity="0.2" />
+      {/* Glass facets — vertical highlights */}
+      <path strokeWidth="0.4" d="M16 24 L14 82" strokeOpacity="0.2" />
+      <path strokeWidth="0.4" d="M34 24 L36 82" strokeOpacity="0.2" />
+      {/* Label area */}
+      <rect strokeWidth="0.6" x="13" y="42" width="24" height="24" rx="1" strokeOpacity="0.45" />
+      {/* Label lines (text suggestion) */}
+      <path strokeWidth="0.4" d="M17 50 L33 50" strokeOpacity="0.35" />
+      <path strokeWidth="0.4" d="M19 55 L31 55" strokeOpacity="0.35" />
+      <path strokeWidth="0.4" d="M20 60 L30 60" strokeOpacity="0.3" />
+      {/* Horizontal band below label */}
+      <path strokeWidth="0.5" d="M10 68 L40 68" strokeOpacity="0.3" />
+      {/* Base ring */}
+      <path strokeWidth="0.6" d="M10 80 C10 83 17 84 25 84 C33 84 40 83 40 80" strokeOpacity="0.5" />
+      {/* Cap gold ring */}
+      <path strokeWidth="0.6" d="M21 14 L29 14" strokeOpacity="0.6" />
     </svg>
   );
 }
 
 function RoseIllustration() {
+  /* Single long-stem rose — side view, detailed petals */
   return (
-    <svg width="90" height="130" viewBox="0 0 45 65" fill="none" stroke="currentColor"
-      strokeWidth="0.6" strokeLinecap="round" strokeLinejoin="round"
-      style={{ color: 'var(--text)' }}>
-      {/* Stem */}
-      <path d="M22 62 Q24 52 22 42" />
-      {/* Leaf left */}
-      <path d="M22 55 Q14 50 12 54 Q16 60 22 55" />
-      {/* Leaf right */}
-      <path d="M22 51 Q30 46 32 50 Q28 56 22 51" />
-      {/* Sepal (base of flower) */}
-      <path d="M18 42 Q14 38 15 34 Q22 32 22 38" strokeOpacity="0.6" />
-      <path d="M26 42 Q30 38 29 34 Q22 32 22 38" strokeOpacity="0.6" />
-      {/* Outer petals */}
-      <path d="M14 36 Q8 28 12 20 Q18 14 22 22" />
-      <path d="M30 36 Q36 28 32 20 Q26 14 22 22" />
-      <path d="M22 40 Q18 46 13 42 Q10 34 16 28" />
-      <path d="M22 40 Q26 46 31 42 Q34 34 28 28" />
+    <svg width="100" height="160" viewBox="0 0 50 80" fill="none" stroke="currentColor"
+      strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text)' }}>
+      {/* Long stem — slight natural curve */}
+      <path strokeWidth="0.9" d="M25 78 C26 68 25 58 24 48" />
+      <path strokeWidth="0.5" d="M25 78 C24 68 23 58 23 48" strokeOpacity="0.35" />
+      {/* Thorn 1 */}
+      <path strokeWidth="0.6" d="M25 68 C28 66 30 64 29 62" />
+      {/* Thorn 2 */}
+      <path strokeWidth="0.6" d="M24 60 C21 58 19 56 20 54" />
+      {/* Leaf — left, larger */}
+      <path strokeWidth="0.7" d="M25 62 C18 58 13 56 12 60 C14 66 20 66 25 62" />
+      <path strokeWidth="0.4" d="M25 62 C20 61 16 60 13 61" strokeOpacity="0.4" />
+      {/* Leaf — right */}
+      <path strokeWidth="0.7" d="M25 55 C32 51 37 49 38 53 C36 59 30 58 25 55" />
+      <path strokeWidth="0.4" d="M25 55 C30 53 34 52 37 53" strokeOpacity="0.4" />
+      {/* Calyx / sepal base */}
+      <path strokeWidth="0.7" d="M21 48 C18 44 17 40 18 36 C22 33 25 36 25 42" strokeOpacity="0.7" />
+      <path strokeWidth="0.7" d="M29 48 C32 44 33 40 32 36 C28 33 25 36 25 42" strokeOpacity="0.7" />
+      {/* Outer guard petals */}
+      <path strokeWidth="0.85" d="M18 40 C12 32 14 22 18 16 C22 12 26 18 25 28" />
+      <path strokeWidth="0.85" d="M32 40 C38 32 36 22 32 16 C28 12 24 18 25 28" />
+      <path strokeWidth="0.85" d="M25 44 C18 48 12 44 10 36 C10 28 16 24 22 30" />
+      <path strokeWidth="0.85" d="M25 44 C32 48 38 44 40 36 C40 28 34 24 28 30" />
       {/* Mid petals */}
-      <path d="M16 28 Q12 20 16 14 Q22 12 24 20" />
-      <path d="M28 28 Q32 20 28 14 Q22 12 20 20" />
-      {/* Inner petals */}
-      <path d="M20 22 Q16 16 19 11 Q22 10 24 14 Q26 18 22 22" />
-      <path d="M22 10 Q22 8 22 6" strokeOpacity="0.5" />
-      {/* Innermost curl */}
-      <path d="M20 16 Q22 12 24 14 Q24 18 22 18 Q20 18 20 16" />
+      <path strokeWidth="0.75" d="M20 30 C14 22 16 12 20 8 C24 6 27 12 26 22" />
+      <path strokeWidth="0.75" d="M30 30 C36 22 34 12 30 8 C26 6 23 12 24 22" />
+      {/* Inner spiral petals */}
+      <path strokeWidth="0.7" d="M22 22 C18 16 20 10 24 8 C27 8 29 12 27 18 C26 22 24 24 25 26" />
+      <path strokeWidth="0.7" d="M28 22 C32 16 30 10 26 8 C23 8 21 12 23 18 C24 22 26 24 25 26" />
+      {/* Rose heart / innermost curl */}
+      <path strokeWidth="0.6" d="M23 18 C23 14 25 12 26 14 C27 16 26 20 25 22 C24 20 23 18 23 18" />
     </svg>
   );
 }
