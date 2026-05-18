@@ -27,16 +27,24 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
   const messages = before
     ? await sql`
-        SELECT m.*, u.username AS sender_username, u.display_name AS sender_display_name, u.avatar_url AS sender_avatar_url
+        SELECT m.*,
+          u.username AS sender_username, u.display_name AS sender_display_name, u.avatar_url AS sender_avatar_url,
+          h.title AS haul_title, h.share_id AS haul_share_id,
+          h.products->0->>'imageUrl' AS haul_image_url
         FROM messages m
         JOIN users u ON u.id = m.sender_id
+        LEFT JOIN hauls h ON h.id = m.haul_id
         WHERE m.conversation_id = ${id} AND m.created_at < ${before}
         ORDER BY m.created_at DESC LIMIT 40
       `
     : await sql`
-        SELECT m.*, u.username AS sender_username, u.display_name AS sender_display_name, u.avatar_url AS sender_avatar_url
+        SELECT m.*,
+          u.username AS sender_username, u.display_name AS sender_display_name, u.avatar_url AS sender_avatar_url,
+          h.title AS haul_title, h.share_id AS haul_share_id,
+          h.products->0->>'imageUrl' AS haul_image_url
         FROM messages m
         JOIN users u ON u.id = m.sender_id
+        LEFT JOIN hauls h ON h.id = m.haul_id
         WHERE m.conversation_id = ${id}
         ORDER BY m.created_at DESC LIMIT 40
       `;
@@ -53,6 +61,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     sender_id: m.sender_id,
     body: m.body,
     haul_id: m.haul_id,
+    haul_title: m.haul_title ?? null,
+    haul_image_url: m.haul_image_url ?? null,
+    haul_share_id: m.haul_share_id ?? null,
     created_at: m.created_at,
     sender: { id: m.sender_id, username: m.sender_username, display_name: m.sender_display_name, avatar_url: m.sender_avatar_url },
   }));

@@ -119,6 +119,9 @@ export interface Message {
   sender_id: string;
   body: string | null;
   haul_id: string | null;
+  haul_title?: string | null;
+  haul_image_url?: string | null;
+  haul_share_id?: string | null;
   created_at: string;
   sender: Pick<User, 'id' | 'username' | 'display_name' | 'avatar_url'>;
   haul?: HaulWithAuthor | null;

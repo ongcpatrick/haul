@@ -8,31 +8,36 @@ export default function Home() {
       {/* ── Hero ─────────────────────────────────────────────────────── */}
       <section className="relative max-w-6xl mx-auto px-6 pt-16 pb-20 text-center">
 
-        {/* Floating coat — far left */}
-        <div className="absolute hidden lg:block" style={{ left: -20, top: 20, opacity: 0.13, transform: 'rotate(-8deg)' }}>
-          <CoatIllustration />
+        {/* Floating dress — far left */}
+        <div className="absolute hidden lg:block" style={{ left: -30, top: 10, opacity: 0.14, transform: 'rotate(-6deg)' }}>
+          <DressIllustration />
         </div>
 
-        {/* Floating heels — far right */}
-        <div className="absolute hidden lg:block" style={{ right: -10, top: 40, opacity: 0.12, transform: 'rotate(6deg)' }}>
-          <HeelIllustration />
+        {/* Floating stiletto — far right */}
+        <div className="absolute hidden lg:block" style={{ right: -20, top: 60, opacity: 0.13, transform: 'rotate(10deg)' }}>
+          <StilettoIllustration />
         </div>
 
-        {/* Floating bag — lower left */}
-        <div className="absolute hidden lg:block" style={{ left: 60, bottom: 30, opacity: 0.10, transform: 'rotate(10deg)' }}>
-          <BagIllustration size={100} />
+        {/* Floating quilted bag — lower left */}
+        <div className="absolute hidden lg:block" style={{ left: 50, bottom: 20, opacity: 0.11, transform: 'rotate(8deg)' }}>
+          <BagIllustration />
         </div>
 
-        {/* Floating sunglasses — upper right */}
-        <div className="absolute hidden lg:block" style={{ right: 80, top: 30, opacity: 0.11, transform: 'rotate(-5deg)' }}>
-          <GlassesIllustration />
+        {/* Floating perfume — upper right */}
+        <div className="absolute hidden lg:block" style={{ right: 70, top: 20, opacity: 0.12, transform: 'rotate(-8deg)' }}>
+          <PerfumeIllustration />
+        </div>
+
+        {/* Floating rose — lower right */}
+        <div className="absolute hidden lg:block" style={{ right: 40, bottom: 30, opacity: 0.10, transform: 'rotate(5deg)' }}>
+          <RoseIllustration />
         </div>
 
         {/* Scattered stars */}
-        <StarDot style={{ position: 'absolute', left: 120, top: 60 }} />
-        <StarDot style={{ position: 'absolute', right: 160, top: 80 }} size={10} />
-        <StarDot style={{ position: 'absolute', left: 200, bottom: 50 }} size={8} />
-        <StarDot style={{ position: 'absolute', right: 220, bottom: 40 }} size={12} />
+        <StarDot style={{ position: 'absolute', left: 130, top: 55 }} />
+        <StarDot style={{ position: 'absolute', right: 170, top: 75 }} size={10} />
+        <StarDot style={{ position: 'absolute', left: 210, bottom: 45 }} size={8} />
+        <StarDot style={{ position: 'absolute', right: 230, bottom: 35 }} size={12} />
 
         {/* Tag line */}
         <p className="relative inline-block text-[11px] font-medium tracking-[0.22em] uppercase mb-6"
@@ -162,7 +167,7 @@ function FeatureCard({ illustration, title, body }: { illustration: React.ReactN
   );
 }
 
-// ── Floating decoration helpers ───────────────────────────────────────────────
+// ── Decoration helpers ────────────────────────────────────────────────────────
 
 function StarDot({ style, size = 14 }: { style?: React.CSSProperties; size?: number }) {
   return (
@@ -182,116 +187,181 @@ function ChromeIcon() {
   );
 }
 
-// ── Fashion illustrations (hero, floating) ───────────────────────────────────
+// ── Hero floating illustrations — feminine editorial ──────────────────────────
 
-function CoatIllustration() {
+function DressIllustration() {
   return (
-    <svg width="180" height="220" viewBox="0 0 90 110" fill="none" stroke="currentColor" strokeWidth="0.7"
-      strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text)' }}>
-      {/* Body */}
-      <path d="M30,20 L18,35 L14,100 L76,100 L72,35 L60,20" />
-      {/* Left lapel */}
-      <path d="M30,20 L26,10 L38,6 L45,24" />
-      {/* Right lapel */}
-      <path d="M60,20 L64,10 L52,6 L45,24" />
-      {/* Center seam */}
-      <line x1="45" y1="24" x2="45" y2="100" />
-      {/* Left sleeve */}
-      <path d="M18,35 L8,65 L14,68 L20,50" />
-      {/* Right sleeve */}
-      <path d="M72,35 L82,65 L76,68 L70,50" />
-      {/* Buttons */}
-      <circle cx="45" cy="48" r="1.4" fill="currentColor" />
-      <circle cx="45" cy="60" r="1.4" fill="currentColor" />
-      <circle cx="45" cy="72" r="1.4" fill="currentColor" />
-      <circle cx="45" cy="84" r="1.4" fill="currentColor" />
-      {/* Left pocket */}
-      <path d="M20,65 L28,65 L28,76 L20,76" />
-      {/* Right pocket */}
-      <path d="M70,65 L62,65 L62,76 L70,76" />
-      {/* Belt hint */}
-      <path d="M18,58 L72,58" strokeDasharray="2 3" />
+    <svg width="160" height="260" viewBox="0 0 80 130" fill="none" stroke="currentColor"
+      strokeWidth="0.65" strokeLinecap="round" strokeLinejoin="round"
+      style={{ color: 'var(--text)' }}>
+      {/* Spaghetti straps */}
+      <path d="M32 6 L28 28" />
+      <path d="M48 6 L52 28" />
+      {/* Sweetheart neckline */}
+      <path d="M28 28 Q30 36 36 39 Q40 41 40 41 Q40 41 44 39 Q50 36 52 28" />
+      {/* Bodice sides — gently fitted */}
+      <path d="M28 28 L25 60" />
+      <path d="M52 28 L55 60" />
+      {/* Waist seam */}
+      <path d="M25 60 Q40 57 55 60" />
+      {/* Skirt — full A-line flare */}
+      <path d="M25 60 Q14 82 6 118" />
+      <path d="M55 60 Q66 82 74 118" />
+      {/* Hem — gently curved */}
+      <path d="M6 118 Q40 127 74 118" />
+      {/* Skirt drape folds */}
+      <path d="M34 63 Q27 85 22 112" strokeOpacity="0.38" />
+      <path d="M40 62 Q40 85 40 114" strokeOpacity="0.38" />
+      <path d="M46 63 Q53 85 58 112" strokeOpacity="0.38" />
+      {/* Bodice ruching */}
+      <path d="M33 32 Q31 46 32 56" strokeOpacity="0.45" />
+      <path d="M40 30 Q40 46 40 57" strokeOpacity="0.45" />
+      <path d="M47 32 Q49 46 48 56" strokeOpacity="0.45" />
+      {/* Waist bow — left */}
+      <path d="M32 60 Q28 55 25 60 Q28 65 32 60" />
+      {/* Waist bow — right */}
+      <path d="M48 60 Q52 55 55 60 Q52 65 48 60" />
+      {/* Bow center knot */}
+      <path d="M32 60 Q40 58 48 60" />
+      {/* Strap shoulder detail */}
+      <path d="M32 6 Q28 2 26 4" />
+      <path d="M48 6 Q52 2 54 4" />
     </svg>
   );
 }
 
-function HeelIllustration() {
+function StilettoIllustration() {
   return (
-    <svg width="160" height="130" viewBox="0 0 80 65" fill="none" stroke="currentColor" strokeWidth="0.75"
-      strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text)' }}>
-      {/* Sole platform */}
-      <path d="M12,52 Q38,48 54,46 Q64,44 67,52 Q62,55 54,53 Q38,57 12,60 Q5,60 7,54 Z" />
-      {/* Upper vamp */}
-      <path d="M12,52 Q15,36 23,28 Q34,18 44,22 Q55,26 54,46" />
+    <svg width="180" height="120" viewBox="0 0 90 60" fill="none" stroke="currentColor"
+      strokeWidth="0.68" strokeLinecap="round" strokeLinejoin="round"
+      style={{ color: 'var(--text)' }}>
+      {/* Shoe sole — thin elegant platform */}
+      <path d="M5 46 Q7 40 18 32 Q30 22 46 21 Q60 22 70 38 L76 38 L78 46 Q52 50 5 49 Q2 48 5 46 Z" />
+      {/* Vamp (upper of shoe, covering foot) */}
+      <path d="M5 46 Q8 38 20 30 Q32 20 48 21 Q62 22 70 38" />
+      {/* Pointed toe detail */}
+      <path d="M5 46 Q2 44 3 41 Q6 38 10 40" />
       {/* Ankle strap */}
-      <path d="M22,30 Q28,26 35,27 Q40,28 44,32" />
-      {/* Heel column */}
-      <path d="M54,46 L64,44 L67,52 L58,55 Z" />
-      {/* Toe detail */}
-      <path d="M7,54 Q5,52 7,50 Q11,48 17,50" />
-      {/* Second heel (smaller, behind) */}
-      <g transform="translate(8, 8) scale(0.75)" opacity="0.5">
-        <path d="M12,52 Q38,48 54,46 Q64,44 67,52 Q62,55 54,53 Q38,57 12,60 Q5,60 7,54 Z" />
-        <path d="M12,52 Q15,36 23,28 Q34,18 44,22 Q55,26 54,46" />
-        <path d="M54,46 L64,44 L67,52 L58,55 Z" />
+      <path d="M22 32 Q32 25 44 27 Q52 29 56 36" />
+      {/* Strap buckle */}
+      <rect x="42" y="26" width="5" height="3.5" rx="0.8" />
+      <path d="M44.5 26 L44.5 29.5" strokeOpacity="0.7" />
+      {/* Stiletto heel — very thin spike */}
+      <path d="M70 38 L77 6 L80 6 L76 38" />
+      {/* Heel base on ground */}
+      <path d="M76 46 Q77 46 80 46" />
+      {/* Second shoe (3/4 view, behind) */}
+      <g opacity="0.35" transform="translate(6 7) scale(0.85)">
+        <path d="M5 46 Q7 40 18 32 Q30 22 46 21 Q60 22 70 38 L76 38 L78 46 Q52 50 5 49 Q2 48 5 46 Z" />
+        <path d="M70 38 L77 6 L80 6 L76 38" />
       </g>
     </svg>
   );
 }
 
-function BagIllustration({ size = 130 }: { size?: number }) {
+function BagIllustration() {
   return (
-    <svg width={size} height={size} viewBox="0 0 65 65" fill="none" stroke="currentColor" strokeWidth="0.8"
-      strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text)' }}>
-      {/* Body */}
-      <rect x="8" y="24" width="49" height="36" rx="3" />
-      {/* Handle */}
-      <path d="M21,24 C21,10 44,10 44,24" />
-      {/* Clasp */}
-      <rect x="27" y="21" width="11" height="6" rx="2" />
-      {/* Middle divider */}
-      <line x1="8" y1="42" x2="57" y2="42" />
-      {/* Lock detail */}
-      <rect x="28" y="45" width="9" height="7" rx="1" />
-      <path d="M30,45 L30,43 Q32.5,40 35,43 L35,45" />
-      {/* Stitching detail */}
-      <rect x="11" y="27" width="43" height="30" rx="2" strokeDasharray="0" strokeOpacity="0.3" />
+    <svg width="140" height="130" viewBox="0 0 70 65" fill="none" stroke="currentColor"
+      strokeWidth="0.68" strokeLinecap="round" strokeLinejoin="round"
+      style={{ color: 'var(--text)' }}>
+      {/* Chain strap — looped links */}
+      <path d="M11 24 Q8 14 18 8 Q30 3 40 5 Q54 8 60 18 Q64 22 60 24" />
+      {/* Bag body with rounded corners */}
+      <rect x="11" y="24" width="49" height="38" rx="5" />
+      {/* Flap with gentle curve at bottom */}
+      <path d="M11 24 L11 40 Q35.5 47 60 40 L60 24" />
+      {/* Turn-lock clasp */}
+      <ellipse cx="35.5" cy="41" rx="4.5" ry="3.5" />
+      <path d="M31 41 L33 41" strokeOpacity="0.6" />
+      <path d="M38 41 L40 41" strokeOpacity="0.6" />
+      <path d="M35.5 37.5 L35.5 39.5" strokeOpacity="0.6" />
+      <path d="M35.5 42.5 L35.5 44.5" strokeOpacity="0.6" />
+      {/* Quilting on body below flap (y 44 to y 60) */}
+      <path d="M11 60 L30 44" strokeOpacity="0.3" />
+      <path d="M19 62 L40 44" strokeOpacity="0.3" />
+      <path d="M29 62 L50 44" strokeOpacity="0.3" />
+      <path d="M39 62 L60 44" strokeOpacity="0.3" />
+      <path d="M50 62 L60 52" strokeOpacity="0.3" />
+      <path d="M60 60 L41 44" strokeOpacity="0.3" />
+      <path d="M52 62 L31 44" strokeOpacity="0.3" />
+      <path d="M42 62 L21 44" strokeOpacity="0.3" />
+      <path d="M32 62 L11 44" strokeOpacity="0.3" />
+      <path d="M21 62 L11 54" strokeOpacity="0.3" />
     </svg>
   );
 }
 
-function GlassesIllustration() {
+function PerfumeIllustration() {
   return (
-    <svg width="160" height="70" viewBox="0 0 80 35" fill="none" stroke="currentColor" strokeWidth="0.75"
-      strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text)' }}>
-      {/* Left lens */}
-      <ellipse cx="22" cy="18" rx="14" ry="12" />
-      {/* Right lens */}
-      <ellipse cx="58" cy="18" rx="14" ry="12" />
-      {/* Bridge */}
-      <path d="M36,18 Q40,14 44,18" />
-      {/* Left arm */}
-      <path d="M8,18 L2,20" />
-      {/* Right arm */}
-      <path d="M72,18 L78,20" />
-      {/* Lens glare left */}
-      <path d="M14,12 L16,10" strokeOpacity="0.5" />
-      {/* Lens glare right */}
-      <path d="M50,12 L52,10" strokeOpacity="0.5" />
+    <svg width="100" height="150" viewBox="0 0 50 75" fill="none" stroke="currentColor"
+      strokeWidth="0.65" strokeLinecap="round" strokeLinejoin="round"
+      style={{ color: 'var(--text)' }}>
+      {/* Bottle body */}
+      <path d="M12 36 Q9 36 9 40 L9 68 Q9 73 14 73 L36 73 Q41 73 41 68 L41 40 Q41 36 38 36" />
+      {/* Shoulder curve — elegant taper */}
+      <path d="M12 36 Q12 28 25 26 Q38 28 38 36" />
+      {/* Neck (narrowing) */}
+      <path d="M19 26 L19 17 L31 17 L31 26" />
+      {/* Cap body */}
+      <path d="M16 10 L16 17 L34 17 L34 10" />
+      {/* Cap top — gently domed */}
+      <path d="M16 10 Q16 6 25 6 Q34 6 34 10" />
+      {/* Spray nozzle stem */}
+      <path d="M25 6 L25 2" />
+      <path d="M22 2 L28 2" />
+      <circle cx="25" cy="2" r="0.8" fill="currentColor" />
+      {/* Facet lines — horizontal */}
+      <path d="M9 48 L41 48" strokeOpacity="0.35" />
+      <path d="M9 60 L41 60" strokeOpacity="0.35" />
+      {/* Label rectangle */}
+      <rect x="14" y="51" width="22" height="13" rx="1.5" strokeOpacity="0.3" />
+      {/* Vertical shoulder highlight */}
+      <path d="M17 36 Q16 52 17 68" strokeOpacity="0.25" />
+      {/* Decorative neck ring */}
+      <path d="M19 22 L31 22" strokeOpacity="0.5" />
     </svg>
   );
 }
 
-// ── Feature card illustrations ───────────────────────────────────────────────
+function RoseIllustration() {
+  return (
+    <svg width="90" height="130" viewBox="0 0 45 65" fill="none" stroke="currentColor"
+      strokeWidth="0.6" strokeLinecap="round" strokeLinejoin="round"
+      style={{ color: 'var(--text)' }}>
+      {/* Stem */}
+      <path d="M22 62 Q24 52 22 42" />
+      {/* Leaf left */}
+      <path d="M22 55 Q14 50 12 54 Q16 60 22 55" />
+      {/* Leaf right */}
+      <path d="M22 51 Q30 46 32 50 Q28 56 22 51" />
+      {/* Sepal (base of flower) */}
+      <path d="M18 42 Q14 38 15 34 Q22 32 22 38" strokeOpacity="0.6" />
+      <path d="M26 42 Q30 38 29 34 Q22 32 22 38" strokeOpacity="0.6" />
+      {/* Outer petals */}
+      <path d="M14 36 Q8 28 12 20 Q18 14 22 22" />
+      <path d="M30 36 Q36 28 32 20 Q26 14 22 22" />
+      <path d="M22 40 Q18 46 13 42 Q10 34 16 28" />
+      <path d="M22 40 Q26 46 31 42 Q34 34 28 28" />
+      {/* Mid petals */}
+      <path d="M16 28 Q12 20 16 14 Q22 12 24 20" />
+      <path d="M28 28 Q32 20 28 14 Q22 12 20 20" />
+      {/* Inner petals */}
+      <path d="M20 22 Q16 16 19 11 Q22 10 24 14 Q26 18 22 22" />
+      <path d="M22 10 Q22 8 22 6" strokeOpacity="0.5" />
+      {/* Innermost curl */}
+      <path d="M20 16 Q22 12 24 14 Q24 18 22 18 Q20 18 20 16" />
+    </svg>
+  );
+}
+
+// ── Feature card illustrations ────────────────────────────────────────────────
 
 function SaveIllustration() {
   return (
     <svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" strokeWidth="1.2"
       strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--primary)' }}>
-      {/* Bag */}
       <rect x="4" y="10" width="20" height="15" rx="2" />
       <path d="M9,10 C9,5 19,5 19,10" />
-      {/* Sparkle */}
       <path d="M20,5 L21,3 L22,5 L24,6 L22,7 L21,9 L20,7 L18,6 Z" fill="currentColor" strokeWidth="0.5" />
     </svg>
   );
@@ -301,11 +371,9 @@ function CompareIllustration() {
   return (
     <svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" strokeWidth="1.2"
       strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--primary)' }}>
-      {/* Left hanger */}
       <path d="M9,8 C9,5 13,5 13,8" />
       <circle cx="11" cy="4" r="1.5" />
       <path d="M11,6 L5,12 L5,20 L17,20 L17,12 L11,6" />
-      {/* Right hanger */}
       <path d="M19,8 C19,5 23,5 23,8" />
       <circle cx="21" cy="4" r="1.5" />
       <path d="M21,6 L15.5,11" />
@@ -318,11 +386,9 @@ function ShareIllustration() {
   return (
     <svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" strokeWidth="1.2"
       strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--primary)' }}>
-      {/* Three circles connected */}
       <circle cx="14" cy="8" r="3.5" />
       <circle cx="6" cy="21" r="3.5" />
       <circle cx="22" cy="21" r="3.5" />
-      {/* Connection lines */}
       <line x1="11.5" y1="10.5" x2="7.5" y2="18.5" />
       <line x1="16.5" y1="10.5" x2="20.5" y2="18.5" />
       <line x1="9.5" y1="21" x2="18.5" y2="21" />

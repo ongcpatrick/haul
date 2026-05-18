@@ -33,6 +33,8 @@ function convInitial(conv: Conversation, currentUserId: string) {
   return name[0]?.toUpperCase() ?? '?';
 }
 
+type HaulPreview = { id: string; title: string | null; imageUrl: string | null; shareId: string | null };
+
 interface Props {
   currentUserId: string;
   initialActiveId: string | null;
@@ -47,8 +49,14 @@ export default function MessagesClient({ currentUserId, initialActiveId }: Props
   const [showNewDM, setShowNewDM] = useState(false);
   const [loadingConvs, setLoadingConvs] = useState(true);
   const [loadingMsgs, setLoadingMsgs] = useState(false);
-  const threadRef = useRef<HTMLDivElement>(null);
 
+  // Haul attachment
+  const [attachedHaul, setAttachedHaul] = useState<HaulPreview | null>(null);
+  const [showHaulPicker, setShowHaulPicker] = useState(false);
+  const [userHauls, setUserHauls] = useState<HaulPreview[]>([]);
+  const [haulPickerLoaded, setHaulPickerLoaded] = useState(false);
+
+  const threadRef = useRef<HTMLDivElement>(null);
   const activeConv = conversations.find((c) => c.id === activeId) ?? null;
 
   const loadConversations = useCallback(async () => {
@@ -70,9 +78,28 @@ export default function MessagesClient({ currentUserId, initialActiveId }: Props
     const json = await res.json();
     if (json.success) setMessages(json.data);
     setLoadingMsgs(false);
-    // mark read locally
     setConversations((prev) => prev.map((c) => c.id === id ? { ...c, unread_count: 0 } : c));
   }, []);
+
+  const loadHauls = useCallback(async () => {
+    if (haulPickerLoaded) return;
+    try {
+      const res = await fetch('/api/hauls?limit=20');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success) {
+          setUserHauls(json.data.map((h: Record<string, unknown>) => ({
+            id: h.id as string,
+            title: h.title as string | null,
+            imageUrl: (h.products as Array<{ imageUrl?: string }>)?.[0]?.imageUrl ?? null,
+            shareId: h.share_id as string | null,
+          })));
+        }
+      }
+    } catch { /* noop */ } finally {
+      setHaulPickerLoaded(true);
+    }
+  }, [haulPickerLoaded]);
 
   useEffect(() => { loadConversations(); }, [loadConversations]);
 
@@ -93,26 +120,38 @@ export default function MessagesClient({ currentUserId, initialActiveId }: Props
     window.history.replaceState(null, '', `/messages?c=${id}`);
   };
 
+  const toggleHaulPicker = () => {
+    const next = !showHaulPicker;
+    setShowHaulPicker(next);
+    if (next) loadHauls();
+  };
+
   const send = async () => {
-    if (!activeId || (!text.trim() && true) || sending) return;
-    if (!text.trim()) return;
+    if (!activeId || (!text.trim() && !attachedHaul) || sending) return;
     setSending(true);
     const optimistic: Message = {
       id: `opt-${Date.now()}`,
       conversation_id: activeId,
       sender_id: currentUserId,
-      body: text.trim(),
-      haul_id: null,
+      body: text.trim() || null,
+      haul_id: attachedHaul?.id ?? null,
+      haul_title: attachedHaul?.title ?? null,
+      haul_image_url: attachedHaul?.imageUrl ?? null,
+      haul_share_id: attachedHaul?.shareId ?? null,
       created_at: new Date().toISOString(),
       sender: { id: currentUserId, username: 'me', display_name: null, avatar_url: null },
     };
     setMessages((prev) => [...prev, optimistic]);
+    const msgText = text.trim();
+    const haulId = attachedHaul?.id ?? null;
     setText('');
+    setAttachedHaul(null);
+    setShowHaulPicker(false);
     try {
       await fetch(`/api/messages/${activeId}`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ body: text.trim() }),
+        body: JSON.stringify({ body: msgText || null, haulId }),
       });
       loadMessages(activeId);
     } finally {
@@ -125,7 +164,6 @@ export default function MessagesClient({ currentUserId, initialActiveId }: Props
 
       {/* ── Left Sidebar ─────────────────────────────── */}
       <aside className={`flex flex-col border-r border-[var(--border)] bg-white w-full sm:w-80 flex-shrink-0 ${activeId ? 'hidden sm:flex' : 'flex'}`}>
-        {/* Header */}
         <div className="flex items-center justify-between px-4 py-4 border-b border-[var(--border)]">
           <h1 className="text-lg font-extrabold text-[var(--text)]">Messages</h1>
           <button
@@ -141,7 +179,6 @@ export default function MessagesClient({ currentUserId, initialActiveId }: Props
           </button>
         </div>
 
-        {/* Conversation list */}
         <div className="flex-1 overflow-y-auto">
           {loadingConvs ? (
             <div className="flex justify-center py-12">
@@ -183,7 +220,7 @@ export default function MessagesClient({ currentUserId, initialActiveId }: Props
                   )}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between gap-2">
-                      <p className={`text-sm truncate ${conv.unread_count > 0 ? 'font-bold text-[var(--text)]' : 'font-semibold text-[var(--text)]'}`}>
+                      <p className={`text-sm truncate ${conv.unread_count > 0 ? 'font-bold' : 'font-semibold'} text-[var(--text)]`}>
                         {name}
                       </p>
                       {last && <span className="text-[10px] text-[var(--muted)] flex-shrink-0">{timeAgo(last.created_at as string)}</span>}
@@ -285,7 +322,6 @@ export default function MessagesClient({ currentUserId, initialActiveId }: Props
 
                   return (
                     <div key={msg.id} className={`flex items-end gap-2 ${isMe ? 'justify-end' : 'justify-start'}`}>
-                      {/* Avatar placeholder for alignment */}
                       {!isMe && (
                         <div className="w-7 flex-shrink-0">
                           {showAvatar && (
@@ -302,16 +338,32 @@ export default function MessagesClient({ currentUserId, initialActiveId }: Props
                       )}
 
                       <div className={`max-w-[70%] ${isMe ? 'items-end' : 'items-start'} flex flex-col gap-0.5`}>
-                        {/* Haul card attachment */}
+                        {/* Haul card */}
                         {msg.haul_id && (
                           <Link
-                            href={`/feed`}
-                            className="block bg-white border border-[var(--border)] rounded-2xl overflow-hidden hover:shadow-md transition-shadow max-w-[200px]"
+                            href={msg.haul_share_id ? `/view/${msg.haul_share_id}` : '/feed'}
+                            className={`block bg-white border border-[var(--border)] rounded-2xl overflow-hidden hover:shadow-md transition-shadow ${isMe ? 'rounded-br-sm' : 'rounded-bl-sm'}`}
+                            style={{ width: 200 }}
                           >
-                            <div className="h-24 bg-[var(--bg)] flex items-center justify-center text-xs text-[var(--muted)]">
-                              Haul
+                            <div className="h-28 bg-[var(--bg)] flex items-center justify-center overflow-hidden">
+                              {msg.haul_image_url ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={`${WORKER}/proxy-image?url=${encodeURIComponent(msg.haul_image_url)}`}
+                                  alt=""
+                                  className="w-full h-full object-contain"
+                                  style={{ padding: '10%' }}
+                                />
+                              ) : (
+                                <svg className="w-10 h-10 text-[var(--muted)] opacity-30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
+                                  <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0" />
+                                </svg>
+                              )}
                             </div>
-                            <p className="text-xs font-semibold text-[var(--text)] px-2 py-1.5 truncate">View haul</p>
+                            <div className="px-3 py-2.5">
+                              <p className="text-xs font-semibold text-[var(--text)] truncate">{msg.haul_title ?? 'Untitled haul'}</p>
+                              <p className="text-[10px] text-[var(--primary)] mt-0.5">View haul →</p>
+                            </div>
                           </Link>
                         )}
 
@@ -334,9 +386,104 @@ export default function MessagesClient({ currentUserId, initialActiveId }: Props
               )}
             </div>
 
+            {/* Haul picker panel */}
+            {showHaulPicker && (
+              <div className="px-4 py-3 border-t border-[var(--border)] bg-white">
+                <p className="text-[10px] font-medium tracking-[0.12em] uppercase text-[var(--muted)] mb-2">Your hauls</p>
+                {!haulPickerLoaded ? (
+                  <div className="flex justify-center py-3">
+                    <div className="w-5 h-5 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : userHauls.length === 0 ? (
+                  <p className="text-sm text-[var(--muted)] py-2">No hauls yet.</p>
+                ) : (
+                  <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+                    {userHauls.map((h) => (
+                      <button
+                        key={h.id}
+                        type="button"
+                        onClick={() => { setAttachedHaul(h); setShowHaulPicker(false); }}
+                        className={`flex-shrink-0 border rounded-xl overflow-hidden transition-all ${
+                          attachedHaul?.id === h.id ? 'border-[var(--primary)] ring-1 ring-[var(--primary)]' : 'border-[var(--border)]'
+                        }`}
+                        style={{ width: 80 }}
+                      >
+                        <div className="h-16 bg-[var(--bg)] flex items-center justify-center overflow-hidden">
+                          {h.imageUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={`${WORKER}/proxy-image?url=${encodeURIComponent(h.imageUrl)}`}
+                              alt=""
+                              className="w-full h-full object-contain"
+                              style={{ padding: '8%' }}
+                            />
+                          ) : (
+                            <svg className="w-7 h-7 text-[var(--muted)] opacity-30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
+                              <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0" />
+                            </svg>
+                          )}
+                        </div>
+                        <p className="text-[9px] font-medium text-[var(--text)] px-1.5 py-1 truncate">{h.title ?? 'Untitled'}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Attached haul preview */}
+            {attachedHaul && !showHaulPicker && (
+              <div className="px-4 pt-2 bg-white">
+                <div className="flex items-center gap-2.5 bg-[var(--bg)] border border-[var(--border)] rounded-2xl px-3 py-2">
+                  {attachedHaul.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={`${WORKER}/proxy-image?url=${encodeURIComponent(attachedHaul.imageUrl)}`}
+                      alt=""
+                      className="w-10 h-10 rounded-lg object-contain bg-white flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-lg bg-[var(--surface)] flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-[var(--muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0" />
+                      </svg>
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-[var(--text)] truncate">{attachedHaul.title ?? 'Untitled haul'}</p>
+                    <p className="text-[10px] text-[var(--muted)]">Haul attached</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setAttachedHaul(null)}
+                    className="p-1 text-[var(--muted)] hover:text-[var(--text)] transition-colors"
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M18 6 6 18M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Input */}
             <div className="px-4 py-3 border-t border-[var(--border)] bg-white">
-              <div className="flex items-center gap-2 bg-[var(--bg)] rounded-full px-4 py-2 border border-[var(--border)] focus-within:border-[var(--primary)] transition-colors">
+              <div className="flex items-center gap-2 bg-[var(--bg)] rounded-full px-3 py-2 border border-[var(--border)] focus-within:border-[var(--primary)] transition-colors">
+                {/* Attach haul button */}
+                <button
+                  type="button"
+                  onClick={toggleHaulPicker}
+                  aria-label="Attach haul"
+                  className={`p-1 rounded-full transition-colors flex-shrink-0 ${
+                    showHaulPicker || attachedHaul
+                      ? 'text-[var(--primary)]'
+                      : 'text-[var(--muted)] hover:text-[var(--text)]'
+                  }`}
+                >
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0" />
+                  </svg>
+                </button>
                 <input
                   type="text"
                   value={text}
@@ -349,8 +496,8 @@ export default function MessagesClient({ currentUserId, initialActiveId }: Props
                 <button
                   type="button"
                   onClick={send}
-                  disabled={!text.trim() || sending}
-                  className="text-[var(--primary)] font-semibold text-sm disabled:opacity-40 transition-opacity"
+                  disabled={(!text.trim() && !attachedHaul) || sending}
+                  className="text-[var(--primary)] font-semibold text-sm disabled:opacity-40 transition-opacity flex-shrink-0"
                 >
                   Send
                 </button>
@@ -394,7 +541,15 @@ function NewDMModal({ currentUserId, onClose, onCreated }: NewDMModalProps) {
   const [creating, setCreating] = useState(false);
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Compose first message
+  const [firstMsg, setFirstMsg] = useState('');
+  const [firstMsgHaul, setFirstMsgHaul] = useState<HaulPreview | null>(null);
+  const [showModalHaulPicker, setShowModalHaulPicker] = useState(false);
+  const [modalHauls, setModalHauls] = useState<HaulPreview[]>([]);
+  const [modalHaulsLoaded, setModalHaulsLoaded] = useState(false);
+
+  const msgInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!query.trim()) { setResults([]); return; }
@@ -413,24 +568,23 @@ function NewDMModal({ currentUserId, onClose, onCreated }: NewDMModalProps) {
     return () => clearTimeout(t);
   }, [query, currentUserId]);
 
-  const openChat = async (userIds: string[], name?: string) => {
-    if (creating) return;
-    setCreating(true);
-    setError(null);
+  const loadModalHauls = async () => {
+    if (modalHaulsLoaded) return;
     try {
-      const res = await fetch('/api/messages', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ userIds, name: name ?? null }),
-      });
-      const text = await res.text();
-      let json: { success: boolean; data?: { id: string }; error?: string };
-      try { json = JSON.parse(text); } catch { throw new Error('Server error'); }
-      if (!json.success || !json.data) throw new Error(json.error ?? 'Failed to create conversation');
-      onCreated(json.data.id);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Something went wrong');
-      setCreating(false);
+      const res = await fetch('/api/hauls?limit=20');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success) {
+          setModalHauls(json.data.map((h: Record<string, unknown>) => ({
+            id: h.id as string,
+            title: h.title as string | null,
+            imageUrl: (h.products as Array<{ imageUrl?: string }>)?.[0]?.imageUrl ?? null,
+            shareId: h.share_id as string | null,
+          })));
+        }
+      }
+    } catch { /* noop */ } finally {
+      setModalHaulsLoaded(true);
     }
   };
 
@@ -438,20 +592,50 @@ function NewDMModal({ currentUserId, onClose, onCreated }: NewDMModalProps) {
     const isSelected = selected.some((u) => u.id === user.id);
     if (isSelected) {
       setSelected((prev) => prev.filter((u) => u.id !== user.id));
-      return;
-    }
-    const next = [...selected, user];
-    setSelected(next);
-    // 1-on-1: immediately open the chat
-    if (next.length === 1) {
+    } else {
+      setSelected((prev) => [...prev, user]);
       setQuery('');
-      openChat([user.id]);
+      setResults([]);
+      setTimeout(() => msgInputRef.current?.focus(), 80);
     }
   };
 
-  const startGroup = () => openChat(selected.map((u) => u.id), groupName.trim() || undefined);
+  const sendAndOpen = async () => {
+    if (creating || selected.length === 0) return;
+    if (!firstMsg.trim() && !firstMsgHaul) return;
+    setCreating(true);
+    setError(null);
+    try {
+      const isGroup = selected.length >= 2;
+      const res = await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          userIds: selected.map((u) => u.id),
+          name: isGroup ? (groupName.trim() || null) : null,
+        }),
+      });
+      const text = await res.text();
+      let json: { success: boolean; data?: { id: string }; error?: string };
+      try { json = JSON.parse(text); } catch { throw new Error('Server error'); }
+      if (!json.success || !json.data) throw new Error(json.error ?? 'Failed to create conversation');
+
+      const convId = json.data.id;
+      await fetch(`/api/messages/${convId}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ body: firstMsg.trim() || null, haulId: firstMsgHaul?.id ?? null }),
+      });
+
+      onCreated(convId);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Something went wrong');
+      setCreating(false);
+    }
+  };
 
   const isGroup = selected.length >= 2;
+  const canSend = selected.length >= 1 && (firstMsg.trim().length > 0 || firstMsgHaul !== null) && !creating;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-4" onClick={onClose}>
@@ -470,7 +654,7 @@ function NewDMModal({ currentUserId, onClose, onCreated }: NewDMModalProps) {
           <div className="w-8" />
         </div>
 
-        {/* To: row — chips + search input */}
+        {/* To: row */}
         <div className="px-4 pt-3 pb-2 border-b border-[var(--border)]">
           <div className="flex flex-wrap items-center gap-1.5 min-h-[36px]">
             <span className="text-sm font-semibold text-[var(--muted)]">To:</span>
@@ -488,18 +672,17 @@ function NewDMModal({ currentUserId, onClose, onCreated }: NewDMModalProps) {
               </button>
             ))}
             <input
-              ref={inputRef}
               type="text"
               placeholder={selected.length === 0 ? 'Search people...' : 'Add more...'}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              autoFocus
+              autoFocus={selected.length === 0}
               className="flex-1 min-w-[100px] text-sm text-[var(--text)] placeholder:text-[var(--muted)] outline-none bg-transparent py-1"
             />
           </div>
         </div>
 
-        {/* Group name field */}
+        {/* Group name */}
         {isGroup && (
           <div className="px-4 pt-2 pb-1">
             <input
@@ -516,40 +699,36 @@ function NewDMModal({ currentUserId, onClose, onCreated }: NewDMModalProps) {
         {error && <p className="mx-4 mt-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
 
         {/* Search results */}
-        <div className="max-h-60 overflow-y-auto">
-          {creating && selected.length === 1 ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="w-6 h-6 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
-            </div>
-          ) : searching ? (
-            <div className="flex justify-center py-6">
-              <div className="w-5 h-5 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
-            </div>
-          ) : query.trim() && results.length === 0 && !searching ? (
-            <p className="text-center text-sm text-[var(--muted)] py-6">No people found</p>
-          ) : (
-            results.map((u) => {
-              const isSelected = selected.some((s) => s.id === u.id);
-              return (
-                <button
-                  key={u.id}
-                  type="button"
-                  onClick={() => toggle(u)}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg)] transition-colors"
-                >
-                  {u.avatar_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={u.avatar_url} alt="" className="w-10 h-10 rounded-full border border-[var(--border)] object-cover flex-shrink-0" />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-[var(--primary)] flex items-center justify-center text-white font-bold flex-shrink-0">
-                      {u.username[0]?.toUpperCase()}
+        {(query.trim() || results.length > 0) && (
+          <div className="max-h-48 overflow-y-auto border-b border-[var(--border)]">
+            {searching ? (
+              <div className="flex justify-center py-6">
+                <div className="w-5 h-5 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : query.trim() && results.length === 0 && !searching ? (
+              <p className="text-center text-sm text-[var(--muted)] py-6">No people found</p>
+            ) : (
+              results.map((u) => {
+                const isSelected = selected.some((s) => s.id === u.id);
+                return (
+                  <button
+                    key={u.id}
+                    type="button"
+                    onClick={() => toggle(u)}
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg)] transition-colors"
+                  >
+                    {u.avatar_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={u.avatar_url} alt="" className="w-10 h-10 rounded-full border border-[var(--border)] object-cover flex-shrink-0" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-[var(--primary)] flex items-center justify-center text-white font-bold flex-shrink-0">
+                        {u.username[0]?.toUpperCase()}
+                      </div>
+                    )}
+                    <div className="flex-1 text-left min-w-0">
+                      <p className="text-sm font-semibold text-[var(--text)] truncate">{u.display_name ?? u.username}</p>
+                      <p className="text-xs text-[var(--muted)]">@{u.username}</p>
                     </div>
-                  )}
-                  <div className="flex-1 text-left min-w-0">
-                    <p className="text-sm font-semibold text-[var(--text)] truncate">{u.display_name ?? u.username}</p>
-                    <p className="text-xs text-[var(--muted)]">@{u.username}</p>
-                  </div>
-                  {isGroup && (
                     <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${isSelected ? 'bg-[var(--primary)] border-[var(--primary)]' : 'border-[var(--border)]'}`}>
                       {isSelected && (
                         <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
@@ -557,24 +736,120 @@ function NewDMModal({ currentUserId, onClose, onCreated }: NewDMModalProps) {
                         </svg>
                       )}
                     </div>
-                  )}
-                </button>
-              );
-            })
-          )}
-        </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        )}
 
-        {/* Start group button */}
-        {isGroup && (
-          <div className="px-4 pb-4 pt-2">
-            <button
-              type="button"
-              onClick={startGroup}
-              disabled={creating}
-              className="w-full py-3 rounded-2xl bg-[var(--primary)] text-white font-bold text-sm disabled:opacity-60 hover:bg-[var(--primary-h)] transition-colors"
-            >
-              {creating ? 'Creating...' : `Start group chat (${selected.length} people)`}
-            </button>
+        {/* ── Compose first message (shown once a person is selected) ── */}
+        {selected.length >= 1 && (
+          <div className="px-4 pb-4 pt-3">
+            {/* Haul picker */}
+            {showModalHaulPicker && (
+              <div className="mb-3">
+                <p className="text-[10px] font-medium tracking-[0.12em] uppercase text-[var(--muted)] mb-2">Your hauls</p>
+                {!modalHaulsLoaded ? (
+                  <div className="flex justify-center py-2">
+                    <div className="w-4 h-4 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : modalHauls.length === 0 ? (
+                  <p className="text-xs text-[var(--muted)]">No hauls yet.</p>
+                ) : (
+                  <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+                    {modalHauls.map((h) => (
+                      <button
+                        key={h.id}
+                        type="button"
+                        onClick={() => { setFirstMsgHaul(h); setShowModalHaulPicker(false); }}
+                        className={`flex-shrink-0 border rounded-xl overflow-hidden transition-all ${
+                          firstMsgHaul?.id === h.id ? 'border-[var(--primary)]' : 'border-[var(--border)]'
+                        }`}
+                        style={{ width: 72 }}
+                      >
+                        <div className="h-14 bg-[var(--bg)] flex items-center justify-center overflow-hidden">
+                          {h.imageUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={`${WORKER}/proxy-image?url=${encodeURIComponent(h.imageUrl)}`}
+                              alt=""
+                              className="w-full h-full object-contain"
+                              style={{ padding: '8%' }}
+                            />
+                          ) : (
+                            <svg className="w-6 h-6 text-[var(--muted)] opacity-30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
+                              <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0" />
+                            </svg>
+                          )}
+                        </div>
+                        <p className="text-[9px] font-medium text-[var(--text)] px-1 py-1 truncate">{h.title ?? 'Untitled'}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Attached haul preview */}
+            {firstMsgHaul && !showModalHaulPicker && (
+              <div className="mb-2 flex items-center gap-2 bg-[var(--bg)] border border-[var(--border)] rounded-xl px-2.5 py-1.5">
+                {firstMsgHaul.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={`${WORKER}/proxy-image?url=${encodeURIComponent(firstMsgHaul.imageUrl)}`}
+                    alt=""
+                    className="w-8 h-8 rounded-lg object-contain bg-white flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-lg bg-[var(--surface)] flex items-center justify-center flex-shrink-0">
+                    <svg className="w-4 h-4 text-[var(--muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0" />
+                    </svg>
+                  </div>
+                )}
+                <p className="flex-1 text-xs font-medium text-[var(--text)] truncate">{firstMsgHaul.title ?? 'Untitled haul'}</p>
+                <button type="button" onClick={() => setFirstMsgHaul(null)} className="p-0.5 text-[var(--muted)] hover:text-[var(--text)]">
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M18 6 6 18M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            )}
+
+            {/* Compose row */}
+            <div className="flex items-center gap-2 bg-[var(--bg)] rounded-full px-3 py-2 border border-[var(--border)] focus-within:border-[var(--primary)] transition-colors">
+              <button
+                type="button"
+                onClick={() => { setShowModalHaulPicker((v) => !v); if (!showModalHaulPicker) loadModalHauls(); }}
+                className={`p-1 rounded-full flex-shrink-0 transition-colors ${showModalHaulPicker || firstMsgHaul ? 'text-[var(--primary)]' : 'text-[var(--muted)] hover:text-[var(--text)]'}`}
+                aria-label="Attach haul"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0" />
+                </svg>
+              </button>
+              <input
+                ref={msgInputRef}
+                type="text"
+                value={firstMsg}
+                onChange={(e) => setFirstMsg(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), sendAndOpen())}
+                placeholder={isGroup ? 'Message the group...' : `Message ${selected[0]?.username ?? ''}...`}
+                maxLength={2000}
+                className="flex-1 bg-transparent text-sm text-[var(--text)] placeholder:text-[var(--muted)] outline-none"
+              />
+              <button
+                type="button"
+                onClick={sendAndOpen}
+                disabled={!canSend}
+                className="w-7 h-7 rounded-full bg-[var(--primary)] flex items-center justify-center flex-shrink-0 disabled:opacity-40 transition-opacity"
+              >
+                <svg className="w-3.5 h-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
           </div>
         )}
       </div>

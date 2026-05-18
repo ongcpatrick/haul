@@ -1067,8 +1067,9 @@ function appendProductCards(products) {
     card.draggable = true;
 
     const siteInitial = esc((p.siteName || p.name || '?').charAt(0).toUpperCase());
-    const imgHtml = p.image
-      ? `<img class="chat-product-img" src="${esc(p.image)}" loading="lazy" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+    const proxiedImg = p.image ? PROXY_BASE + encodeURIComponent(p.image) : null;
+    const imgHtml = proxiedImg
+      ? `<img class="chat-product-img" src="${proxiedImg}" loading="lazy" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
         + `<div class="chat-product-img-placeholder" style="display:none">${siteInitial}</div>`
       : `<div class="chat-product-img-placeholder">${siteInitial}</div>`;
 
