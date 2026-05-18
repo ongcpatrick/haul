@@ -832,119 +832,185 @@
       color: var(--text-2); font-size: 13px; padding: 8px 0;
     }
 
-    /* ── Explore / nav tabs ─────────────────────────── */
+    /* ── Main tabs: My Haul | Explore ────────────────── */
     .view-tabs {
-      display: flex; gap: 4px;
-      padding: 8px 24px;
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
+      display: flex; padding: 0 20px; gap: 0;
+      background: var(--surface); border-bottom: 1px solid var(--border);
     }
     .view-tab {
-      padding: 6px 16px; border-radius: 20px; border: none;
-      font-size: 12px; font-weight: 600; cursor: pointer;
-      background: none; color: var(--text-2);
-      transition: all 0.15s ease; font-family: inherit;
+      padding: 11px 16px; border: none; font-size: 13px; font-weight: 600;
+      cursor: pointer; background: none; color: var(--text-2);
+      transition: color var(--t); font-family: inherit;
+      position: relative; border-bottom: 2px solid transparent; margin-bottom: -1px;
     }
-    .view-tab:hover { background: var(--surface-2); color: var(--text); }
-    .view-tab.active { background: var(--primary); color: #fff; }
+    .view-tab:hover { color: var(--text); }
+    .view-tab.active { color: var(--text); border-bottom-color: var(--primary); }
+    .view-tab svg { display: inline; margin-right: 4px; vertical-align: -2px; }
 
     /* ── Explore panel ──────────────────────────────── */
-    #explore-panel {
-      display: none;
-      padding: 24px;
+    #explore-panel { display: none; flex-direction: column; }
+    #explore-panel.visible { display: flex; }
+
+    /* Sub-tabs: For You | Following */
+    .explore-sub-tabs {
+      display: flex; border-bottom: 1px solid var(--border);
+      background: var(--surface); position: sticky; top: 0; z-index: 5;
     }
-    #explore-panel.visible { display: block; }
-    .explore-title {
-      font-size: 16px; font-weight: 700; color: var(--text);
-      letter-spacing: -0.02em; margin-bottom: 4px;
+    .explore-sub-tab {
+      flex: 1; padding: 11px 0; border: none; font-size: 13px; font-weight: 600;
+      cursor: pointer; background: none; color: var(--text-2); font-family: inherit;
+      position: relative; border-bottom: 2px solid transparent; margin-bottom: -1px;
+      transition: color var(--t), background var(--t);
     }
-    .explore-sub {
-      font-size: 12px; color: var(--text-2); margin-bottom: 20px;
-    }
-    .explore-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 16px;
-    }
+    .explore-sub-tab:hover { color: var(--text); background: var(--surface-2); }
+    .explore-sub-tab.active { color: var(--text); border-bottom-color: var(--primary); }
+
+    /* Feed container */
+    .explore-feed { display: flex; flex-direction: column; }
+
+    /* Post card */
     .explore-card {
-      background: var(--card-bg); border: 1px solid var(--border);
-      border-radius: 16px; overflow: hidden;
-      box-shadow: var(--shadow-sm);
-      transition: box-shadow 0.2s, transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
-      animation: card-in 0.4s cubic-bezier(0.16,1,0.3,1) both;
+      background: var(--card-bg); border-bottom: 1px solid var(--border);
+      padding: 16px 20px 0; position: relative;
+      animation: card-in 0.35s cubic-bezier(0.16,1,0.3,1) both;
     }
-    .explore-card:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); }
-    .explore-card-imgs {
-      display: flex; background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      height: 90px; overflow: hidden;
+
+    /* Post header row */
+    .explore-post-header {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
     }
-    .explore-card-img {
-      flex: 1; object-fit: contain; padding: 8px;
-    }
-    .explore-card-img-ph {
-      flex: 1; display: flex; align-items: center; justify-content: center;
-      font-size: 22px; color: var(--text-2);
-    }
-    .explore-card-body { padding: 12px 14px 14px; }
-    .explore-card-title-row { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
-    .explore-card-title {
-      font-size: 13px; font-weight: 700; color: var(--text);
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      flex: 1; min-width: 0;
-    }
-    .explore-card-btn-icon {
-      flex-shrink: 0; width: 26px; height: 26px; border-radius: 6px;
-      border: none; background: transparent; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      color: var(--text-2); transition: all 0.12s;
-    }
-    .explore-card-btn-icon.delete-haul:hover { background: #fee2e2; color: #ef4444; }
-    .explore-card-meta { font-size: 11px; color: var(--text-2); margin-bottom: 10px; }
-    .explore-card-actions { display: flex; gap: 6px; flex-wrap: wrap; }
-    .explore-card-btn {
-      flex: 1; padding: 7px 8px; border-radius: 8px;
-      font-size: 11px; font-weight: 600; cursor: pointer;
-      border: none; font-family: inherit;
-      transition: all 0.12s ease; white-space: nowrap; min-width: 0;
-    }
-    .explore-card-btn.view {
+    .explore-post-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
       background: var(--primary); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700; flex-shrink: 0;
+      text-transform: uppercase;
     }
-    .explore-card-btn.view:hover { background: var(--primary-h); }
-    .explore-card-btn.fork {
-      background: var(--surface-2); color: var(--text-2);
-      border: 1px solid var(--border);
+    .explore-post-meta { flex: 1; min-width: 0; }
+    .explore-post-author {
+      display: block; font-size: 13px; font-weight: 700; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .explore-card-btn.fork:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-faint); }
-    .explore-card-btn.post-circle {
-      background: var(--surface-2); color: var(--text-2);
-      border: 1px solid var(--border);
+    .explore-post-time { font-size: 11px; color: var(--text-2); }
+    .explore-post-more-wrap { position: relative; flex-shrink: 0; }
+    .explore-post-more {
+      width: 30px; height: 30px; border: none; border-radius: 50%;
+      background: none; cursor: pointer; color: var(--text-2);
+      display: flex; align-items: center; justify-content: center;
+      transition: background var(--t), color var(--t); font-size: 18px; font-weight: 700;
+      font-family: inherit; line-height: 1;
     }
-    .explore-card-btn.post-circle:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-faint); }
-    .explore-card-btn:disabled { opacity: 0.5; cursor: default; }
+    .explore-post-more:hover { background: var(--surface-2); color: var(--text); }
+    .explore-post-menu {
+      position: absolute; top: 34px; right: 0; z-index: 30;
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: 10px; box-shadow: var(--shadow-md); overflow: hidden;
+      min-width: 160px; display: none;
+    }
+    .explore-post-menu.open { display: block; }
+    .explore-post-menu-item {
+      display: block; width: 100%; padding: 10px 14px; text-align: left;
+      border: none; background: none; font-size: 12px; font-weight: 600;
+      cursor: pointer; font-family: inherit; color: var(--text);
+      transition: background var(--t);
+    }
+    .explore-post-menu-item:hover { background: var(--surface); }
+    .explore-post-menu-item.danger { color: #ef4444; }
+    .explore-post-menu-item.danger:hover { background: #fee2e2; }
+
+    /* Post title */
+    .explore-post-title {
+      font-size: 13px; font-weight: 600; color: var(--text);
+      line-height: 1.45; margin-bottom: 10px;
+    }
+
+    /* Product images strip */
+    .explore-post-imgs {
+      display: flex; border-radius: 12px; overflow: hidden;
+      border: 1px solid var(--border); height: 160px; margin-bottom: 0;
+    }
+    .explore-post-img {
+      flex: 1; object-fit: contain; background: var(--surface);
+      padding: 10px; border-right: 1px solid var(--border);
+    }
+    .explore-post-img:last-child { border-right: none; }
+    .explore-post-img-ph {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      background: var(--surface); font-size: 11px; font-weight: 600;
+      color: var(--text-2); text-transform: uppercase; letter-spacing: 0.05em;
+    }
+
+    /* Footer: count + action buttons */
+    .explore-post-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 0 14px;
+    }
+    .explore-post-count { font-size: 11px; color: var(--text-2); font-weight: 500; }
+    .explore-post-actions { display: flex; align-items: center; gap: 6px; }
+    .explore-btn-view {
+      padding: 6px 14px; border-radius: 20px; border: none;
+      background: var(--primary); color: #fff;
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      font-family: inherit; transition: background var(--t);
+    }
+    .explore-btn-view:hover { background: var(--primary-h); }
+    .explore-btn-fork {
+      padding: 6px 12px; border-radius: 20px;
+      border: 1px solid var(--border); background: none;
+      color: var(--text-2); font-size: 12px; font-weight: 600;
+      cursor: pointer; font-family: inherit; transition: all var(--t);
+    }
+    .explore-btn-fork:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-faint); }
+    .explore-btn-fork:disabled { opacity: 0.4; cursor: default; }
+    .explore-btn-circle {
+      width: 32px; height: 32px; border-radius: 50%;
+      border: 1px solid var(--border); background: none;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: var(--text-2); transition: all var(--t);
+      flex-shrink: 0;
+    }
+    .explore-btn-circle:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-faint); }
+    .explore-btn-circle.active { border-color: var(--primary); color: var(--primary); background: var(--primary-faint); }
+    .explore-btn-circle:disabled { opacity: 0.4; cursor: default; }
+
     /* Circle picker dropdown */
     .circle-dropdown {
-      margin-top: 8px; border: 1px solid var(--border); border-radius: 10px;
-      background: var(--bg); overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+      margin: 0 0 12px;
+      border: 1px solid var(--border); border-radius: 10px;
+      background: var(--bg); overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
     }
     .circle-dropdown-item {
-      display: block; width: 100%; padding: 9px 12px; text-align: left;
+      display: block; width: 100%; padding: 10px 14px; text-align: left;
       font-size: 12px; font-weight: 600; color: var(--text);
-      background: none; border: none; cursor: pointer; font-family: inherit;
-      transition: background 0.1s;
+      background: none; border: none; border-bottom: 1px solid var(--border);
+      cursor: pointer; font-family: inherit; transition: background var(--t);
     }
+    .circle-dropdown-item:last-child { border-bottom: none; }
     .circle-dropdown-item:hover { background: var(--primary-faint); color: var(--primary); }
     .circle-dropdown-item:disabled { opacity: 0.5; cursor: default; }
     .circle-dropdown-empty {
-      padding: 10px 12px; font-size: 11px; color: var(--text-2); text-align: center;
+      padding: 12px 14px; font-size: 12px; color: var(--text-2); text-align: center;
     }
-    .circle-dropdown-empty a { color: var(--primary); text-decoration: none; }
+    .circle-dropdown-empty a { color: var(--primary); text-decoration: none; font-weight: 600; }
+
+    /* Empty / loading states */
     .explore-empty {
-      text-align: center; padding: 48px 24px;
-      color: var(--text-2); font-size: 13px;
+      text-align: center; padding: 60px 24px;
+      color: var(--text-2); font-size: 13px; line-height: 1.7;
     }
-    .explore-empty svg { display: block; margin: 0 auto 12px; opacity: 0.4; }
+    .explore-empty a { color: var(--primary); font-weight: 600; text-decoration: none; }
+    .explore-empty svg { display: block; margin: 0 auto 14px; opacity: 0.3; }
+    .explore-loading {
+      display: flex; align-items: center; justify-content: center;
+      padding: 60px 0; gap: 10px; color: var(--text-2); font-size: 12px;
+    }
+    .explore-loading-dot {
+      width: 18px; height: 18px; border: 2px solid var(--border);
+      border-top-color: var(--primary); border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
     /* ── Share: community section ────────────────────── */
     .share-community {
@@ -1065,14 +1131,14 @@
 
   <!-- Explore panel -->
   <div id="explore-panel">
-    <p class="explore-title">Community Hauls</p>
-    <p class="explore-sub">Hauls shared publicly by other shoppers. Fork any haul to add those products to yours.</p>
-    <div class="explore-grid" id="explore-grid">
-      <div class="explore-empty">
-        <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-        </svg>
-        Loading community hauls…
+    <div class="explore-sub-tabs">
+      <button class="explore-sub-tab active" id="explore-tab-foryou">For You</button>
+      <button class="explore-sub-tab" id="explore-tab-following">Following</button>
+    </div>
+    <div class="explore-feed" id="explore-grid">
+      <div class="explore-loading">
+        <div class="explore-loading-dot"></div>
+        Loading…
       </div>
     </div>
   </div>

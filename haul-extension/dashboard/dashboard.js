@@ -630,6 +630,9 @@ document.getElementById('quick-x').addEventListener('click',     () => quickShar
 // ── Explore tab ──────────────────────────────────────────────────────────────
 
 let exploreLoaded = false;
+let exploreFeedMode = 'foryou'; // 'foryou' | 'following'
+let _exploreExtToken = null;
+let _exploreExtUsername = null;
 
 function setExploreMode(active) {
   const filtersBar = document.getElementById('filters-bar');
@@ -666,86 +669,154 @@ function setExploreMode(active) {
 document.getElementById('tab-my-haul').addEventListener('click', () => setExploreMode(false));
 document.getElementById('tab-explore').addEventListener('click', () => setExploreMode(true));
 
+document.getElementById('explore-tab-foryou').addEventListener('click', () => {
+  if (exploreFeedMode === 'foryou') return;
+  exploreFeedMode = 'foryou';
+  document.getElementById('explore-tab-foryou').classList.add('active');
+  document.getElementById('explore-tab-following').classList.remove('active');
+  loadExploreForYou();
+});
+
+document.getElementById('explore-tab-following').addEventListener('click', () => {
+  if (exploreFeedMode === 'following') return;
+  exploreFeedMode = 'following';
+  document.getElementById('explore-tab-following').classList.add('active');
+  document.getElementById('explore-tab-foryou').classList.remove('active');
+  loadExploreFollowing();
+});
+
 async function loadExplore() {
   exploreLoaded = true;
+  const extTokenData = await new Promise((resolve) => chrome.runtime.sendMessage({ type: 'GET_EXT_TOKEN' }, resolve));
+  _exploreExtToken = extTokenData?.token || null;
+  _exploreExtUsername = extTokenData?.username || null;
+  loadExploreForYou();
+}
+
+function showFeedLoading() {
+  const grid = document.getElementById('explore-grid');
+  grid.innerHTML = `<div class="explore-loading">
+    <div class="explore-loading-dot"></div>
+    <div class="explore-loading-dot"></div>
+    <div class="explore-loading-dot"></div>
+  </div>`;
+}
+
+async function loadExploreForYou() {
+  showFeedLoading();
   const grid = document.getElementById('explore-grid');
   try {
-    const [res, extTokenData] = await Promise.all([
-      fetch(`${WORKER_BASE}/feed`),
-      new Promise((resolve) => chrome.runtime.sendMessage({ type: 'GET_EXT_TOKEN' }, resolve)),
-    ]);
+    const res = await fetch(`${WORKER_BASE}/feed`);
     const hauls = await res.json();
     if (!Array.isArray(hauls) || hauls.length === 0) {
-      grid.innerHTML = `<div class="explore-empty">
-        <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-        </svg>
-        No public hauls yet. Share a comparison and toggle "Post to Community" to be the first!
-      </div>`;
+      grid.innerHTML = `<div class="explore-empty">No public hauls yet. Share a comparison and toggle "Post to Community" to be the first!</div>`;
       return;
     }
-    renderExploreGrid(hauls, extTokenData?.username || null, extTokenData?.token || null);
+    renderExploreFeed(hauls, _exploreExtUsername, _exploreExtToken);
   } catch {
     grid.innerHTML = `<div class="explore-empty">Could not load community hauls.</div>`;
   }
 }
 
-function renderExploreGrid(hauls, extUsername, extToken) {
+async function loadExploreFollowing() {
+  showFeedLoading();
+  const grid = document.getElementById('explore-grid');
+  if (!_exploreExtToken) {
+    grid.innerHTML = `<div class="explore-empty">Sign in to see hauls from people you follow.</div>`;
+    return;
+  }
+  try {
+    const res = await fetch(`${HAUL_SHARE_BASE}/api/feed?following=1`, {
+      headers: { 'Authorization': `Bearer ${_exploreExtToken}` },
+    });
+    const json = await res.json();
+    const hauls = (json.data || []).map((h) => ({
+      id: h.share_id || h.id,
+      title: h.title,
+      author: h.author?.username || h.author?.display_name || null,
+      productCount: h.products?.length || 0,
+      imageUrls: (h.products || []).slice(0, 3).map((p) => p.imageUrl).filter(Boolean),
+      createdAt: new Date(h.created_at).getTime(),
+      dbId: h.id,
+    }));
+    if (!hauls.length) {
+      grid.innerHTML = `<div class="explore-empty">Follow some people to see their hauls here.</div>`;
+      return;
+    }
+    renderExploreFeed(hauls, _exploreExtUsername, _exploreExtToken);
+  } catch {
+    grid.innerHTML = `<div class="explore-empty">Could not load following feed.</div>`;
+  }
+}
+
+function renderExploreFeed(hauls, extUsername, extToken) {
   const grid = document.getElementById('explore-grid');
   const ownShareTokens = getOwnShareTokens();
   grid.innerHTML = '';
-  hauls.forEach((haul, idx) => {
-    const card = document.createElement('div');
-    card.className = 'explore-card';
-    card.style.animationDelay = `${idx * 0.06}s`;
+
+  hauls.forEach((haul) => {
+    const post = document.createElement('div');
+    post.className = 'explore-card';
+
+    const deleteToken = ownShareTokens[haul.id];
+    const isOwn = Boolean(deleteToken);
+    const authorInitial = (haul.author || 'H').charAt(0).toUpperCase();
+    const ago = timeAgo(haul.createdAt);
+
+    const moreBtn = isOwn
+      ? `<button class="explore-post-more" title="Options">
+           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+             <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
+           </svg>
+         </button>
+         <div class="explore-post-menu" style="display:none">
+           <button class="explore-post-menu-item danger explore-post-menu-delete">Delete post</button>
+         </div>`
+      : '';
 
     const imagesHtml = haul.imageUrls?.length
       ? haul.imageUrls.slice(0, 3).map((u) =>
-          `<img class="explore-card-img" src="${PROXY_BASE}${encodeURIComponent(u)}" alt="" onerror="this.style.display='none'">`
+          `<img class="explore-post-img" src="${PROXY_BASE}${encodeURIComponent(u)}" alt="" onerror="this.style.display='none'">`
         ).join('')
-      : `<div class="explore-card-img-ph">Haul</div>`;
+      : `<div class="explore-post-img-ph">Haul</div>`;
 
-    const ago = timeAgo(haul.createdAt);
-    const authorLine = haul.author ? `${esc(haul.author)} · ` : '';
-    const deleteToken = ownShareTokens[haul.id];
-    const isOwn = Boolean(deleteToken);
-
-    const trashBtn = isOwn
-      ? `<button class="explore-card-btn-icon delete-haul" title="Delete from community" aria-label="Delete">
-           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-             <polyline points="3,6 5,6 21,6"/>
-             <path d="M19,6l-1,14H6L5,6"/>
-             <path d="M10,11v6M14,11v6"/>
-             <path d="M9,6V4h6v2"/>
+    const circleIconBtn = extToken
+      ? `<button class="explore-btn-circle" title="Post to circle" aria-label="Post to circle">
+           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+             <circle cx="9" cy="7" r="4"/>
+             <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+             <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
            </svg>
          </button>`
       : '';
 
-    const circleBtn = extToken
-      ? `<button class="explore-card-btn post-circle">Post to circle</button>`
-      : '';
-
-    card.innerHTML = `
-      <div class="explore-card-imgs">${imagesHtml}</div>
-      <div class="explore-card-body">
-        <div class="explore-card-title-row">
-          <div class="explore-card-title">${esc(haul.title || 'Haul Comparison')}</div>
-          ${trashBtn}
+    post.innerHTML = `
+      <div class="explore-post-header">
+        <div class="explore-post-avatar">${authorInitial}</div>
+        <div class="explore-post-meta">
+          <span class="explore-post-author">${haul.author ? `@${esc(haul.author)}` : 'Anonymous'}</span>
+          <span class="explore-post-time">${ago}</span>
         </div>
-        <div class="explore-card-meta">${authorLine}${haul.productCount} item${haul.productCount !== 1 ? 's' : ''} · ${ago}</div>
-        <div class="explore-card-actions">
-          <button class="explore-card-btn view">View</button>
-          <button class="explore-card-btn fork">+ Fork</button>
-          ${circleBtn}
+        <div style="margin-left:auto;position:relative">${moreBtn}</div>
+      </div>
+      <div class="explore-post-title">${esc(haul.title || 'Haul Comparison')}</div>
+      <div class="explore-post-imgs">${imagesHtml}</div>
+      <div class="explore-post-footer">
+        <span class="explore-post-count">${haul.productCount} item${haul.productCount !== 1 ? 's' : ''}</span>
+        <div class="explore-post-actions">
+          <button class="explore-btn-view">View</button>
+          <button class="explore-btn-fork">+ Fork</button>
+          ${circleIconBtn}
         </div>
-        <div class="circle-dropdown" style="display:none"></div>
-      </div>`;
+      </div>
+      <div class="circle-dropdown" style="display:none"></div>`;
 
-    card.querySelector('.view').addEventListener('click', () => {
+    post.querySelector('.explore-btn-view').addEventListener('click', () => {
       openAndFocus(`${HAUL_SHARE_BASE}/view/${haul.id}`);
     });
 
-    card.querySelector('.fork').addEventListener('click', async (e) => {
+    post.querySelector('.explore-btn-fork').addEventListener('click', async (e) => {
       const btn = e.currentTarget;
       btn.disabled = true;
       btn.textContent = 'Forking…';
@@ -753,7 +824,15 @@ function renderExploreGrid(hauls, extUsername, extToken) {
     });
 
     if (isOwn) {
-      card.querySelector('.delete-haul').addEventListener('click', async () => {
+      const moreEl = post.querySelector('.explore-post-more');
+      const menuEl = post.querySelector('.explore-post-menu');
+      moreEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        menuEl.style.display = menuEl.style.display === 'none' ? 'block' : 'none';
+      });
+      document.addEventListener('click', () => { menuEl.style.display = 'none'; }, { once: true });
+
+      post.querySelector('.explore-post-menu-delete').addEventListener('click', async () => {
         if (!confirm('Remove this haul from the community feed?')) return;
         try {
           const res = await fetch(`${WORKER_BASE}/delete-share`, {
@@ -762,48 +841,39 @@ function renderExploreGrid(hauls, extUsername, extToken) {
             body: JSON.stringify({ id: haul.id, deleteToken }),
           });
           if (res.ok) {
-            card.style.opacity = '0';
-            card.style.transition = 'opacity 0.3s';
-            setTimeout(() => card.remove(), 300);
+            post.style.opacity = '0';
+            post.style.transition = 'opacity 0.3s';
+            setTimeout(() => post.remove(), 300);
           }
         } catch { /* noop */ }
       });
     }
 
     if (extToken) {
-      card.querySelector('.post-circle').addEventListener('click', async (e) => {
-        const btn = e.currentTarget;
-        const dropdown = card.querySelector('.circle-dropdown');
-
-        // toggle close
-        if (dropdown.style.display !== 'none') {
-          dropdown.style.display = 'none';
-          return;
-        }
-
-        btn.disabled = true;
-        btn.textContent = 'Loading…';
+      const circleBtn = post.querySelector('.explore-btn-circle');
+      const dropdown = post.querySelector('.circle-dropdown');
+      circleBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        if (dropdown.style.display !== 'none') { dropdown.style.display = 'none'; return; }
+        circleBtn.disabled = true;
         try {
           const res = await fetch(`${HAUL_SHARE_BASE}/api/circles`, {
             headers: { 'Authorization': `Bearer ${extToken}` },
           });
           const json = await res.json();
           const circles = json.data || [];
-
           if (!circles.length) {
             dropdown.innerHTML = `<div class="circle-dropdown-empty">No circles yet. <a href="${HAUL_SHARE_BASE}/circles" target="_blank">Create one</a></div>`;
           } else {
             dropdown.innerHTML = circles.map((c) =>
-              `<button class="circle-dropdown-item" data-id="${esc(c.id)}" data-name="${esc(c.name)}">${esc(c.name)}</button>`
+              `<button class="circle-dropdown-item" data-id="${esc(c.id)}">${esc(c.name)}</button>`
             ).join('');
-
             dropdown.querySelectorAll('.circle-dropdown-item').forEach((item) => {
               item.addEventListener('click', async () => {
                 const circleId = item.dataset.id;
                 item.textContent = 'Posting…';
                 item.disabled = true;
                 try {
-                  // Fork haul products from KV
                   const forkRes = await fetch(`${WORKER_BASE}/fork`, {
                     method: 'POST',
                     headers: { 'content-type': 'application/json' },
@@ -811,21 +881,10 @@ function renderExploreGrid(hauls, extUsername, extToken) {
                   });
                   const forkData = await forkRes.json();
                   if (!forkData.products?.length) throw new Error('empty');
-
-                  // Post to Railway with circleId
                   const postRes = await fetch(`${HAUL_SHARE_BASE}/api/hauls`, {
                     method: 'POST',
-                    headers: {
-                      'content-type': 'application/json',
-                      'Authorization': `Bearer ${extToken}`,
-                    },
-                    body: JSON.stringify({
-                      shareId: haul.id,
-                      title: haul.title || null,
-                      products: forkData.products,
-                      isPublic: true,
-                      circleId,
-                    }),
+                    headers: { 'content-type': 'application/json', 'Authorization': `Bearer ${extToken}` },
+                    body: JSON.stringify({ shareId: haul.id, title: haul.title || null, products: forkData.products, isPublic: true, circleId }),
                   });
                   if (!postRes.ok) throw new Error('post failed');
                   item.textContent = 'Posted!';
@@ -837,18 +896,16 @@ function renderExploreGrid(hauls, extUsername, extToken) {
               });
             });
           }
-
           dropdown.style.display = 'block';
         } catch {
           dropdown.innerHTML = `<div class="circle-dropdown-empty">Could not load circles.</div>`;
           dropdown.style.display = 'block';
         }
-        btn.disabled = false;
-        btn.textContent = 'Post to circle';
+        circleBtn.disabled = false;
       });
     }
 
-    grid.appendChild(card);
+    grid.appendChild(post);
   });
 }
 
