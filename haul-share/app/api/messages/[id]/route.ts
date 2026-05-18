@@ -1,6 +1,7 @@
 import { ok, fail, readJson } from '@/lib/api';
 import { getCurrentDbUserId } from '@/lib/supabase-server';
 import sql from '@/lib/db';
+import { ensureMessagingTables } from '@/lib/messaging-tables';
 
 interface SendBody {
   body?: string;
@@ -9,6 +10,7 @@ interface SendBody {
 
 // GET /api/messages/[id] — get messages in conversation + mark read
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  await ensureMessagingTables();
   const userId = await getCurrentDbUserId();
   if (!userId) return fail('Unauthorized', 401);
 
@@ -60,6 +62,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
 // POST /api/messages/[id] — send a message
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  await ensureMessagingTables();
   const userId = await getCurrentDbUserId();
   if (!userId) return fail('Unauthorized', 401);
 

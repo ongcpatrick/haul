@@ -1,6 +1,7 @@
 import { ok, fail, readJson } from '@/lib/api';
 import { getCurrentDbUserId } from '@/lib/supabase-server';
 import sql from '@/lib/db';
+import { ensureMessagingTables } from '@/lib/messaging-tables';
 
 interface CreateConvBody {
   userIds?: string[];
@@ -9,12 +10,16 @@ interface CreateConvBody {
 
 // GET /api/messages — list conversations for current user
 export async function GET() {
+  await ensureMessagingTables();
   const userId = await getCurrentDbUserId();
   if (!userId) return fail('Unauthorized', 401);
 
-  const convIds = await sql<{ conversation_id: string }[]>`
-    SELECT conversation_id FROM conversation_members WHERE user_id = ${userId}
-  `;
+  let convIds: { conversation_id: string }[] = [];
+  try {
+    convIds = await sql<{ conversation_id: string }[]>`
+      SELECT conversation_id FROM conversation_members WHERE user_id = ${userId}
+    `;
+  } catch { return ok([]); }
   if (!convIds.length) return ok([]);
 
   const ids = convIds.map((r) => r.conversation_id);
@@ -80,6 +85,7 @@ export async function GET() {
 
 // POST /api/messages — create a new conversation
 export async function POST(req: Request) {
+  await ensureMessagingTables();
   const userId = await getCurrentDbUserId();
   if (!userId) return fail('Unauthorized', 401);
 
