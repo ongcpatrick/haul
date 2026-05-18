@@ -126,25 +126,52 @@ async function handleProxyImage(url) {
 
 // ─── /chat ────────────────────────────────────────────────────────────────────
 
+const SEARCH_PAGE_PATTERNS = [/[?&](q|query|search|s|k|keyword)=/i, /\/(search|find|results|browse)\//i, /\/s\?/i];
+
+function isSearchPage(url) {
+  try {
+    const u = new URL(url);
+    return SEARCH_PAGE_PATTERNS.some((re) => re.test(u.pathname + u.search));
+  } catch {
+    return false;
+  }
+}
+
 async function fetchOgImage(url) {
   const safeUrl = sanitizeHttpsUrl(url);
-  if (!safeUrl) return null;
+  if (!safeUrl) return { image: null, dead: true };
+
+  // Immediately reject obvious search-results URLs
+  if (isSearchPage(safeUrl)) return { image: null, dead: true };
+
   try {
     const res = await fetch(safeUrl, {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Haul/1.0; +https://haulapp.workers.dev)' },
       redirect: 'follow',
-      signal: AbortSignal.timeout(4000),
+      signal: AbortSignal.timeout(5000),
     });
-    if (!res.ok) return null;
+
+    // Hard-reject: definitively gone or not found
+    if (res.status === 404 || res.status === 410) return { image: null, dead: true };
+
+    // If the final URL redirected to a completely different domain, the product is gone
+    const finalHost = new URL(res.url).hostname.replace(/^www\./, '');
+    const origHost  = new URL(safeUrl).hostname.replace(/^www\./, '');
+    if (finalHost !== origHost) return { image: null, dead: true };
+
+    // For 403/5xx/timeouts: product probably real, retailer is blocking — keep it, just no image
+    if (!res.ok) return { image: null, dead: false };
+
     const html = await res.text();
     const m = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
             || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i)
             || html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i);
-    if (!m) return null;
-    const src = m[1];
-    return sanitizeHttpsUrl(src.startsWith('//') ? `https:${src}` : src);
+    const src = m ? m[1] : null;
+    const image = src ? sanitizeHttpsUrl(src.startsWith('//') ? `https:${src}` : src) : null;
+    return { image, dead: false };
   } catch {
-    return null;
+    // Timeout or network error — assume product is real
+    return { image: null, dead: false };
   }
 }
 
@@ -162,21 +189,25 @@ async function handleChat({ products, messages }, env) {
   }
 
   const list = safeProducts.map((p) => {
-    const price = p.price != null ? `$${Number(p.price).toFixed(2)}` : 'unknown';
-    const sale = p.originalPrice && p.price && p.originalPrice > p.price
-      ? ` (was $${Number(p.originalPrice).toFixed(2)}, ${Math.round((1 - p.price / p.originalPrice) * 100)}% off)` : '';
-    return `- ${String(p.name).slice(0, 80)} | ${price}${sale} | ${p.siteName || ''}`;
+    const price = p.price != null ? `$${Number(p.price).toFixed(2)}` : null;
+    return `- ${String(p.name).slice(0, 80)}${price ? ` | ${price}` : ''} | ${p.siteName || ''}`;
   }).join('\n');
 
   const systemPrompt =
-    `You are a direct shopping assistant. The user is comparing these products:\n${list}\n\n` +
-    `You have real-time web search. NEVER ask clarifying questions — always act immediately.\n` +
-    `When the user asks for alternatives, similar items, other websites, or cheaper options: ` +
-    `search right away using the product names and categories above as context. ` +
-    `Your ENTIRE response must be ONLY this JSON block — no text before or after:\n` +
-    `<products>[{"name":"Full product name","price":"$XX.XX","priceRaw":XX.XX,"url":"https://exact-product-page-url","siteName":"amazon.com"}]</products>\n` +
-    `Use direct product page URLs (not search result pages). Up to 4 products. Omit priceRaw if unknown.\n\n` +
-    `For non-search questions: plain text only, max 80 words, no em dashes.`;
+    `You are a personal style advisor — opinionated, direct, and deeply knowledgeable about fashion, fit, and self-expression.\n` +
+    `The user is looking at these items:\n${list}\n\n` +
+    `Your job is to help them build a better wardrobe and make choices they'll actually feel good wearing.\n` +
+    `Think through: silhouette and fit, versatility (what does this pair with?), occasion (where can they actually wear this?), ` +
+    `personal expression (what does this say about them?), and wardrobe gaps (what's missing that would make this haul complete?).\n\n` +
+    `Rules:\n` +
+    `- Be direct. Have a point of view. Don't hedge with "it depends" or "both are great".\n` +
+    `- NEVER lead with price, savings, or discounts. Never mention deals or percentages off unless the user explicitly asks about cost.\n` +
+    `- Never ask clarifying questions — read the vibe and answer immediately.\n` +
+    `- Max 90 words for conversational answers. No em dashes. No bullet lists unless it truly helps.\n\n` +
+    `PRODUCT SEARCH — when the user wants to find specific items on the internet, find alternatives, or discover new pieces:\n` +
+    `Use web_search, then output ONLY this exact format with zero other text:\n` +
+    `<products>[{"name":"Full product name","price":"$XX.XX","priceRaw":XX.XX,"url":"https://exact-product-page-url","siteName":"sitename.com"}]</products>\n` +
+    `Find pieces that match the style and aesthetic of what the user is already looking at. Up to 4 products. Direct product URLs only.`;
 
   const res = await fetch(ANTHROPIC_URL, {
     method: 'POST',
@@ -202,31 +233,43 @@ async function handleChat({ products, messages }, env) {
 
   const data = await res.json();
 
-  // Use only the LAST text block — earlier ones are Claude's internal narration before searching
+  // Scan ALL text blocks for <products> — after a web search Claude may output it
+  // in an earlier block before appending a short closing sentence
   const textBlocks = (data.content || []).filter((b) => b.type === 'text');
-  const fullText = (textBlocks[textBlocks.length - 1]?.text || '').trim();
+  const allText = textBlocks.map((b) => b.text || '').join('\n');
+  const lastText = (textBlocks[textBlocks.length - 1]?.text || '').trim();
 
-  const prodMatch = fullText.match(/<products>([\s\S]*?)<\/products>/);
+  const prodMatch = allText.match(/<products>([\s\S]*?)<\/products>/);
   let suggestedProducts = [];
   if (prodMatch) {
     try { suggestedProducts = JSON.parse(prodMatch[1]); } catch { /* ignore */ }
   }
+
+  // Fallback: try to parse a bare JSON array anywhere in the response
+  if (!suggestedProducts.length) {
+    const jsonMatch = allText.match(/\[\s*\{[\s\S]*?"url"\s*:\s*"https?:\/\/[\s\S]*?\}\s*\]/);
+    if (jsonMatch) {
+      try { suggestedProducts = JSON.parse(jsonMatch[0]); } catch { /* ignore */ }
+    }
+  }
+
   suggestedProducts = sanitizeSuggestedProducts(suggestedProducts);
 
-  // Fetch og:image for each product in parallel so cards show real photos
+  // Verify each URL and fetch og:image in parallel — filter out dead/search-page links
   if (suggestedProducts.length) {
-    suggestedProducts = await Promise.all(
-      suggestedProducts.map(async (p) => ({
-        ...p,
-        image: p.url ? await fetchOgImage(p.url) : null,
-      }))
+    const verified = await Promise.all(
+      suggestedProducts.map(async (p) => {
+        const { image, dead } = p.url ? await fetchOgImage(p.url) : { image: null, dead: true };
+        return dead ? null : { ...p, image };
+      })
     );
+    suggestedProducts = verified.filter(Boolean);
   }
 
   // When returning product cards, suppress text — cards speak for themselves
   const message = suggestedProducts.length
     ? ''
-    : fullText.replace(/<products>[\s\S]*?<\/products>/, '').trim();
+    : lastText.replace(/<products>[\s\S]*?<\/products>/, '').trim();
 
   return jsonResponse({ message, ...(suggestedProducts.length ? { suggestedProducts } : {}) });
 }

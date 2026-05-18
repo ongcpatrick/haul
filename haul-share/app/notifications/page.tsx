@@ -79,7 +79,7 @@ export default async function NotificationsPage() {
 
       {notifications.length === 0 ? (
         <div className="bg-white border border-[var(--border)] rounded-2xl p-10 text-center">
-          <p className="text-[var(--muted)] text-sm">Nothing yet — reactions, comments, and follows will show up here.</p>
+          <p className="text-[var(--muted)] text-sm">Nothing yet. Reactions, comments, and follows will show up here.</p>
         </div>
       ) : (
         <div className="flex flex-col gap-2">
@@ -117,7 +117,7 @@ export default async function NotificationsPage() {
                     )}
                     {' '}{label}
                     {n.type === 'comment' && n.body && (
-                      <span className="text-[var(--muted)]"> — &ldquo;{n.body}&rdquo;</span>
+                      <span className="text-[var(--muted)]">: &ldquo;{n.body}&rdquo;</span>
                     )}
                   </p>
                   <div className="flex items-center gap-3 mt-1">

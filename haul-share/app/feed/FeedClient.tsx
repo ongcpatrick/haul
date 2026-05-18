@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import type { HaulWithAuthor } from '@/lib/types';
 import HaulCard from '@/app/components/HaulCard';
-import EmptyState from '@/app/components/EmptyState';
 import ErrorBoundary from '@/app/components/ErrorBoundary';
 import TrendingStrip from '@/app/components/TrendingStrip';
 
@@ -22,6 +21,7 @@ export default function FeedClient({ currentUserId, initialHauls, hasFollows }: 
   const [exploreLoaded, setExploreLoaded] = useState(false);
   const [exploreLoading, setExploreLoading] = useState(false);
   const [trendingHauls, setTrendingHauls] = useState<HaulWithAuthor[]>([]);
+  const [searching, setSearching] = useState(false);
   const [query, setQuery] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -47,7 +47,6 @@ export default function FeedClient({ currentUserId, initialHauls, hasFollows }: 
     }
   }, [exploreLoaded]);
 
-  // Load explore immediately if it's the default tab
   useEffect(() => {
     if (tab === 'explore') loadExplore();
   }, [tab, loadExplore]);
@@ -84,119 +83,159 @@ export default function FeedClient({ currentUserId, initialHauls, hasFollows }: 
   const activeHauls = tab === 'following' ? followingHauls : exploreHauls;
   const handleDelete = tab === 'following' ? handleDeleteFollowing : handleDeleteExplore;
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return activeHauls;
-    return activeHauls.filter((h) => {
-      if (h.title?.toLowerCase().includes(q)) return true;
-      if (h.author.username.toLowerCase().includes(q)) return true;
-      return Array.isArray(h.products) && h.products.some((p) => p.name?.toLowerCase().includes(q));
-    });
-  }, [activeHauls, query]);
+  const filtered = query.trim()
+    ? activeHauls.filter((h) => {
+        const q = query.toLowerCase();
+        if (h.title?.toLowerCase().includes(q)) return true;
+        if (h.author.username.toLowerCase().includes(q)) return true;
+        return Array.isArray(h.products) && h.products.some((p) => p.name?.toLowerCase().includes(q));
+      })
+    : activeHauls;
 
   const switchTab = (t: Tab) => {
     setTab(t);
     setQuery('');
+    setSearching(false);
     if (t === 'explore') loadExplore();
   };
 
   return (
     <ErrorBoundary>
-      {/* Tabs */}
-      <div className="flex items-center gap-1 mb-5 bg-[var(--surface)] rounded-xl p-1 border border-[var(--border)]">
-        <TabButton active={tab === 'following'} onClick={() => switchTab('following')}>
-          Following
-        </TabButton>
-        <TabButton active={tab === 'explore'} onClick={() => switchTab('explore')}>
-          Explore
-        </TabButton>
+      {/* Header row */}
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-6">
+          <button
+            onClick={() => switchTab('following')}
+            className="transition-all"
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '1.6rem',
+              fontWeight: 600,
+              fontStyle: 'italic',
+              letterSpacing: '-0.01em',
+              color: tab === 'following' ? 'var(--text)' : 'var(--muted)',
+              opacity: tab === 'following' ? 1 : 0.45,
+            }}
+          >
+            Following
+          </button>
+          <button
+            onClick={() => switchTab('explore')}
+            className="transition-all"
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '1.6rem',
+              fontWeight: 600,
+              fontStyle: 'italic',
+              letterSpacing: '-0.01em',
+              color: tab === 'explore' ? 'var(--text)' : 'var(--muted)',
+              opacity: tab === 'explore' ? 1 : 0.45,
+            }}
+          >
+            Discover
+          </button>
+        </div>
+
+        {/* Search toggle */}
+        <div className="flex items-center gap-2">
+          {searching && (
+            <input
+              ref={searchRef}
+              autoFocus
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search..."
+              className="text-sm px-3 py-1.5 rounded-lg border border-[var(--border)] bg-white focus:outline-none focus:ring-1 focus:ring-[var(--primary)] w-40"
+              style={{ color: 'var(--text)' }}
+            />
+          )}
+          <button
+            onClick={() => {
+              setSearching((s) => !s);
+              setQuery('');
+            }}
+            className="p-2 rounded-lg hover:bg-[var(--surface)] transition-colors"
+            style={{ color: query ? 'var(--primary)' : 'var(--muted)' }}
+            aria-label="Toggle search"
+          >
+            {searching
+              ? <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12" /></svg>
+              : <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" /></svg>
+            }
+          </button>
+        </div>
       </div>
 
-      {/* Search */}
-      <div className="relative mb-6">
-        <svg
-          className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted)] pointer-events-none"
-          viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-        >
-          <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-        </svg>
-        <input
-          ref={searchRef}
-          type="search"
-          placeholder={tab === 'explore' ? 'Search all hauls...' : 'Search your feed...'}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-[var(--border)] bg-white text-sm text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent"
-        />
-        {query && (
-          <button
-            onClick={() => setQuery('')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted)] hover:text-[var(--text)]"
-            aria-label="Clear search"
-          >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M18 6 6 18M6 6l12 12" />
-            </svg>
-          </button>
-        )}
-      </div>
+      {/* Trending strip — only on explore, no search active */}
+      {tab === 'explore' && !query && trendingHauls.length > 0 && (
+        <div className="mb-8">
+          <TrendingStrip hauls={trendingHauls} />
+        </div>
+      )}
 
       {/* Content */}
-      {tab === 'following' && followingHauls.length === 0 ? (
-        <EmptyState
-          title="Your feed is empty"
-          description="Find people to follow, or explore public hauls from the community."
-          ctaLabel="Explore public hauls"
-          ctaHref="#"
-          onCtaClick={() => switchTab('explore')}
-        />
-      ) : tab === 'explore' && exploreLoading ? (
-        <div className="flex justify-center py-20">
-          <div className="w-8 h-8 border-4 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
+      {exploreLoading ? (
+        <div className="flex justify-center py-24">
+          <div className="w-6 h-6 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
         </div>
+      ) : tab === 'following' && followingHauls.length === 0 ? (
+        <EmptyFeed onDiscover={() => switchTab('explore')} />
       ) : tab === 'explore' && exploreHauls.length === 0 && exploreLoaded ? (
-        <EmptyState
-          title="No public hauls yet"
-          description="Share a comparison from the Haul extension to be the first!"
-        />
+        <EmptyExplore />
       ) : filtered.length === 0 && query ? (
-        <p className="text-center text-sm text-[var(--muted)] py-12">
-          No hauls match &ldquo;{query}&rdquo;
+        <p className="text-center py-20 text-sm" style={{ color: 'var(--muted)' }}>
+          Nothing found for &ldquo;{query}&rdquo;
         </p>
       ) : (
-        <>
-          {tab === 'explore' && !query && trendingHauls.length > 0 && (
-            <TrendingStrip hauls={trendingHauls} />
-          )}
-          <div className="flex flex-col gap-5">
-            {filtered.map((h) => (
-              <HaulCard
-                key={h.id}
-                haul={h}
-                currentUserId={currentUserId}
-                onReact={handleReact}
-                onDelete={handleDelete}
-              />
-            ))}
-          </div>
-        </>
+        // Two-column editorial grid
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {filtered.map((h) => (
+            <HaulCard
+              key={h.id}
+              haul={h}
+              currentUserId={currentUserId}
+              onReact={handleReact}
+              onDelete={handleDelete}
+            />
+          ))}
+        </div>
       )}
     </ErrorBoundary>
   );
 }
 
-function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+function EmptyFeed({ onDiscover }: { onDiscover: () => void }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${
-        active
-          ? 'bg-white text-[var(--primary)] shadow-sm'
-          : 'text-[var(--muted)] hover:text-[var(--text)]'
-      }`}
-    >
-      {children}
-    </button>
+    <div className="flex flex-col items-center justify-center py-28 text-center">
+      <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="0.8" strokeLinecap="round" style={{ color: 'var(--muted)', opacity: 0.4, marginBottom: 20 }}>
+        <circle cx="24" cy="12" r="3" />
+        <path d="M24 14 C24 14, 24 18, 27 20" />
+        <path d="M27 20 L39 29 Q42 30.5 39 32 L9 32 Q6 30.5 9 29 L21 20 C24 18 24 14 24 14" />
+        <path d="M12 32 L11 44 Q11 45.5 12.5 45.5 L35.5 45.5 Q37 45.5 37 44 L36 32" />
+      </svg>
+      <p style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', fontWeight: 600, fontStyle: 'italic', color: 'var(--text)', marginBottom: 6 }}>
+        Your feed is quiet
+      </p>
+      <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>Follow people to see what they're building.</p>
+      <button
+        onClick={onDiscover}
+        className="text-xs font-semibold tracking-widest uppercase px-6 py-2.5 rounded-full transition-colors"
+        style={{ background: 'var(--text)', color: '#fff' }}
+      >
+        Discover
+      </button>
+    </div>
+  );
+}
+
+function EmptyExplore() {
+  return (
+    <div className="flex flex-col items-center justify-center py-28 text-center">
+      <p style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', fontWeight: 600, fontStyle: 'italic', color: 'var(--text)', marginBottom: 6 }}>
+        Nothing here yet
+      </p>
+      <p className="text-sm" style={{ color: 'var(--muted)' }}>Be the first to share a haul from the extension.</p>
+    </div>
   );
 }

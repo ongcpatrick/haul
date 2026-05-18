@@ -54,7 +54,7 @@ export default function PeopleSocialSuggestions({ currentUserId, sourceBadge, al
   if (suggestions.length === 0) {
     return (
       <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl px-5 py-6 text-center">
-        <p className="text-sm text-[var(--muted)]">No matches yet — invite friends to join!</p>
+        <p className="text-sm text-[var(--muted)]">No matches yet. Invite friends to join!</p>
         <Link href="/connect" className="mt-2 inline-block text-sm font-semibold text-[var(--primary)] hover:underline">
           Invite via iMessage or link
         </Link>

@@ -108,7 +108,7 @@ chrome.runtime.sendMessage({ type: 'GET_EXT_TOKEN' }, (res) => {
     authDot.classList.add('connected');
     authRow.classList.add('connected');
     authLabel.textContent = `@${res.username}`;
-    authRow.title = 'Connected to Haul — your posts go to your feed';
+    authRow.title = 'Connected to Haul. Your posts go to your feed.';
     authRow.addEventListener('click', () => {
       chrome.runtime.sendMessage({ type: 'OPEN_HAUL_SITE' });
       window.close();

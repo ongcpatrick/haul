@@ -128,12 +128,7 @@ function renderFilters() {
     return `<button class="filter-btn${activeFilter === cat ? ' active' : ''}" data-cat="${esc(cat)}">${label}</button>`;
   }).join('');
 
-  const saved = totalSavings(base);
-  const savingsBadge = saved > 0
-    ? `<span class="savings-pill">Saving ${formatPrice(saved)}</span>`
-    : '';
-
-  bar.innerHTML = folderSelect + pillsHtml + savingsBadge;
+  bar.innerHTML = folderSelect + pillsHtml;
 
   const sel = document.getElementById('folder-select');
   if (sel) {
@@ -184,25 +179,13 @@ function renderCards(products) {
       ? `<div class="card-winner-badge"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg> Best Pick</div>`
       : '';
 
-    const badge = hasDrop
-      ? `<span class="card-badge badge-drop">↓ $${esc(savings)}</span>`
-      : (p.onSale ? `<span class="card-badge badge-sale">SALE</span>` : '');
-
     const imgTag = safeImg
       ? `<img data-src="${esc(safeImg)}" alt="" />`
       : '';
 
-    const origPrice = hasDrop
-      ? `<span class="card-orig">${formatPrice(p.originalPrice)}</span>`
-      : '';
-
-    const savingsBadge = hasDrop
-      ? `<span class="card-savings">Save $${esc(savings)}</span>`
-      : '';
-
     const safeSource = safeUrl(p.sourceUrl);
     const viewBtn = safeSource
-      ? `<button class="card-view-btn" data-url="${esc(safeSource)}">View →</button>`
+      ? `<button class="card-view-btn" data-url="${esc(safeSource)}">View</button>`
       : `<button class="card-view-btn" disabled style="opacity:0.4;cursor:default;">No Link</button>`;
 
     return `
@@ -210,16 +193,11 @@ function renderCards(products) {
         ${winnerRow}
         <div class="card-img-wrap">
           ${imgTag}
-          ${badge}
         </div>
         <div class="card-body">
           <div class="card-name">${esc(p.name)}</div>
           <div class="card-site">${esc(p.siteName || '')}</div>
-          <div class="card-price-row">
-            <span class="card-price">${formatPrice(p.price)}</span>
-            ${origPrice}
-          </div>
-          ${savingsBadge}
+          ${p.price != null ? `<div class="card-price-row"><span class="card-price">${formatPrice(p.price)}</span></div>` : ''}
           <div class="card-actions">
             ${viewBtn}
             <button class="card-remove-btn" data-id="${esc(p.id)}" title="Remove">
@@ -264,19 +242,14 @@ function renderTable(products) {
 
   const buildRow = (row) => {
     const cells = products.map((p) => {
-      const hasDrop = p.originalPrice && p.price && p.originalPrice > p.price;
-      const savings  = hasDrop ? (p.originalPrice - p.price).toFixed(2) : null;
-
       if (row.key === 'image') {
-        const badge = hasDrop ? `<span class="price-drop-badge">↓ $${esc(savings)}</span>` : '';
         const safeImg = safeUrl(p.imageUrl);
         const imgTag = safeImg ? `<img data-src="${esc(safeImg)}" alt="" />` : '';
-        return `<td><div class="product-img-cell">${imgTag}${badge}</div></td>`;
+        return `<td><div class="product-img-cell">${imgTag}</div></td>`;
       }
       if (row.key === 'name')  return `<td class="data-cell" style="font-weight:500;">${esc(p.name)}</td>`;
       if (row.key === 'price') {
-        const orig = hasDrop ? `<span class="price-orig">${formatPrice(p.originalPrice)}</span>` : '';
-        return `<td class="data-cell"><div class="price-display"><span class="price-main">${formatPrice(p.price)}</span>${orig}</div></td>`;
+        return `<td class="data-cell"><span class="price-main">${formatPrice(p.price)}</span></td>`;
       }
       if (row.key === 'site')  return `<td class="data-cell" style="color:var(--muted);">${esc(p.siteName)}</td>`;
       if (row.key === 'link') {
@@ -858,7 +831,7 @@ function renderExploreGrid(hauls, extUsername, extToken) {
                   item.textContent = 'Posted!';
                   setTimeout(() => { dropdown.style.display = 'none'; }, 1200);
                 } catch {
-                  item.textContent = 'Failed — try again';
+                  item.textContent = 'Failed. Try again.';
                   item.disabled = false;
                 }
               });
@@ -990,10 +963,10 @@ function closeChat() {
 // ── Example chips ───────────────────────────────────────────────────────────
 
 const CHIPS = [
-  { label: 'Which is best value?', prompt: 'Which is best value?' },
-  { label: 'Find me alternatives', prompt: 'Search the web and find me 4 alternative products similar to what I\'m comparing. Show ONLY the product cards, no text.' },
-  { label: 'Best for a gift?', prompt: 'Best for a gift?' },
-  { label: 'Any hidden costs?', prompt: 'Any hidden costs?' },
+  { label: 'Does this work together?', prompt: 'Do these pieces actually work together as an outfit? Be honest about the silhouette and vibe.' },
+  { label: 'What occasions work?', prompt: 'What occasions or settings can I actually wear each of these to?' },
+  { label: "What's missing?", prompt: "Looking at what I have here, what piece is missing that would make this haul complete and more versatile?" },
+  { label: 'Find similar styles', prompt: 'Search the web and find me 4 pieces that match the style and aesthetic of what I\'m looking at. Show ONLY the product cards, no text.' },
 ];
 
 function renderChips() {

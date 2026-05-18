@@ -5,63 +5,55 @@ import type { HaulWithAuthor } from '@/lib/types';
 
 const WORKER = 'https://haul-ai.haulapp.workers.dev';
 
-function fmt(n: number) { return '$' + n.toFixed(2); }
-
-function totalReactions(counts: Record<string, number> = {}) {
-  return Object.values(counts).reduce((s, v) => s + v, 0);
-}
-
 export default function TrendingStrip({ hauls }: { hauls: HaulWithAuthor[] }) {
   if (!hauls.length) return null;
 
   return (
-    <div className="mb-6">
-      <div className="flex items-center gap-2 mb-3">
-        <span className="text-xs font-bold text-[var(--primary)] uppercase tracking-wider">Trending this week</span>
-        <div className="flex-1 h-px bg-[var(--border)]" />
-      </div>
-      <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-none">
+    <div>
+      <p className="mb-3 text-[10px] font-medium tracking-[0.18em] uppercase" style={{ color: 'var(--muted)' }}>
+        Trending
+      </p>
+      <div className="flex gap-3 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
         {hauls.map((h) => {
           const thumb = h.products[0];
           const viewHref = h.share_id ? `/view/${h.share_id}` : `/u/${h.author.username}`;
-          const prices = h.products.map((p) => p.price).filter((p): p is number => p != null);
-          const minPrice = prices.length ? Math.min(...prices) : null;
-          const reactions = totalReactions(h.reaction_counts);
+          const reactions = Object.values(h.reaction_counts ?? {}).reduce((s, v) => s + v, 0);
 
           return (
             <Link
               key={h.id}
               href={viewHref}
-              className="flex-shrink-0 w-36 bg-white border border-[var(--border)] rounded-xl overflow-hidden hover:shadow-md hover:border-[var(--primary)] transition-all group"
+              className="flex-shrink-0 overflow-hidden group"
+              style={{ width: 120, borderRadius: 12, border: '1px solid var(--border)', background: '#fff' }}
             >
-              {/* Thumbnail */}
-              <div className="h-24 bg-[var(--bg)] flex items-center justify-center overflow-hidden">
+              {/* Image */}
+              <div className="flex items-center justify-center overflow-hidden" style={{ height: 110, background: '#f5f3ef' }}>
                 {thumb?.imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={`${WORKER}/proxy-image?url=${encodeURIComponent(thumb.imageUrl)}`}
                     alt={thumb.name}
-                    className="w-full h-full object-contain p-2"
+                    className="w-full h-full object-contain"
+                    style={{ padding: '12%' }}
                   />
                 ) : (
-                  <span className="text-xs text-[var(--muted)]">No image</span>
+                  <span style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', color: 'var(--muted)', opacity: 0.4 }}>
+                    {h.title?.charAt(0) ?? 'H'}
+                  </span>
                 )}
               </div>
 
               {/* Info */}
-              <div className="p-2">
-                <p className="text-xs font-semibold text-[var(--text)] line-clamp-2 leading-snug group-hover:text-[var(--primary)]">
-                  {h.title ?? 'Untitled haul'}
+              <div className="px-2.5 py-2">
+                <p className="line-clamp-2 leading-snug text-[11px] font-medium group-hover:opacity-60 transition-opacity" style={{ color: 'var(--text)' }}>
+                  {h.title ?? 'Untitled'}
                 </p>
                 <div className="mt-1 flex items-center justify-between">
-                  {minPrice != null && (
-                    <span className="text-xs text-[var(--primary)] font-bold">{fmt(minPrice)}+</span>
-                  )}
+                  <span className="text-[10px]" style={{ color: 'var(--muted)' }}>@{h.author.username}</span>
                   {reactions > 0 && (
-                    <span className="text-xs text-[var(--muted)]">{reactions} ♥</span>
+                    <span className="text-[10px]" style={{ color: 'var(--muted)' }}>{reactions} ♥</span>
                   )}
                 </div>
-                <p className="text-[10px] text-[var(--muted)] mt-0.5 truncate">@{h.author.username}</p>
               </div>
             </Link>
           );

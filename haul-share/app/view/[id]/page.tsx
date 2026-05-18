@@ -1,5 +1,8 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { auth } from '@clerk/nextjs/server';
+import { getCurrentDbUserId } from '@/lib/supabase-server';
+import sql from '@/lib/db';
 
 const WORKER = 'https://haul-ai.haulapp.workers.dev';
 
@@ -82,10 +85,24 @@ function safeHttpsUrl(value: string | null): string | null {
 
 export default async function ViewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const data = await fetchShare(id);
+
+  const [data, { userId }] = await Promise.all([fetchShare(id), auth()]);
   if (!data) notFound();
 
   const { products, title, author } = data;
+
+  let currentUsername: string | null = null;
+  if (userId) {
+    const dbUserId = await getCurrentDbUserId();
+    if (dbUserId) {
+      const rows = await sql<{ username: string }[]>`SELECT username FROM users WHERE id = ${dbUserId} LIMIT 1`.catch(() => []);
+      currentUsername = rows[0]?.username ?? null;
+    }
+  }
+
+  const isLoggedIn = !!userId;
+  const isOwnHaul = isLoggedIn && currentUsername != null && author != null &&
+    (author === currentUsername || author === `@${currentUsername}`);
 
   return (
     <div style={{ background: '#fafaf7', color: '#3d3529' }}>
@@ -99,17 +116,19 @@ export default async function ViewPage({ params }: { params: Promise<{ id: strin
           <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 6 }}>{title ?? 'Haul Comparison'}</h1>
           <p style={{ fontSize: 14, color: '#8a7e72', marginBottom: 32 }}>{products.length} product{products.length !== 1 ? 's' : ''} compared</p>
 
-          {/* Acquisition banner */}
-          <div style={{ background: '#e8f0e6', border: '1px solid #c5d9c2', borderRadius: 14, padding: '16px 20px', marginBottom: 36, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' as const }}>
-            <div>
-              <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>Want to build your own comparison?</p>
-              <p style={{ fontSize: 13, color: '#8a7e72' }}>Haul is a free Chrome extension. Save products from any site and compare in seconds.</p>
+          {/* Acquisition banner — only for non-logged-in users */}
+          {!isLoggedIn && (
+            <div style={{ background: '#e8f0e6', border: '1px solid #c5d9c2', borderRadius: 14, padding: '16px 20px', marginBottom: 36, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' as const }}>
+              <div>
+                <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>Want to build your own comparison?</p>
+                <p style={{ fontSize: 13, color: '#8a7e72' }}>Haul is a free Chrome extension. Save products from any site and compare in seconds.</p>
+              </div>
+              <a href="/" target="_blank" rel="noopener"
+                style={{ padding: '10px 22px', background: '#7a9e76', color: '#fff', fontSize: 13, fontWeight: 700, borderRadius: 10, textDecoration: 'none', whiteSpace: 'nowrap' as const }}>
+                Get Haul Free
+              </a>
             </div>
-            <a href="/" target="_blank" rel="noopener"
-              style={{ padding: '10px 22px', background: '#7a9e76', color: '#fff', fontSize: 13, fontWeight: 700, borderRadius: 10, textDecoration: 'none', whiteSpace: 'nowrap' as const }}>
-              Get Haul Free →
-            </a>
-          </div>
+          )}
 
           {/* Products grid */}
           <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' as const }}>
@@ -141,14 +160,14 @@ export default async function ViewPage({ params }: { params: Promise<{ id: strin
                       {hasDrop && <span style={{ fontSize: 13, color: '#8a7e72', textDecoration: 'line-through' }}>{fmt(p.originalPrice)}</span>}
                     </div>
                     {savings && (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#e8f0e6', color: '#7a9e76', fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 20, alignSelf: 'flex-start' as const }}>↓ Save ${savings}</span>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#e8f0e6', color: '#7a9e76', fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 20, alignSelf: 'flex-start' as const }}>Save ${savings}</span>
                     )}
 
                     <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
                       {sourceUrl && (
                         <a href={sourceUrl} target="_blank" rel="noopener"
                           style={{ flex: 1, display: 'block', textAlign: 'center', padding: '9px 10px', background: '#7a9e76', color: '#fff', fontSize: 12, fontWeight: 700, borderRadius: 10, textDecoration: 'none' }}>
-                          View →
+                          View
                         </a>
                       )}
                       {/* Add to My Haul — handled by the Haul extension content script */}
@@ -173,28 +192,71 @@ export default async function ViewPage({ params }: { params: Promise<{ id: strin
               );
             })}
           </div>
-          {/* Join CTA */}
+
+          {/* Bottom CTA — context-aware */}
           <div style={{ marginTop: 48, background: '#fff', border: '1px solid #e8e2d8', borderRadius: 18, padding: '28px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' as const, boxShadow: '0 2px 16px rgba(61,53,41,0.07)' }}>
-            <div>
-              <p style={{ fontSize: 15, fontWeight: 800, marginBottom: 4 }}>
-                {author ? `Follow ${author} on Haul` : 'Create your own comparison'}
-              </p>
-              <p style={{ fontSize: 13, color: '#8a7e72' }}>
-                {author
-                  ? `See ${author}'s future hauls and share your own picks.`
-                  : 'Sign up free and start comparing products from any site.'}
-              </p>
-            </div>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' as const }}>
-              <a href="/sign-up"
-                style={{ padding: '10px 20px', background: '#7a9e76', color: '#fff', fontSize: 13, fontWeight: 700, borderRadius: 10, textDecoration: 'none', whiteSpace: 'nowrap' as const }}>
-                Sign up free →
-              </a>
-              <a href="/feed"
-                style={{ padding: '10px 20px', background: '#e8f0e6', color: '#5c8259', fontSize: 13, fontWeight: 700, borderRadius: 10, textDecoration: 'none', whiteSpace: 'nowrap' as const, border: '1px solid #c5d9c2' }}>
-                Explore hauls
-              </a>
-            </div>
+            {!isLoggedIn ? (
+              <>
+                <div>
+                  <p style={{ fontSize: 15, fontWeight: 800, marginBottom: 4 }}>
+                    {author ? `Follow ${author} on Haul` : 'Create your own comparison'}
+                  </p>
+                  <p style={{ fontSize: 13, color: '#8a7e72' }}>
+                    {author
+                      ? `See ${author}'s future hauls and share your own picks.`
+                      : 'Sign up free and start comparing products from any site.'}
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' as const }}>
+                  <a href="/sign-up"
+                    style={{ padding: '10px 20px', background: '#7a9e76', color: '#fff', fontSize: 13, fontWeight: 700, borderRadius: 10, textDecoration: 'none', whiteSpace: 'nowrap' as const }}>
+                    Sign up free
+                  </a>
+                  <a href="/feed"
+                    style={{ padding: '10px 20px', background: '#e8f0e6', color: '#5c8259', fontSize: 13, fontWeight: 700, borderRadius: 10, textDecoration: 'none', whiteSpace: 'nowrap' as const, border: '1px solid #c5d9c2' }}>
+                    Explore hauls
+                  </a>
+                </div>
+              </>
+            ) : isOwnHaul ? (
+              <>
+                <div>
+                  <p style={{ fontSize: 15, fontWeight: 800, marginBottom: 4 }}>Your haul</p>
+                  <p style={{ fontSize: 13, color: '#8a7e72' }}>See reactions and comments from people you share this with.</p>
+                </div>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' as const }}>
+                  <a href="/feed"
+                    style={{ padding: '10px 20px', background: '#7a9e76', color: '#fff', fontSize: 13, fontWeight: 700, borderRadius: 10, textDecoration: 'none', whiteSpace: 'nowrap' as const }}>
+                    Go to my feed
+                  </a>
+                  {currentUsername && (
+                    <a href={`/u/${currentUsername}`}
+                      style={{ padding: '10px 20px', background: '#e8f0e6', color: '#5c8259', fontSize: 13, fontWeight: 700, borderRadius: 10, textDecoration: 'none', whiteSpace: 'nowrap' as const, border: '1px solid #c5d9c2' }}>
+                      View my profile
+                    </a>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <p style={{ fontSize: 15, fontWeight: 800, marginBottom: 4 }}>
+                    {author ? `More from ${author}` : 'Discover more hauls'}
+                  </p>
+                  <p style={{ fontSize: 13, color: '#8a7e72' }}>
+                    {author
+                      ? `See what else ${author} is comparing.`
+                      : 'Browse hauls from the community.'}
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' as const }}>
+                  <a href="/feed"
+                    style={{ padding: '10px 20px', background: '#7a9e76', color: '#fff', fontSize: 13, fontWeight: 700, borderRadius: 10, textDecoration: 'none', whiteSpace: 'nowrap' as const }}>
+                    Explore hauls
+                  </a>
+                </div>
+              </>
+            )}
           </div>
         </main>
 

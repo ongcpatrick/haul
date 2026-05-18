@@ -104,16 +104,27 @@ export async function POST(req: Request) {
     if (existing) return ok({ id: existing.id, existing: true });
   }
 
-  const [conv] = await sql`
-    INSERT INTO conversations (type, name, created_by)
-    VALUES (${type}, ${body.name ?? null}, ${userId})
-    RETURNING *
-  `;
+  let conv: { id: string };
+  try {
+    const [row] = await sql<{ id: string }[]>`
+      INSERT INTO conversations (type, name, created_by)
+      VALUES (${type}, ${body.name ?? null}, ${userId})
+      RETURNING id
+    `;
+    if (!row) return fail('Failed to create conversation', 500);
+    conv = row;
+  } catch (e: unknown) {
+    return fail(e instanceof Error ? e.message : 'Database error', 500);
+  }
 
-  await sql`
-    INSERT INTO conversation_members (conversation_id, user_id)
-    SELECT ${conv.id}, unnest(${allUserIds}::uuid[])
-  `;
+  try {
+    await sql`
+      INSERT INTO conversation_members (conversation_id, user_id)
+      SELECT ${conv.id}, unnest(${allUserIds}::uuid[])
+    `;
+  } catch (e: unknown) {
+    return fail(e instanceof Error ? e.message : 'Failed to add members', 500);
+  }
 
   return ok({ id: conv.id, existing: false });
 }

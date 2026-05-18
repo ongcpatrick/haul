@@ -132,7 +132,7 @@ export default function CircleClient({ circle, members, initialHauls, currentUse
                 </svg>
               </div>
               <p className="font-bold text-[var(--text)] text-lg">Nothing shared yet</p>
-              <p className="mt-1 text-sm text-[var(--muted)] max-w-xs">Be the first — post one of your hauls so the group can weigh in.</p>
+              <p className="mt-1 text-sm text-[var(--muted)] max-w-xs">Be the first. Post one of your hauls so the group can weigh in.</p>
               <button
                 type="button"
                 onClick={openPanel}

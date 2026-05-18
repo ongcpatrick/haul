@@ -14,7 +14,7 @@ const PLATFORMS = [
     label: 'Facebook',
     color: '#1877F2',
     bg: '#EFF5FF',
-    description: 'Find Facebook friends already on Haul — automatically suggested as connections.',
+    description: 'Find Facebook friends already on Haul. Automatically suggested as connections.',
     power: 'Best for friend discovery',
     icon: (
       <svg viewBox="0 0 24 24" className="w-6 h-6 fill-current">
@@ -53,7 +53,7 @@ const PLATFORMS = [
     label: 'Apple',
     color: '#000000',
     bg: '#F5F5F5',
-    description: 'Connect with Sign in with Apple to link your Apple ID — works on all Apple devices.',
+    description: 'Connect with Sign in with Apple to link your Apple ID. Works on all Apple devices.',
     power: 'Any Apple account',
     icon: (
       <svg viewBox="0 0 24 24" className="w-6 h-6 fill-current">
@@ -78,7 +78,7 @@ export default function ConnectClient({ connectedPlatforms, platformUsernames }:
   };
 
   // iMessage deep link — opens Messages on Apple devices pre-filled
-  const iMessageHref = `sms:&body=Hey! Come see my hauls on Haul — ${inviteLink}`;
+  const iMessageHref = `sms:&body=Hey! Come see my hauls on Haul: ${inviteLink}`;
 
   return (
     <div className="max-w-lg mx-auto px-4 py-12">
@@ -93,7 +93,7 @@ export default function ConnectClient({ connectedPlatforms, platformUsernames }:
         </div>
         <h1 className="text-3xl font-extrabold text-[var(--text)]">Connect with friends</h1>
         <p className="mt-2 text-sm text-[var(--muted)] max-w-sm mx-auto">
-          Link your social accounts to find friends already on Haul — or invite them directly.
+          Link your social accounts to find friends already on Haul, or invite them directly.
         </p>
       </header>
 
