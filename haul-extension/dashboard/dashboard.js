@@ -693,13 +693,47 @@ async function loadExplore() {
   loadExploreForYou();
 }
 
+const AVATAR_PALETTE = [
+  '#c4927a','#a07ab8','#7aa8c4','#c4a87a','#7ac4a0','#c47a92','#8fa87a','#c4b07a',
+];
+
+function avatarColor(initial) {
+  return AVATAR_PALETTE[initial.charCodeAt(0) % AVATAR_PALETTE.length];
+}
+
+function skeletonCard() {
+  return `<div class="explore-skeleton">
+    <div class="sk-row">
+      <div class="sk-circle"></div>
+      <div class="sk-lines">
+        <div class="sk-line" style="width:55%"></div>
+        <div class="sk-line short"></div>
+      </div>
+    </div>
+    <div class="sk-block"></div>
+    <div class="sk-footer">
+      <div class="sk-pill" style="width:70px"></div>
+      <div class="sk-pill" style="width:50px;margin-left:auto"></div>
+      <div class="sk-pill" style="width:60px"></div>
+    </div>
+  </div>`;
+}
+
 function showFeedLoading() {
   const grid = document.getElementById('explore-grid');
-  grid.innerHTML = `<div class="explore-loading">
-    <div class="explore-loading-dot"></div>
-    <div class="explore-loading-dot"></div>
-    <div class="explore-loading-dot"></div>
-  </div>`;
+  grid.innerHTML = skeletonCard() + skeletonCard() + skeletonCard();
+}
+
+function buildImagesHtml(imageUrls) {
+  const urls = (imageUrls || []).slice(0, 3);
+  const count = urls.length;
+  if (!count) {
+    return `<div class="explore-post-imgs imgs-1"><div class="explore-post-img-ph">Haul</div></div>`;
+  }
+  const imgs = urls.map((u) =>
+    `<img class="explore-post-img" src="${PROXY_BASE}${encodeURIComponent(u)}" alt="" loading="lazy" onerror="this.style.opacity='0'">`
+  ).join('');
+  return `<div class="explore-post-imgs imgs-${count}">${imgs}</div>`;
 }
 
 async function loadExploreForYou() {
@@ -754,35 +788,32 @@ function renderExploreFeed(hauls, extUsername, extToken) {
   const ownShareTokens = getOwnShareTokens();
   grid.innerHTML = '';
 
-  hauls.forEach((haul) => {
+  hauls.forEach((haul, idx) => {
     const post = document.createElement('div');
     post.className = 'explore-card';
+    post.style.animationDelay = `${idx * 0.05}s`;
 
     const deleteToken = ownShareTokens[haul.id];
     const isOwn = Boolean(deleteToken);
     const authorInitial = (haul.author || 'H').charAt(0).toUpperCase();
+    const color = avatarColor(authorInitial);
     const ago = timeAgo(haul.createdAt);
+    const count = haul.productCount || 0;
 
-    const moreBtn = isOwn
-      ? `<button class="explore-post-more" title="Options">
-           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-             <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
+    const moreSection = isOwn
+      ? `<button class="explore-post-more" title="Options" style="margin-left:auto">
+           <svg width="4" height="16" viewBox="0 0 4 20" fill="currentColor">
+             <circle cx="2" cy="2" r="2"/><circle cx="2" cy="10" r="2"/><circle cx="2" cy="18" r="2"/>
            </svg>
          </button>
-         <div class="explore-post-menu" style="display:none">
-           <button class="explore-post-menu-item danger explore-post-menu-delete">Delete post</button>
+         <div class="explore-post-menu">
+           <button class="explore-post-menu-item danger explore-post-menu-delete">Remove from feed</button>
          </div>`
-      : '';
-
-    const imagesHtml = haul.imageUrls?.length
-      ? haul.imageUrls.slice(0, 3).map((u) =>
-          `<img class="explore-post-img" src="${PROXY_BASE}${encodeURIComponent(u)}" alt="" onerror="this.style.display='none'">`
-        ).join('')
-      : `<div class="explore-post-img-ph">Haul</div>`;
+      : `<span style="margin-left:auto"></span>`;
 
     const circleIconBtn = extToken
       ? `<button class="explore-btn-circle" title="Post to circle" aria-label="Post to circle">
-           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
              <circle cx="9" cy="7" r="4"/>
              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
@@ -793,20 +824,27 @@ function renderExploreFeed(hauls, extUsername, extToken) {
 
     post.innerHTML = `
       <div class="explore-post-header">
-        <div class="explore-post-avatar">${authorInitial}</div>
+        <div class="explore-post-avatar" style="background:${color}">${authorInitial}</div>
         <div class="explore-post-meta">
           <span class="explore-post-author">${haul.author ? `@${esc(haul.author)}` : 'Anonymous'}</span>
           <span class="explore-post-time">${ago}</span>
         </div>
-        <div style="margin-left:auto;position:relative">${moreBtn}</div>
+        ${moreSection}
       </div>
-      <div class="explore-post-title">${esc(haul.title || 'Haul Comparison')}</div>
-      <div class="explore-post-imgs">${imagesHtml}</div>
+      ${haul.title ? `<div class="explore-post-title">${esc(haul.title)}</div>` : ''}
+      ${buildImagesHtml(haul.imageUrls)}
       <div class="explore-post-footer">
-        <span class="explore-post-count">${haul.productCount} item${haul.productCount !== 1 ? 's' : ''}</span>
+        <div class="explore-post-left">
+          <span class="explore-post-count">${count} item${count !== 1 ? 's' : ''}</span>
+          <button class="explore-btn-heart" aria-label="Like">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          </button>
+        </div>
         <div class="explore-post-actions">
           <button class="explore-btn-view">View</button>
-          <button class="explore-btn-fork">+ Fork</button>
+          <button class="explore-btn-fork">+ Save</button>
           ${circleIconBtn}
         </div>
       </div>
@@ -819,8 +857,15 @@ function renderExploreFeed(hauls, extUsername, extToken) {
     post.querySelector('.explore-btn-fork').addEventListener('click', async (e) => {
       const btn = e.currentTarget;
       btn.disabled = true;
-      btn.textContent = 'Forking…';
+      btn.textContent = 'Saving…';
       await forkHaul(haul.id, btn);
+    });
+
+    post.querySelector('.explore-btn-heart').addEventListener('click', (e) => {
+      e.currentTarget.classList.toggle('liked');
+      const svg = e.currentTarget.querySelector('svg');
+      const isLiked = e.currentTarget.classList.contains('liked');
+      svg.setAttribute('fill', isLiked ? 'currentColor' : 'none');
     });
 
     if (isOwn) {
@@ -828,9 +873,13 @@ function renderExploreFeed(hauls, extUsername, extToken) {
       const menuEl = post.querySelector('.explore-post-menu');
       moreEl.addEventListener('click', (e) => {
         e.stopPropagation();
-        menuEl.style.display = menuEl.style.display === 'none' ? 'block' : 'none';
+        const open = menuEl.style.display !== 'block';
+        menuEl.style.display = open ? 'block' : 'none';
+        if (open) {
+          const close = () => { menuEl.style.display = 'none'; document.removeEventListener('click', close); };
+          setTimeout(() => document.addEventListener('click', close), 0);
+        }
       });
-      document.addEventListener('click', () => { menuEl.style.display = 'none'; }, { once: true });
 
       post.querySelector('.explore-post-menu-delete').addEventListener('click', async () => {
         if (!confirm('Remove this haul from the community feed?')) return;
@@ -842,8 +891,9 @@ function renderExploreFeed(hauls, extUsername, extToken) {
           });
           if (res.ok) {
             post.style.opacity = '0';
-            post.style.transition = 'opacity 0.3s';
-            setTimeout(() => post.remove(), 300);
+            post.style.transform = 'translateX(12px)';
+            post.style.transition = 'opacity 0.3s, transform 0.3s';
+            setTimeout(() => post.remove(), 320);
           }
         } catch { /* noop */ }
       });
@@ -854,7 +904,7 @@ function renderExploreFeed(hauls, extUsername, extToken) {
       const dropdown = post.querySelector('.circle-dropdown');
       circleBtn.addEventListener('click', async (e) => {
         e.stopPropagation();
-        if (dropdown.style.display !== 'none') { dropdown.style.display = 'none'; return; }
+        if (dropdown.style.display === 'block') { dropdown.style.display = 'none'; return; }
         circleBtn.disabled = true;
         try {
           const res = await fetch(`${HAUL_SHARE_BASE}/api/circles`, {
