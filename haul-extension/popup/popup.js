@@ -1,4 +1,4 @@
-// Haul popup — v0.4 premium UI
+// Haul popup — v0.5
 
 function safeUrl(url) {
   return url && url.startsWith('https://') ? url : null;
@@ -15,9 +15,23 @@ function esc(str) {
   return d.innerHTML;
 }
 
+let _popupProducts = [];
+
+document.getElementById('post-haul-btn').addEventListener('click', () => {
+  if (!_popupProducts.length) return;
+  chrome.runtime.sendMessage({ type: 'POST_HAUL_VIA_WEBSITE', products: _popupProducts, title: '' });
+  window.close();
+});
+
 chrome.runtime.sendMessage({ type: 'GET_PRODUCTS' }, (response) => {
   if (chrome.runtime.lastError) return;
   const products = response.products || [];
+  _popupProducts = products;
+
+  if (products.length > 0) {
+    const postBtn = document.getElementById('post-haul-btn');
+    postBtn.disabled = false;
+  }
 
   // ── Stat: item count
   document.getElementById('count').textContent = products.length;
