@@ -6,6 +6,17 @@ import type { Product } from '@/lib/types';
 import { getUserIdFromExtensionToken } from '@/lib/extension-auth';
 import { cleanTitle, sanitizeProducts } from '@/lib/product-validation';
 
+function parseProducts(raw: unknown): Product[] {
+  if (Array.isArray(raw)) return raw as Product[];
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? (parsed as Product[]) : [];
+    } catch { return []; }
+  }
+  return [];
+}
+
 interface CreateHaulBody {
   shareId?: string | null;
   title?: string | null;
@@ -125,5 +136,5 @@ export async function GET(req: Request) {
     ORDER BY created_at DESC
     LIMIT ${limit}
   `;
-  return ok(hauls);
+  return ok(hauls.map((h) => ({ ...h, products: parseProducts(h.products) })));
 }
