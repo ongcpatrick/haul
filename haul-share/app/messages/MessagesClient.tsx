@@ -383,10 +383,19 @@ export default function MessagesClient({ currentUserId, initialActiveId }: Props
                                 {msg.haul_image_url ? (
                                   // eslint-disable-next-line @next/next/no-img-element
                                   <img
-                                    src={`${WORKER}/proxy-image?url=${encodeURIComponent(msg.haul_image_url)}`}
+                                    src={msg.haul_image_url}
                                     alt=""
                                     className="w-full h-full object-contain"
                                     style={{ padding: '10%' }}
+                                    onError={(e) => {
+                                      const img = e.currentTarget;
+                                      if (!img.dataset.proxy) {
+                                        img.dataset.proxy = '1';
+                                        img.src = `${WORKER}/proxy-image?url=${encodeURIComponent(msg.haul_image_url!)}`;
+                                      } else {
+                                        img.style.display = 'none';
+                                      }
+                                    }}
                                   />
                                 ) : (
                                   <svg className="w-12 h-12 text-[var(--muted)] opacity-20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
