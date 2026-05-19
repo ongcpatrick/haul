@@ -31,11 +31,11 @@ async function loadFeed(dbUserId: string): Promise<{ initial: HaulWithAuthor[]; 
   const followIds = follows.map((f) => f.addressee_id);
   const hasFollows = followIds.length > 0;
 
-  const hauls = await sql`
+  const hauls = hasFollows ? await sql`
     SELECT * FROM hauls
-    WHERE (user_id = ANY(${[dbUserId, ...followIds]}::uuid[])) AND is_public = true
+    WHERE user_id = ANY(${followIds}::uuid[]) AND is_public = true
     ORDER BY created_at DESC LIMIT 40
-  `;
+  ` : [];
   const initial = await enrichHauls(hauls as unknown as RawHaul[]);
   return { initial, hasFollows };
 }

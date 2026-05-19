@@ -16,19 +16,22 @@ export async function GET(req: Request) {
     WHERE requester_id = ${dbUserId} AND status = 'accepted'
   `;
   const followIds = followRows.map((f) => f.addressee_id);
-  const allIds = followIds;
+  if (followIds.length === 0) {
+    const enriched = await enrichHauls([]);
+    return ok(enriched);
+  }
 
   const hauls = before
     ? await sql`
         SELECT * FROM hauls
-        WHERE user_id = ANY(${allIds}::uuid[])
+        WHERE user_id = ANY(${followIds}::uuid[])
           AND is_public = true
           AND created_at < ${before}
         ORDER BY created_at DESC LIMIT ${limit}
       `
     : await sql`
         SELECT * FROM hauls
-        WHERE user_id = ANY(${allIds}::uuid[])
+        WHERE user_id = ANY(${followIds}::uuid[])
           AND is_public = true
         ORDER BY created_at DESC LIMIT ${limit}
       `;

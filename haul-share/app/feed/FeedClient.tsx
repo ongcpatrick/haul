@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import type { HaulWithAuthor } from '@/lib/types';
 import HaulCard from '@/app/components/HaulCard';
 import ErrorBoundary from '@/app/components/ErrorBoundary';
-import TrendingStrip from '@/app/components/TrendingStrip';
 
 type Tab = 'following' | 'explore';
 
@@ -20,7 +19,6 @@ export default function FeedClient({ currentUserId, initialHauls, hasFollows }: 
   const [exploreHauls, setExploreHauls] = useState<HaulWithAuthor[]>([]);
   const [exploreLoaded, setExploreLoaded] = useState(false);
   const [exploreLoading, setExploreLoading] = useState(false);
-  const [trendingHauls, setTrendingHauls] = useState<HaulWithAuthor[]>([]);
   const [searching, setSearching] = useState(false);
   const [query, setQuery] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
@@ -29,18 +27,21 @@ export default function FeedClient({ currentUserId, initialHauls, hasFollows }: 
     if (exploreLoaded) return;
     setExploreLoading(true);
     try {
-      const [exploreRes, trendingRes] = await Promise.all([
-        fetch('/api/explore?limit=24'),
-        fetch('/api/explore?sort=trending&limit=6'),
-      ]);
-      if (exploreRes.ok) {
-        const json = await exploreRes.json();
-        if (json.success && Array.isArray(json.data)) setExploreHauls(json.data);
+      // Try personalized for-you first, fall back to recent if empty
+      const forYouRes = await fetch('/api/explore?sort=for-you&limit=24');
+      let hauls: HaulWithAuthor[] = [];
+      if (forYouRes.ok) {
+        const json = await forYouRes.json();
+        if (json.success && Array.isArray(json.data)) hauls = json.data;
       }
-      if (trendingRes.ok) {
-        const json = await trendingRes.json();
-        if (json.success && Array.isArray(json.data)) setTrendingHauls(json.data);
+      if (hauls.length === 0) {
+        const fallbackRes = await fetch('/api/explore?limit=24');
+        if (fallbackRes.ok) {
+          const json = await fallbackRes.json();
+          if (json.success && Array.isArray(json.data)) hauls = json.data;
+        }
       }
+      setExploreHauls(hauls);
       setExploreLoaded(true);
     } finally {
       setExploreLoading(false);
@@ -166,13 +167,6 @@ export default function FeedClient({ currentUserId, initialHauls, hasFollows }: 
           </button>
         </div>
       </div>
-
-      {/* Trending strip — only on explore, no search active */}
-      {tab === 'explore' && !query && trendingHauls.length > 0 && (
-        <div className="mb-8">
-          <TrendingStrip hauls={trendingHauls} />
-        </div>
-      )}
 
       {/* Content */}
       {exploreLoading ? (

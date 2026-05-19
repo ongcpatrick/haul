@@ -1,10 +1,21 @@
 import { notFound } from 'next/navigation';
 import { getCurrentDbUserId } from '@/lib/supabase-server';
 import sql from '@/lib/db';
-import type { HaulWithAuthor, User } from '@/lib/types';
+import type { HaulWithAuthor, Product, User } from '@/lib/types';
 import FollowButton from './FollowButton';
 import ProfileHauls from './ProfileHauls';
 import BadgeChip from '@/app/components/BadgeChip';
+
+function parseProducts(raw: unknown): Product[] {
+  if (Array.isArray(raw)) return raw as Product[];
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? (parsed as Product[]) : [];
+    } catch { return []; }
+  }
+  return [];
+}
 
 interface Params {
   params: Promise<{ username: string }>;
@@ -46,7 +57,7 @@ export default async function ProfilePage({ params }: Params) {
   const maxReactions = parseInt(topReactedRow[0]?.reaction_count ?? '0', 10);
 
   const totalSavings = hauls.reduce((sum, h) => {
-    const products = Array.isArray(h.products) ? h.products as { price?: number; originalPrice?: number }[] : [];
+    const products = parseProducts(h.products) as { price?: number; originalPrice?: number }[];
     return (
       sum +
       products.reduce((s, p) => {
@@ -79,7 +90,7 @@ export default async function ProfilePage({ params }: Params) {
 
   const cards: HaulWithAuthor[] = hauls.map((h) => ({
     ...(h as unknown as HaulWithAuthor),
-    products: Array.isArray(h.products) ? h.products : [],
+    products: parseProducts(h.products),
     author: { id: user.id, username: user.username, display_name: user.display_name, avatar_url: user.avatar_url },
     reaction_counts: reactionCounts.get(h.id as string) ?? {},
     comment_count: commentCounts.get(h.id as string) ?? 0,

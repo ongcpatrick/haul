@@ -57,10 +57,12 @@ export function sanitizeProduct(value: unknown): Product | null {
 }
 
 export function sanitizeProducts(value: unknown, maxCount = 25): Product[] | null {
-  if (!Array.isArray(value) || value.length === 0 || value.length > maxCount) return null;
-  const products = value.map(sanitizeProduct);
-  if (products.some((product) => product === null)) return null;
-  return products as Product[];
+  if (!Array.isArray(value)) return null;
+  const products = value
+    .slice(0, maxCount)
+    .map(sanitizeProduct)
+    .filter((p): p is Product => p !== null);
+  return products.length > 0 ? products : null;
 }
 
 export function cleanTitle(value: unknown): string | null {
