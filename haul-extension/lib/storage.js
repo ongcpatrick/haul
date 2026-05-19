@@ -1,7 +1,7 @@
 // Chrome storage helpers for Haul product saves.
 // Uses callback-based API for maximum compatibility with importScripts in MV3 service workers.
 
-const STORAGE_KEY = 'haul_products';
+var STORAGE_KEY = 'haul_products';
 
 function getProducts() {
   return new Promise((resolve, reject) => {

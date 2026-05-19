@@ -482,67 +482,39 @@ function renderShareModalBody(shareUrl, products, extUsername) {
     const authorInput = document.getElementById('share-author-input');
     const author = extUsername || (authorInput ? authorInput.value.trim() : '');
     communityPostBtn.disabled = true;
-    communityPostBtn.textContent = 'Posting…';
+    communityPostBtn.textContent = 'Opening Haul…';
     try {
       const title = `${author ? author + "'s" : 'My'} picks: ${products.length} item${products.length !== 1 ? 's' : ''}`;
 
-      // Post to Cloudflare Worker KV (Explore tab)
-      const res = await fetch(`${WORKER_BASE}/share`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ products, title, author: author || null, isPublic: true }),
-      });
-      const data = await res.json();
-      if (!data.url) throw new Error('no url');
-      rememberShareToken(data.shareId, data.deleteToken);
-      cachedShareUrl = data.url;
-      cachedShareProducts = products.map((p) => p.id).join(',');
-      exploreLoaded = false;
-
-      // If connected, also post to haul-share.com feed
-      let feedPosted = false;
-      let feedFailReason = null;
       if (extUsername) {
-        await new Promise((resolve) => {
-          chrome.runtime.sendMessage({ type: 'POST_HAUL_TO_WEBSITE', products, title }, (res) => {
-            feedPosted = !!res?.success;
-            feedFailReason = res?.reason ?? null;
-            resolve();
-          });
-        });
-      }
-
-      if (extUsername && !feedPosted) {
-        if (feedFailReason === 'token_expired') {
-          communityPostBtn.textContent = 'Posted to Explore (session expired)';
-          communityPostBtn.style.background = '#c0392b';
-          communityPostBtn.style.color = '#fff';
-          // Show a reconnect button so the user can re-authenticate without hunting
-          const reconnectBtn = document.createElement('button');
-          reconnectBtn.textContent = 'Reconnect account →';
-          reconnectBtn.style.cssText = 'display:block;width:100%;margin-top:8px;padding:8px 14px;background:#fff;color:#c0392b;font-size:12px;font-weight:700;border:1.5px solid #c0392b;border-radius:8px;cursor:pointer;font-family:inherit;';
-          reconnectBtn.onclick = () => chrome.tabs.create({ url: `${HAUL_SHARE_BASE}/feed`, active: true });
-          communityPostBtn.insertAdjacentElement('afterend', reconnectBtn);
-          extUsername = null; // treat as disconnected until re-auth
-        } else {
-          communityPostBtn.textContent = 'Posted to Explore (feed unavailable)';
-          communityPostBtn.style.background = '#c0392b';
-          communityPostBtn.style.color = '#fff';
-        }
-      } else {
-        communityPostBtn.textContent = extUsername ? 'Posted to your feed + Explore!' : 'Posted to Explore!';
+        // Integrated flow: store in local storage, open /new-haul on the website.
+        // background.js handles the tab open so popup destruction doesn't cancel it.
+        chrome.runtime.sendMessage({ type: 'POST_HAUL_VIA_WEBSITE', products, title });
+        communityPostBtn.textContent = 'Opening your haul…';
         communityPostBtn.style.background = 'var(--primary)';
         communityPostBtn.style.color = '#fff';
+        setTimeout(() => closeShareModal(), 800);
+      } else {
+        // Not connected: post to Cloudflare Worker KV (public Explore only)
+        const res = await fetch(`${WORKER_BASE}/share`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ products, title, author: author || null, isPublic: true }),
+        });
+        const data = await res.json();
+        if (!data.url) throw new Error('no url');
+        rememberShareToken(data.shareId, data.deleteToken);
+        cachedShareUrl = data.url;
+        cachedShareProducts = products.map((p) => p.id).join(',');
+        exploreLoaded = false;
+        communityPostBtn.textContent = 'Posted to Explore!';
+        communityPostBtn.style.background = 'var(--primary)';
+        communityPostBtn.style.color = '#fff';
+        setTimeout(() => {
+          closeShareModal();
+          chrome.tabs.create({ url: `${HAUL_SHARE_BASE}/feed`, active: true });
+        }, 1200);
       }
-
-      // Close modal and open the website to see the post
-      setTimeout(() => {
-        closeShareModal();
-        const dest = feedPosted && extUsername
-          ? `${HAUL_SHARE_BASE}/u/${extUsername}`
-          : `${HAUL_SHARE_BASE}/feed`;
-        chrome.tabs.create({ url: dest, active: true });
-      }, feedPosted || !extUsername ? 1200 : 3000);
     } catch {
       communityPostBtn.disabled = false;
       communityPostBtn.textContent = extUsername ? 'Post to My Feed + Explore' : 'Post to Explore';

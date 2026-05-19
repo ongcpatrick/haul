@@ -20,8 +20,22 @@
 
 window.addEventListener('message', (event) => {
   'use strict';
-  if (event.source !== window || event.data?.type !== 'HAUL_OPEN_PANEL') return;
-  chrome.runtime.sendMessage({ type: 'OPEN_SIDE_PANEL' });
+  if (event.source !== window) return;
+
+  if (event.data?.type === 'HAUL_OPEN_PANEL') {
+    chrome.runtime.sendMessage({ type: 'OPEN_SIDE_PANEL' });
+    return;
+  }
+
+  if (event.data?.type === 'HAUL_GET_PENDING_POST') {
+    chrome.storage.local.get(['haul_pending_post'], (result) => {
+      const pending = result.haul_pending_post || null;
+      window.postMessage({ type: 'HAUL_PENDING_POST', data: pending }, '*');
+      if (pending) {
+        chrome.storage.local.remove(['haul_pending_post']);
+      }
+    });
+  }
 });
 
 document.addEventListener('click', (event) => {

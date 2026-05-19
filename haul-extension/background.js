@@ -496,5 +496,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  if (message.type === 'POST_HAUL_VIA_WEBSITE') {
+    const { products, title } = message;
+    if (!Array.isArray(products)) { sendResponse({ success: false, reason: 'invalid_products' }); return false; }
+    const safeProducts = sanitizeProductsForCloud(products);
+    const safeTitle = globalThis.HaulProductSchema.cleanText(title || 'My Haul', 120) || 'My Haul';
+    chrome.storage.local.set(
+      { haul_pending_post: { products: safeProducts, title: safeTitle, timestamp: Date.now() } },
+      () => {
+        chrome.tabs.create({ url: `${HAUL_SHARE_BASE}/new-haul`, active: true }, () => {
+          sendResponse({ success: true });
+        });
+      }
+    );
+    return true;
+  }
+
   return false;
 });
