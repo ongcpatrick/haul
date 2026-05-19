@@ -1,12 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export default function NotificationBell() {
   const [unread, setUnread] = useState(0);
+  const prevUnread = useRef(-1); // -1 = first load, don't fire notification yet
 
   useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {});
+    }
+
     let cancelled = false;
 
     async function poll() {
@@ -14,14 +19,27 @@ export default function NotificationBell() {
         const res = await fetch('/api/notifications?countOnly=true');
         if (!res.ok || cancelled) return;
         const json = await res.json();
-        if (typeof json.unread_count === 'number') setUnread(json.unread_count);
+        const count = typeof json.unread_count === 'number' ? json.unread_count : 0;
+        setUnread(count);
+
+        if (count > prevUnread.current && prevUnread.current !== -1) {
+          if ('Notification' in window && Notification.permission === 'granted') {
+            const delta = count - prevUnread.current;
+            new Notification('Haul', {
+              body: delta === 1 ? 'You have a new notification' : `You have ${delta} new notifications`,
+              icon: '/favicon.ico',
+              tag: 'haul-notif',
+            });
+          }
+        }
+        prevUnread.current = count;
       } catch {
-        // ignore network errors silently
+        // ignore network errors
       }
     }
 
     poll();
-    const id = setInterval(poll, 45_000);
+    const id = setInterval(poll, 15_000);
     return () => { cancelled = true; clearInterval(id); };
   }, []);
 

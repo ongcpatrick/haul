@@ -7,7 +7,9 @@
   "permissions": [
     "storage",
     "sidePanel",
-    "tabs"
+    "tabs",
+    "alarms",
+    "notifications"
   ],
   "host_permissions": [
     "https://haul-ai.haulapp.workers.dev/*",

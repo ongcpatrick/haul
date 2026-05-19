@@ -22,6 +22,7 @@ const TYPE_LABEL: Record<string, string> = {
   comment: 'commented on your haul',
   follow: 'followed you',
   fork: 'forked your haul',
+  message: 'sent you a message',
 };
 
 type RawNotif = {

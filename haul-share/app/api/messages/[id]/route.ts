@@ -49,10 +49,14 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         ORDER BY m.created_at DESC LIMIT 40
       `;
 
-  // Mark read (fire-and-forget)
+  // Mark conversation read + clear message notifications
   sql`
     UPDATE conversation_members SET last_read_at = NOW()
     WHERE conversation_id = ${id} AND user_id = ${userId}
+  `.catch(() => {});
+  sql`
+    UPDATE notifications SET read = true
+    WHERE user_id = ${userId} AND type = 'message' AND read = false
   `.catch(() => {});
 
   const data = messages.reverse().map((m) => ({
@@ -96,6 +100,25 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   `;
 
   const [user] = await sql`SELECT id, username, display_name, avatar_url FROM users WHERE id = ${userId} LIMIT 1`;
+
+  // Notify all other conversation members
+  const otherMembers = await sql<{ user_id: string }[]>`
+    SELECT user_id FROM conversation_members
+    WHERE conversation_id = ${id} AND user_id != ${userId}
+  `;
+  if (otherMembers.length > 0) {
+    const senderName = (user?.display_name ?? user?.username ?? 'Someone') as string;
+    const preview = text ? text.slice(0, 80) : 'Shared a haul with you';
+    const notifBody = `${senderName}: ${preview}`;
+    await Promise.all(
+      otherMembers.map(({ user_id }) =>
+        sql`
+          INSERT INTO notifications (user_id, from_user_id, type, body)
+          VALUES (${user_id}, ${userId}, 'message', ${notifBody})
+        `.catch(() => {})
+      )
+    );
+  }
 
   return ok({
     id: msg.id,

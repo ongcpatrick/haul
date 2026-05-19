@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getCurrentDbUserId } from '@/lib/supabase-server';
+import { getUserIdFromExtensionToken } from '@/lib/extension-auth';
 import sql from '@/lib/db';
 
 function ok<T>(data: T, extra?: Record<string, unknown>) {
@@ -10,7 +11,8 @@ function err(msg: string, status = 400) {
 }
 
 export async function GET(req: Request) {
-  const userId = await getCurrentDbUserId();
+  let userId = await getUserIdFromExtensionToken(req);
+  if (!userId) userId = await getCurrentDbUserId();
   if (!userId) return err('Unauthorized', 401);
 
   const { searchParams } = new URL(req.url);

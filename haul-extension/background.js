@@ -207,9 +207,25 @@ function tryOpenSidePanel(tabId) {
 
 // ─── Badge ────────────────────────────────────────────────────────────────────
 
+let _cartCount = 0;
+let _unreadCount = 0;
+let _prevUnreadCount = -1; // -1 = first poll, suppress desktop notification
+
+function refreshBadge() {
+  if (_unreadCount > 0) {
+    chrome.action.setBadgeText({ text: _unreadCount > 99 ? '99+' : String(_unreadCount) });
+    chrome.action.setBadgeBackgroundColor({ color: '#ef4444' }); // red for messages
+  } else if (_cartCount > 0) {
+    chrome.action.setBadgeText({ text: String(_cartCount) });
+    chrome.action.setBadgeBackgroundColor({ color: '#7a9e76' }); // green for cart
+  } else {
+    chrome.action.setBadgeText({ text: '' });
+  }
+}
+
 function updateBadge(count) {
-  chrome.action.setBadgeText({ text: count > 0 ? String(count) : '' });
-  chrome.action.setBadgeBackgroundColor({ color: '#7a9e76' });
+  _cartCount = count;
+  refreshBadge();
 }
 
 chrome.storage.onChanged.addListener((changes) => {
@@ -221,6 +237,54 @@ chrome.storage.onChanged.addListener((changes) => {
 // On startup: update badge.
 getProducts().then((products) => {
   updateBadge(products.length);
+});
+
+// ─── Unread message badge + desktop notifications ─────────────────────────────
+
+async function pollUnreadNotifications() {
+  const { token } = await getExtToken();
+  if (!token) {
+    if (_unreadCount !== 0) { _unreadCount = 0; refreshBadge(); }
+    return;
+  }
+  try {
+    const res = await fetch(`${HAUL_SHARE_BASE}/api/notifications?countOnly=true`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    if (!res.ok) return;
+    const json = await res.json();
+    const count = typeof json.unread_count === 'number' ? json.unread_count : 0;
+
+    if (count > _prevUnreadCount && _prevUnreadCount !== -1) {
+      const delta = count - _prevUnreadCount;
+      chrome.notifications.create({
+        type: 'basic',
+        iconUrl: 'icons/icon128.png',
+        title: 'Haul',
+        message: delta === 1 ? 'You have a new message' : `You have ${delta} new messages`,
+        priority: 2,
+      });
+    }
+
+    _prevUnreadCount = count;
+    _unreadCount = count;
+    refreshBadge();
+  } catch {
+    // network error — keep current state
+  }
+}
+
+// Open messages when clicking a desktop notification
+chrome.notifications.onClicked.addListener((notifId) => {
+  chrome.tabs.create({ url: `${HAUL_SHARE_BASE}/messages`, active: true });
+  chrome.notifications.clear(notifId);
+});
+
+// Poll on startup and every 30 s via alarms
+pollUnreadNotifications();
+chrome.alarms.create('pollUnread', { periodInMinutes: 0.5 });
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === 'pollUnread') pollUnreadNotifications();
 });
 
 // ─── Action click → open side panel ──────────────────────────────────────────

@@ -57,6 +57,7 @@ export default function MessagesClient({ currentUserId, initialActiveId }: Props
   const [haulPickerLoaded, setHaulPickerLoaded] = useState(false);
 
   const threadRef = useRef<HTMLDivElement>(null);
+  const knownMsgIds = useRef(new Set<string>());
   const activeConv = conversations.find((c) => c.id === activeId) ?? null;
 
   const loadConversations = useCallback(async () => {
@@ -76,10 +77,30 @@ export default function MessagesClient({ currentUserId, initialActiveId }: Props
     const res = await fetch(`/api/messages/${id}`);
     if (!res.ok) { setLoadingMsgs(false); return; }
     const json = await res.json();
-    if (json.success) setMessages(json.data);
+    if (json.success) {
+      const incoming: Message[] = json.data;
+
+      // Detect new messages from others — fire browser notification
+      const newFromOthers = incoming.filter(
+        (m) => m.sender_id !== currentUserId && !knownMsgIds.current.has(m.id)
+      );
+      incoming.forEach((m) => knownMsgIds.current.add(m.id));
+
+      if (newFromOthers.length > 0 && knownMsgIds.current.size > newFromOthers.length) {
+        // Only notify after the first load (so existing messages don't fire)
+        const latest = newFromOthers[newFromOthers.length - 1];
+        const senderName = latest.sender?.display_name ?? latest.sender?.username ?? 'Someone';
+        const preview = latest.body ?? 'Shared a haul with you';
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification(senderName, { body: preview, icon: '/favicon.ico', tag: latest.id });
+        }
+      }
+
+      setMessages(incoming);
+    }
     setLoadingMsgs(false);
     setConversations((prev) => prev.map((c) => c.id === id ? { ...c, unread_count: 0 } : c));
-  }, []);
+  }, [currentUserId]);
 
   const loadHauls = useCallback(async () => {
     if (haulPickerLoaded) return;
@@ -100,6 +121,13 @@ export default function MessagesClient({ currentUserId, initialActiveId }: Props
       setHaulPickerLoaded(true);
     }
   }, [haulPickerLoaded]);
+
+  // Request browser notification permission once on mount
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {});
+    }
+  }, []);
 
   useEffect(() => { loadConversations(); }, [loadConversations]);
 

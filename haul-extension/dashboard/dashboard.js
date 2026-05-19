@@ -535,10 +535,13 @@ function renderShareModalBody(shareUrl, products, extUsername) {
         communityPostBtn.style.color = '#fff';
       }
 
-      // Close modal and switch to Explore tab so they can see it immediately
+      // Close modal and open the website to see the post
       setTimeout(() => {
         closeShareModal();
-        setExploreMode(true);
+        const dest = feedPosted && extUsername
+          ? `${HAUL_SHARE_BASE}/u/${extUsername}`
+          : `${HAUL_SHARE_BASE}/feed`;
+        chrome.tabs.create({ url: dest, active: true });
       }, feedPosted || !extUsername ? 1200 : 3000);
     } catch {
       communityPostBtn.disabled = false;
@@ -667,7 +670,10 @@ function setExploreMode(active) {
 }
 
 document.getElementById('tab-my-haul').addEventListener('click', () => setExploreMode(false));
-document.getElementById('tab-explore').addEventListener('click', () => setExploreMode(true));
+document.getElementById('tab-explore').addEventListener('click', () => {
+  // Open Haul website instead of the in-extension feed
+  chrome.tabs.create({ url: `${HAUL_SHARE_BASE}/feed`, active: true });
+});
 
 document.getElementById('explore-tab-foryou').addEventListener('click', () => {
   if (exploreFeedMode === 'foryou') return;
