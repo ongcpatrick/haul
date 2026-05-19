@@ -19,8 +19,24 @@ let _popupProducts = [];
 
 document.getElementById('post-haul-btn').addEventListener('click', () => {
   if (!_popupProducts.length) return;
-  chrome.runtime.sendMessage({ type: 'POST_HAUL_TO_WEBSITE', products: _popupProducts, title: '' });
-  window.close(); // background handles posting + opening the tab
+  const btn = document.getElementById('post-haul-btn');
+  btn.disabled = true;
+  btn.textContent = 'Posting…';
+  chrome.runtime.sendMessage({ type: 'POST_HAUL_TO_WEBSITE', products: _popupProducts, title: '' }, (res) => {
+    if (chrome.runtime.lastError || !res) {
+      btn.disabled = false;
+      btn.textContent = 'Service error — reload extension';
+      btn.style.background = '#c0392b';
+      return;
+    }
+    if (res.success) {
+      window.close(); // background already opened profile tab + focused window
+    } else {
+      btn.disabled = false;
+      btn.textContent = res.reason === 'not_connected' ? 'Connect to Haul first' : 'Post failed — try again';
+      btn.style.background = '#c0392b';
+    }
+  });
 });
 
 chrome.runtime.sendMessage({ type: 'GET_PRODUCTS' }, (response) => {

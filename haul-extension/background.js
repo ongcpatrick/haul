@@ -2,11 +2,11 @@
 // Storage is inlined here to avoid importScripts failures in MV3 service workers.
 importScripts('lib/product-schema.js');
 
-const STORAGE_KEY = 'haul_products';
-const FOLDERS_KEY = 'haul_folders';
-const EXT_TOKEN_KEY = 'haul_ext_token';
-const EXT_USERNAME_KEY = 'haul_ext_username';
-const CLOUD_CONSENT_KEY = 'haul_cloud_consent_v1';
+var STORAGE_KEY = 'haul_products';
+var FOLDERS_KEY = 'haul_folders';
+var EXT_TOKEN_KEY = 'haul_ext_token';
+var EXT_USERNAME_KEY = 'haul_ext_username';
+var CLOUD_CONSENT_KEY = 'haul_cloud_consent_v1';
 
 // ─── Haul Worker config ───────────────────────────────────────────────────────
 const HAUL_WORKER_URL = 'https://haul-ai.haulapp.workers.dev';
@@ -170,7 +170,14 @@ function senderIsExtensionPage(sender) {
 }
 
 function sanitizeProductsForCloud(products) {
-  return globalThis.HaulProductSchema.sanitizeProducts(products, { maxCount: 25 });
+  const result = globalThis.HaulProductSchema.sanitizeProducts(products, { maxCount: 25 });
+  return result.filter((p) => p && typeof p.name === 'string' && p.name.length > 0);
+}
+
+function openAndFocusBg(url) {
+  chrome.tabs.create({ url, active: true }, (tab) => {
+    if (tab?.windowId) chrome.windows.update(tab.windowId, { focused: true });
+  });
 }
 
 async function postHaulToWebsite(products, title) {
@@ -492,14 +499,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (!Array.isArray(products)) { sendResponse({ success: false, reason: 'invalid_products' }); return false; }
     getExtToken().then(({ token, username }) => {
       if (!token) {
-        chrome.tabs.create({ url: `${HAUL_SHARE_BASE}/feed`, active: true });
+        openAndFocusBg(`${HAUL_SHARE_BASE}/feed`);
         sendResponse({ success: false, reason: 'not_connected' });
         return;
       }
       postHaulToWebsite(products, title).then((result) => {
         if (result.success) {
           const dest = username ? `${HAUL_SHARE_BASE}/u/${username}` : `${HAUL_SHARE_BASE}/feed`;
-          chrome.tabs.create({ url: dest, active: true });
+          openAndFocusBg(dest);
         }
         sendResponse(result);
       }).catch(() => sendResponse({ success: false, reason: 'unknown' }));
