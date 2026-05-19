@@ -490,25 +490,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'POST_HAUL_TO_WEBSITE') {
     const { products, title } = message;
     if (!Array.isArray(products)) { sendResponse({ success: false, reason: 'invalid_products' }); return false; }
-    postHaulToWebsite(products, title)
-      .then((result) => sendResponse(result))
-      .catch(() => sendResponse({ success: false, reason: 'unknown' }));
-    return true;
-  }
-
-  if (message.type === 'POST_HAUL_VIA_WEBSITE') {
-    const { products, title } = message;
-    if (!Array.isArray(products)) { sendResponse({ success: false, reason: 'invalid_products' }); return false; }
-    const safeProducts = sanitizeProductsForCloud(products);
-    const safeTitle = globalThis.HaulProductSchema.cleanText(title || 'My Haul', 120) || 'My Haul';
-    chrome.storage.local.set(
-      { haul_pending_post: { products: safeProducts, title: safeTitle, timestamp: Date.now() } },
-      () => {
-        chrome.tabs.create({ url: `${HAUL_SHARE_BASE}/new-haul`, active: true }, () => {
-          sendResponse({ success: true });
-        });
+    getExtToken().then(({ token, username }) => {
+      if (!token) {
+        chrome.tabs.create({ url: `${HAUL_SHARE_BASE}/feed`, active: true });
+        sendResponse({ success: false, reason: 'not_connected' });
+        return;
       }
-    );
+      postHaulToWebsite(products, title).then((result) => {
+        if (result.success) {
+          const dest = username ? `${HAUL_SHARE_BASE}/u/${username}` : `${HAUL_SHARE_BASE}/feed`;
+          chrome.tabs.create({ url: dest, active: true });
+        }
+        sendResponse(result);
+      }).catch(() => sendResponse({ success: false, reason: 'unknown' }));
+    });
     return true;
   }
 

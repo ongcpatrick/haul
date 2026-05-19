@@ -19,8 +19,8 @@ let _popupProducts = [];
 
 document.getElementById('post-haul-btn').addEventListener('click', () => {
   if (!_popupProducts.length) return;
-  chrome.runtime.sendMessage({ type: 'POST_HAUL_VIA_WEBSITE', products: _popupProducts, title: '' });
-  window.close();
+  chrome.runtime.sendMessage({ type: 'POST_HAUL_TO_WEBSITE', products: _popupProducts, title: '' });
+  window.close(); // background handles posting + opening the tab
 });
 
 chrome.runtime.sendMessage({ type: 'GET_PRODUCTS' }, (response) => {

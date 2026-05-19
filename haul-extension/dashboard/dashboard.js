@@ -478,46 +478,28 @@ function renderShareModalBody(shareUrl, products, extUsername) {
   });
 
   const communityPostBtn = document.getElementById('share-community-post-btn');
-  communityPostBtn.addEventListener('click', async () => {
+  communityPostBtn.addEventListener('click', () => {
     const authorInput = document.getElementById('share-author-input');
     const author = extUsername || (authorInput ? authorInput.value.trim() : '');
-    communityPostBtn.disabled = true;
-    communityPostBtn.textContent = 'Opening Haul…';
-    try {
-      const title = `${author ? author + "'s" : 'My'} picks: ${products.length} item${products.length !== 1 ? 's' : ''}`;
+    const title = `${author ? author + "'s" : 'My'} picks: ${products.length} item${products.length !== 1 ? 's' : ''}`;
 
-      if (extUsername) {
-        // Integrated flow: store in local storage, open /new-haul on the website.
-        // background.js handles the tab open so popup destruction doesn't cancel it.
-        chrome.runtime.sendMessage({ type: 'POST_HAUL_VIA_WEBSITE', products, title });
-        communityPostBtn.textContent = 'Opening your haul…';
-        communityPostBtn.style.background = 'var(--primary)';
-        communityPostBtn.style.color = '#fff';
-        setTimeout(() => closeShareModal(), 800);
-      } else {
-        // Not connected: post to Cloudflare Worker KV (public Explore only)
-        const res = await fetch(`${WORKER_BASE}/share`, {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ products, title, author: author || null, isPublic: true }),
-        });
-        const data = await res.json();
-        if (!data.url) throw new Error('no url');
-        rememberShareToken(data.shareId, data.deleteToken);
-        cachedShareUrl = data.url;
-        cachedShareProducts = products.map((p) => p.id).join(',');
+    communityPostBtn.disabled = true;
+    communityPostBtn.textContent = 'Posting…';
+    communityPostBtn.style.background = 'var(--primary)';
+    communityPostBtn.style.color = '#fff';
+
+    // background.js posts to API and opens profile/feed tab — no second step needed
+    chrome.runtime.sendMessage({ type: 'POST_HAUL_TO_WEBSITE', products, title }, (res) => {
+      if (res?.success) {
         communityPostBtn.textContent = 'Posted!';
-        communityPostBtn.style.background = 'var(--primary)';
-        communityPostBtn.style.color = '#fff';
-        setTimeout(() => {
-          closeShareModal();
-          chrome.tabs.create({ url: `${HAUL_SHARE_BASE}/feed`, active: true });
-        }, 1200);
+        setTimeout(() => closeShareModal(), 600);
+      } else {
+        communityPostBtn.disabled = false;
+        communityPostBtn.textContent = extUsername ? 'Post to My Feed' : 'Connect to Post';
+        communityPostBtn.style.background = '';
+        communityPostBtn.style.color = '';
       }
-    } catch {
-      communityPostBtn.disabled = false;
-      communityPostBtn.textContent = extUsername ? 'Post to My Feed + Explore' : 'Post to Explore';
-    }
+    });
   });
 }
 
