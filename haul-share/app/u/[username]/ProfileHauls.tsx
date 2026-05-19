@@ -136,10 +136,10 @@ function HaulDrawer({
             </div>
           ) : (
             <div className="divide-y divide-[var(--border)]">
-              {safeProducts.map((p: { id: string; name: string; imageUrl: string | null; price?: number | null; siteName: string; url?: string }) => (
+              {safeProducts.map((p: { id: string; name: string; imageUrl: string | null; price?: number | null; siteName: string; sourceUrl?: string | null; url?: string }) => (
                 <a
                   key={p.id}
-                  href={p.url ?? '#'}
+                  href={p.sourceUrl ?? p.url ?? '#'}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-4 px-5 py-4 hover:bg-[var(--bg)] transition-colors"

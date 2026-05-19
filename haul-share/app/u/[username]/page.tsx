@@ -56,19 +56,6 @@ export default async function ProfilePage({ params }: Params) {
   const friendCount = parseInt(friendCountRow[0]?.count ?? '0', 10);
   const maxReactions = parseInt(topReactedRow[0]?.reaction_count ?? '0', 10);
 
-  const totalSavings = hauls.reduce((sum, h) => {
-    const products = parseProducts(h.products) as { price?: number; originalPrice?: number }[];
-    return (
-      sum +
-      products.reduce((s, p) => {
-        if (p.originalPrice != null && p.price != null && p.originalPrice > p.price) {
-          return s + (p.originalPrice - p.price);
-        }
-        return s;
-      }, 0)
-    );
-  }, 0);
-
   const haulIds = hauls.map((h) => h.id as string);
   const [reactions, haulComments] = haulIds.length > 0
     ? await Promise.all([
@@ -102,8 +89,6 @@ export default async function ProfilePage({ params }: Params) {
   const badges: { icon: string; label: string; title: string }[] = [];
   if (new Date(user.created_at) < new Date('2025-06-01'))
     badges.push({ icon: '⚡', label: 'Early Adopter', title: 'Joined Haul early' });
-  if (totalSavings > 0)
-    badges.push({ icon: '↓', label: 'Saver', title: 'Found real price savings across hauls' });
   if (hauls.length >= 5)
     badges.push({ icon: '◇', label: 'Curator', title: 'Posted 5+ public hauls' });
   if (friendCount >= 5)
@@ -149,7 +134,6 @@ export default async function ProfilePage({ params }: Params) {
           <div className="flex gap-6 mb-3">
             <StatInline label="hauls" value={publicCount} />
             <StatInline label="friends" value={friendCount} />
-            {totalSavings > 0 && <StatInline label="saved" value={`$${totalSavings.toFixed(0)}`} />}
           </div>
 
           {user.bio && <p className="text-sm text-[var(--text)] leading-relaxed max-w-sm">{user.bio}</p>}
